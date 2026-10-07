@@ -1,10 +1,22 @@
+import type { CSSProperties } from 'react';
 import { isPlayed, scoreFor, type PoolView } from '../poolView';
 import { t } from '../strings';
 import type { Match } from '../tournaments';
 
+/**
+ * Column widths in em, so the grid grows with the font on /live. Result cells are squares of
+ * `cell` em: the rows are as tall as the result columns are wide (see .pool-table in the CSS).
+ */
+const COLUMN = { setScore: 7, name: 9, cell: 5.5, won: 5, rank: 3.5 };
+
 interface PoolTableProps {
   view: PoolView;
   names: Map<number, string>;
+  /**
+   * Rows and result columns to draw, normally the size of the tournament's largest pool. A
+   * smaller pool gets empty rows and columns, so every pool has the same size and lines up.
+   */
+  slots: number;
   /** Set for admins: clicking a cell enters or changes that match, from the row player's side. */
   onCellClick?: (match: Match, rowPlayer: number) => void;
 }
@@ -14,25 +26,25 @@ interface PoolTableProps {
  * shows the row player's score, green for a win and red for a loss. The set score (frames won
  * and lost) is to the left of the name; wins and rank are on the right.
  */
-/** Column widths in em. Every result cell is the same size. */
-const COLUMN = { setScore: 6.5, name: 8, cell: 4.5, won: 4.5, rank: 3 };
-
-export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
+export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
-  // Fixed column widths (in em, so they grow with the font on /live) give every pool the same grid.
-  const width =
-    COLUMN.setScore + COLUMN.name + pool.playerIds.length * COLUMN.cell + COLUMN.won + COLUMN.rank;
+  const ids = pool.playerIds;
+  const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
+  const columns = Math.max(slots, ids.length);
+  const width = COLUMN.setScore + COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
+  const style = { width: `${width}em`, '--cell': `${COLUMN.cell}em` } as CSSProperties;
+
   return (
     <div className="table-scroll">
-      <table className="pool-table" style={{ width: `${width}em` }}>
+      <table className="pool-table" style={style}>
         <caption>
           {t.pools.pool} {pool.name}
         </caption>
         <colgroup>
           <col style={{ width: `${COLUMN.setScore}em` }} />
           <col style={{ width: `${COLUMN.name}em` }} />
-          {pool.playerIds.map((id) => (
-            <col key={id} style={{ width: `${COLUMN.cell}em` }} />
+          {Array.from({ length: columns }, (_, i) => (
+            <col key={i} style={{ width: `${COLUMN.cell}em` }} />
           ))}
           <col style={{ width: `${COLUMN.won}em` }} />
           <col style={{ width: `${COLUMN.rank}em` }} />
@@ -41,17 +53,20 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
           <tr>
             <th className="set-score">{t.pools.setScore}</th>
             <th>{t.players.name}</th>
-            {pool.playerIds.map((id) => (
+            {ids.map((id) => (
               <th key={id} className="opponent" title={names.get(id)}>
                 {names.get(id)}
               </th>
+            ))}
+            {padding.map((i) => (
+              <th key={`pad-${i}`} className="opponent" />
             ))}
             <th>{t.pools.won}</th>
             <th>#</th>
           </tr>
         </thead>
         <tbody>
-          {pool.playerIds.map((rowId) => {
+          {ids.map((rowId) => {
             const row = standings.get(rowId)!;
             return (
               <tr key={rowId}>
@@ -61,13 +76,16 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
                 <th scope="row" title={names.get(rowId)}>
                   {names.get(rowId)}
                 </th>
-                {pool.playerIds.map((colId) => {
+                {ids.map((colId) => {
                   if (colId === rowId) return <td key={colId} className="self" />;
                   const match = matchBetween(rowId, colId)!;
                   const score = isPlayed(match) ? scoreFor(match, rowId) : null;
                   const label = `${names.get(rowId)} – ${names.get(colId)}`;
                   return (
-                    <td key={colId} className={score ? (score.won ? 'win' : 'loss') : ''}>
+                    <td
+                      key={colId}
+                      className={`result ${score ? (score.won ? 'win' : 'loss') : ''}`}
+                    >
                       {onCellClick ? (
                         <button
                           type="button"
@@ -83,6 +101,9 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
                     </td>
                   );
                 })}
+                {padding.map((i) => (
+                  <td key={`pad-${i}`} className="empty" />
+                ))}
                 <td>{row.won}</td>
                 <td title={row.unresolvedTie ? t.pools.tied : undefined}>
                   {row.rank}
@@ -91,6 +112,13 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
               </tr>
             );
           })}
+          {padding.map((i) => (
+            <tr key={`pad-${i}`} className="empty-row">
+              {Array.from({ length: columns + 4 }, (_, j) => (
+                <td key={j} className="empty" />
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

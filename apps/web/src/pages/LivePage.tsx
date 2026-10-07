@@ -23,6 +23,7 @@ function LiveTournament({ id }: { id: number }) {
   if (!tournament.data) return null;
   const data = tournament.data;
   const names = new Map(data.players.map((p) => [p.id, p.name]));
+  const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (
     <>
@@ -40,7 +41,7 @@ function LiveTournament({ id }: { id: number }) {
             const view = poolView(data, pool);
             return (
               <section key={pool.id} className="pool-block">
-                <PoolTable view={view} names={names} />
+                <PoolTable view={view} names={names} slots={slots} />
                 <UpNext view={view} names={names} />
               </section>
             );

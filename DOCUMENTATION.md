@@ -74,8 +74,10 @@ touch screens a short press starts the drag, so the page still scrolls. "finaliz
 a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
-Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) so every result cell is the same
-size and all pools line up; long names are cut off with "…" and shown in full on hover. In it,
+Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
+Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
+the extra fields empty, so all pools have the same size and line up. Long names are cut off with
+"…" and shown in full on hover. In the matrix,
 a played cell shows the row player's score, green for a win and red for a loss. The set score
 ("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
 are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens

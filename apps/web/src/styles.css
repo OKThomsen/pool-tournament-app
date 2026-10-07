@@ -377,6 +377,17 @@ select {
   text-align: left;
 }
 
+/* Body rows are as tall as a result column is wide (--cell, set by PoolTable), so the result
+   cells are squares. */
+.pool-table tbody td,
+.pool-table tbody th {
+  height: var(--cell);
+}
+
+.pool-table .result {
+  font-size: 1.15em;
+}
+
 .pool-table .opponent {
   font-size: 0.85rem;
 }

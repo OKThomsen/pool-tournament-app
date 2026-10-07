@@ -118,6 +118,7 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
   const [scoring, setScoring] = useState<Scoring | null>(null);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
+  const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const busy = setResult.isPending || clearResult.isPending;
   const close = () => setScoring(null);
 
@@ -134,6 +135,7 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
           <PoolTable
             view={view}
             names={names}
+            slots={slots}
             onCellClick={(match, player) => setScoring({ match, player })}
           />
           <UpNext view={view} names={names} />
