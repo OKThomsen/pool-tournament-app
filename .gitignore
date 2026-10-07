@@ -1,0 +1,23 @@
+# Local-only project files (kept out of the repo on purpose)
+CLAUDE.md
+*.pdf
+*.fig
+*.xlsx
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs and OS/editor files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
