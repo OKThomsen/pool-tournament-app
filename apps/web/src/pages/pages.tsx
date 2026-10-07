@@ -30,10 +30,6 @@ export function TournamentDetailPage() {
   return <Placeholder title={`${t.tournaments.title} #${id}`} />;
 }
 
-export function PlayersPage() {
-  return <Placeholder title={t.players.title} />;
-}
-
 export function CreateTournamentPage() {
   return <Placeholder title={t.nav.newTournament} />;
 }

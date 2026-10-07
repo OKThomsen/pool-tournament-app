@@ -52,6 +52,11 @@ and Logout instead of Log ind. Logout asks for confirmation first, using the reu
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
 `api()` in `apps/web/src/api.ts`.
 
+Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
+in separate columns and all-time statistics. Sæsonpoint shows "–" until seasons are built. When
+logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting
+asks for confirmation).
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 
@@ -102,6 +107,20 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
   with `{ preHandler: requireAdmin }` (`apps/server/src/auth/plugin.ts`).
 - There is deliberately no route that creates admins; see "Admin accounts".
 
+### Players API
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/players` | public | Every player, by name, with all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
+| `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
+| `GET /api/players/:id` | public | One player. |
+| `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap? }` → 201. |
+| `PATCH /api/players/:id` | admin | Change name and/or handicaps. A handicap change sets `lastAdjusted` to today (Danish time). |
+| `DELETE /api/players/:id` | admin | 204. Refused with 409 `player_has_tournaments` if the player has been in a tournament, so history stays intact. |
+
+Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so the search never
+shows two identical names. Handicaps are whole numbers from −20 to 20.
+
 ### Server tests
 
 `npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
@@ -124,7 +143,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 
 | Table | Purpose |
 |---|---|
-| `players` | Name, member, base/frame handicap, last adjusted date. |
+| `players` | Name (unique ignoring case), member, base/frame handicap, last adjusted date. |
 | `seasons` | `01/YYYY`, `02/YYYY`. |
 | `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
 | `tournament_players` | Who entered a tournament. |
