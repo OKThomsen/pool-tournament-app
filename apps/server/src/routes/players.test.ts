@@ -106,6 +106,20 @@ describe('POST /api/players', () => {
     expect(response.json()).toMatchObject({ name: 'Prasad', baseHandicap: -2, frameHandicap: 0 });
   });
 
+  it("reports membership correctly when the player's id differs from the season's", async () => {
+    // Regression: an unqualified "id" in the membership subquery once matched the season's id.
+    const [, , kent] = await addPlayers(db, 'A', 'B', 'Kent');
+    await setMembership(db, kent!.id, currentSeason().label, true);
+    const byName = async () =>
+      Object.fromEntries(
+        (await app.inject({ url: '/api/players' }))
+          .json()
+          .map((p: { name: string; member: boolean }) => [p.name, p.member]),
+      );
+    expect(await byName()).toEqual({ A: false, B: false, Kent: true });
+    expect((await app.inject({ url: `/api/players/${kent!.id}` })).json().member).toBe(true);
+  });
+
   it('can make the new player a member for this season', async () => {
     const response = await app.inject({
       method: 'POST',

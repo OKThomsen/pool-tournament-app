@@ -1,5 +1,5 @@
 import { MEMBER_BONUS, seasonForDate, todayInDenmark, type Season } from '@franks/core';
-import { eq, sql, type SQL } from 'drizzle-orm';
+import { eq, getTableName, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { Executor } from './client.js';
 import { memberships, results, seasons, tournaments } from './schema.js';
@@ -24,12 +24,21 @@ export async function seasonId(db: Executor, label: string): Promise<number> {
   return existing!.id;
 }
 
+/**
+ * `"table"."column"`. Drizzle leaves column names unqualified in single-table queries, so inside
+ * a hand-written subquery an outer `"id"` would silently mean the subquery's own `id`.
+ */
+export function qualified(column: AnyPgColumn): SQL {
+  return sql`${sql.identifier(getTableName(column.table))}.${sql.identifier(column.name)}`;
+}
+
 /** Whether the player renewed their membership for the season. */
 export function isMemberIn(label: string, playerId: AnyPgColumn): SQL<boolean> {
   return sql<boolean>`exists (
     select 1 from ${memberships}
-    join ${seasons} on ${seasons.id} = ${memberships.seasonId}
-    where ${memberships.playerId} = ${playerId} and ${seasons.label} = ${label}
+    join ${seasons} on ${qualified(seasons.id)} = ${qualified(memberships.seasonId)}
+    where ${qualified(memberships.playerId)} = ${qualified(playerId)}
+      and ${qualified(seasons.label)} = ${label}
   )`;
 }
 
@@ -37,10 +46,11 @@ export function isMemberIn(label: string, playerId: AnyPgColumn): SQL<boolean> {
 export function seasonPointsIn(label: string, playerId: AnyPgColumn): SQL<number> {
   return sql<number>`(
     coalesce((
-      select sum(${results.points}) from ${results}
-      join ${tournaments} on ${tournaments.id} = ${results.tournamentId}
-      join ${seasons} on ${seasons.id} = ${tournaments.seasonId}
-      where ${results.playerId} = ${playerId} and ${seasons.label} = ${label}
+      select sum(${qualified(results.points)}) from ${results}
+      join ${tournaments} on ${qualified(tournaments.id)} = ${qualified(results.tournamentId)}
+      join ${seasons} on ${qualified(seasons.id)} = ${qualified(tournaments.seasonId)}
+      where ${qualified(results.playerId)} = ${qualified(playerId)}
+        and ${qualified(seasons.label)} = ${label}
     ), 0)
     + case when ${isMemberIn(label, playerId)} then ${MEMBER_BONUS} else 0 end
   )::int`;

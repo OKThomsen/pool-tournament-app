@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Database } from '../db/client.js';
 import { players, results, seasons, tournaments } from '../db/schema.js';
-import { currentSeason, isMemberIn, seasonPointsIn } from '../db/seasons.js';
+import { currentSeason, isMemberIn, qualified, seasonPointsIn } from '../db/seasons.js';
 
 export const seasonRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
   /**
@@ -11,10 +11,10 @@ export const seasonRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
    */
   app.get('/seasons/current', async () => {
     const season = currentSeason();
-    const inSeason = sql`${results.tournamentId} in (
-      select ${tournaments.id} from ${tournaments}
-      join ${seasons} on ${seasons.id} = ${tournaments.seasonId}
-      where ${seasons.label} = ${season.label}
+    const inSeason = sql`${qualified(results.tournamentId)} in (
+      select ${qualified(tournaments.id)} from ${tournaments}
+      join ${seasons} on ${qualified(seasons.id)} = ${qualified(tournaments.seasonId)}
+      where ${qualified(seasons.label)} = ${season.label}
     )`;
     const member = isMemberIn(season.label, players.id);
     const points = seasonPointsIn(season.label, players.id);
