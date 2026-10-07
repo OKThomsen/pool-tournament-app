@@ -33,6 +33,45 @@ Planned (see `CLAUDE.md` → Tech stack):
 - `apps/web`: React + Vite frontend, including the public `/live` view for the club's flatscreen.
 - PostgreSQL via Drizzle; `docker-compose` runs the app and the database locally.
 
+## Domain logic (`packages/core`)
+
+Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`, like
+`Math.random`), and `seededRng(seed)` gives a reproducible one for tests. Run the tests with
+`npm test -w @franks/core`. The fixtures are the Group A–C results from the workbook.
+
+| Module | What it does |
+|---|---|
+| `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
+| `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
+| `pools.ts` | `poolSplits`, `drawPools`, `swapPlayers`: splitting players into pools of 4–5, random draw, admin swaps. |
+| `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
+| `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
+| `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
+| `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
+
+### Rules as implemented
+
+- **Pool ranking**: matches won → set score (frames for − frames against) → head-to-head. With
+  three or more tied players, head-to-head is a mini-league of their matches against each other,
+  applied again to whoever is still level. A tie that can't be broken (a cycle such as A>B>C>A,
+  or a deciding match not yet played) is **flagged** with `unresolvedTie`, not broken at random.
+- **Schedule**: circle-method round robin. In a pool of 5, each player sits out exactly one
+  round, so nobody sits out twice in a row. `playOrder` also orders matches within each round so
+  that in a pool of 5 nobody plays two matches back to back. That can't be avoided in a pool of
+  4, where every round has all four players.
+- **Pool splits**: `poolSplits(n)` lists every valid split, fewest pools first (20 players →
+  4×5 or 5×4). 6, 7 and 11 players have no split. Choosing between splits is still open.
+- **Qualification**: the same number from each pool (for example, top 2 of 4 pools for
+  quarterfinals). Uneven cases throw `UnsupportedQualificationError` until the rule is decided.
+  An unresolved tie across the cut-off is reported in `tiesAtCutoff`.
+- **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
+  QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
+  2v3. The top two seeds can only meet in the final.
+- **Knockout**: semifinal losers play the third-place final; winners play the final. The
+  bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+- **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
+  losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1.
+
 ## Decisions log
 
 | Date | Decision |
