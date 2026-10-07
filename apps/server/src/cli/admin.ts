@@ -14,7 +14,7 @@ import { config } from '../config.js';
 import { createDb, runMigrations } from '../db/client.js';
 import { admins, sessions } from '../db/schema.js';
 
-const MIN_PASSWORD_LENGTH = 10;
+const MIN_PASSWORD_LENGTH = 8;
 
 async function readPassword(): Promise<string> {
   const fromEnv = process.env.ADMIN_PASSWORD;

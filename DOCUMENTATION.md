@@ -75,7 +75,7 @@ npm run admin -w @franks/server -- set-password <username>  # also signs them ou
 npm run admin -w @franks/server -- list
 ```
 
-Passwords need at least 10 characters. They're typed without being shown, and stored as scrypt
+Passwords need at least 8 characters. They're typed without being shown, and stored as scrypt
 hashes (`apps/server/src/auth/password.ts`). To script it, set `ADMIN_PASSWORD` instead of
 typing. In the Docker setup, run it inside the app container:
 
