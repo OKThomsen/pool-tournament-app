@@ -5,10 +5,15 @@ import type { Events } from '../events.js';
 const HEARTBEAT_MS = 25_000;
 
 /**
- * Server-Sent Events: `event: tournament` with `{ "tournamentId": n }` whenever a tournament
- * changes. Public, like the pages it keeps up to date.
+ * Server-Sent Events. On connecting: `event: hello` with `{ "version": "…" }`, the version of the
+ * frontend being served; a page that sees a different version after reconnecting reloads itself,
+ * so the flatscreen picks up updates. Then `event: tournament` with `{ "tournamentId": n }`
+ * whenever a tournament changes. Public, like the pages it keeps up to date.
  */
-export const eventRoutes: FastifyPluginAsync<{ events: Events }> = async (app, { events }) => {
+export const eventRoutes: FastifyPluginAsync<{ events: Events; version: string }> = async (
+  app,
+  { events, version },
+) => {
   app.get('/events', (request, reply) => {
     reply.hijack();
     const stream = reply.raw;
@@ -19,7 +24,7 @@ export const eventRoutes: FastifyPluginAsync<{ events: Events }> = async (app, {
       // Stops nginx-style proxies from buffering the stream.
       'X-Accel-Buffering': 'no',
     });
-    stream.write(': connected\n\n');
+    stream.write(`event: hello\ndata: ${JSON.stringify({ version })}\n\n`);
 
     const unsubscribe = events.subscribe((event) => {
       stream.write(`event: tournament\ndata: ${JSON.stringify(event)}\n\n`);

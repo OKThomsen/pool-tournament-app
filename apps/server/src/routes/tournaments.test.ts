@@ -280,7 +280,9 @@ describe('live updates', () => {
       const decoder = new TextDecoder();
       let received = '';
       const read = async () => (received += decoder.decode((await reader.read()).value));
-      await read(); // ": connected"
+      await read();
+      // Vite serves the frontend in development, so there is no build to version.
+      expect(received).toContain('event: hello\ndata: {"version":"dev"}');
 
       const created = await live.inject({
         method: 'POST',

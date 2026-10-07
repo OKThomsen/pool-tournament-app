@@ -1,6 +1,9 @@
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { sessionPlugin } from './auth/plugin.js';
 import type { Database } from './db/client.js';
 import { Events } from './events.js';
@@ -10,6 +13,16 @@ import { healthRoutes } from './routes/health.js';
 import { playerRoutes } from './routes/players.js';
 import { seasonRoutes } from './routes/seasons.js';
 import { tournamentRoutes } from './routes/tournaments.js';
+
+/**
+ * Identifies the frontend being served: a hash of its index.html, which names the hashed script
+ * and style files, so it changes with every frontend build. "dev" when Vite serves the frontend.
+ */
+function frontendVersion(webDist: string | undefined): string {
+  if (!webDist) return 'dev';
+  const index = readFileSync(join(webDist, 'index.html'));
+  return createHash('sha256').update(index).digest('hex').slice(0, 12);
+}
 
 export interface AppOptions {
   db: Database;
@@ -39,7 +52,7 @@ export async function buildApp({
   await app.register(playerRoutes, { prefix: '/api', db });
   await app.register(seasonRoutes, { prefix: '/api', db });
   await app.register(tournamentRoutes, { prefix: '/api', db, events });
-  await app.register(eventRoutes, { prefix: '/api', events });
+  await app.register(eventRoutes, { prefix: '/api', events, version: frontendVersion(webDist) });
 
   if (webDist) {
     await app.register(fastifyStatic, { root: webDist, wildcard: false });

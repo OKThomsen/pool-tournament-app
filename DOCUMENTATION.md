@@ -231,7 +231,11 @@ per pool, `tiebreak`.
 
 ### Live updates
 
-`GET /api/events` is a public Server-Sent Events stream. Every change to a tournament (created,
+`GET /api/events` is a public Server-Sent Events stream. On connecting it sends `event: hello` with
+`data: {"version": "…"}`: a hash of the frontend's `index.html` (`"dev"` when Vite serves the
+frontend). `LiveUpdates` remembers the first version it sees and reloads the page when a later
+connection reports a different one, so pages left open (the flatscreen on `/live`) pick up an
+update as soon as the server restarts with it. Every change to a tournament (created,
 pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
 `data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
 seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
@@ -394,4 +398,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
 | 2026-10-07 | Member bonus is 10 season points, not 50 (from the customer). |
+| 2026-10-07 | Open pages reload themselves when a new version of the app is deployed. |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |
