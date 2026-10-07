@@ -77,6 +77,27 @@ typing. In the Docker setup, run it inside the app container:
 docker compose exec app node apps/server/dist/cli/admin.js create <username>
 ```
 
+### Login API
+
+| Route | Who | What |
+|---|---|---|
+| `POST /api/auth/login` | public | `{ username, password }` → `{ username }` and a session cookie. 401 on a wrong username or password (same answer for both). At most 10 attempts per IP per 15 minutes, then 429. |
+| `POST /api/auth/logout` | anyone | Ends the session and clears the cookie. 204. |
+| `GET /api/auth/me` | admin | `{ username }`, or 401 when not logged in. |
+
+- Sessions last 30 days. The cookie (`session`) is `HttpOnly` and `SameSite=Lax`; set
+  `COOKIE_SECURE=true` once the app is served over HTTPS. Only a SHA-256 hash of the token is
+  stored in `sessions`.
+- Every request gets `request.admin` (or null) from `sessionPlugin`. Make a route admin-only
+  with `{ preHandler: requireAdmin }` (`apps/server/src/auth/plugin.ts`).
+- There is deliberately no route that creates admins; see "Admin accounts".
+
+### Server tests
+
+`npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
+separate `franks_test` database in the same container, created and migrated automatically, and
+emptied before each test. Override it with `TEST_DATABASE_URL`.
+
 ### Database changes
 
 1. Edit `apps/server/src/db/schema.ts`.
