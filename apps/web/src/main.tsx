@@ -7,15 +7,10 @@ import { RequireAdmin } from './components/RequireAdmin';
 import { CreateTournamentPage } from './pages/CreateTournamentPage';
 import { FrontPage } from './pages/FrontPage';
 import { LoginPage } from './pages/LoginPage';
+import { OngoingTournamentPage } from './pages/OngoingTournamentPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
-import {
-  LivePage,
-  NotFoundPage,
-  OngoingTournamentPage,
-  TournamentDetailPage,
-  TournamentsPage,
-} from './pages/pages';
+import { LivePage, NotFoundPage, TournamentDetailPage, TournamentsPage } from './pages/pages';
 import './styles.css';
 
 const queryClient = new QueryClient();

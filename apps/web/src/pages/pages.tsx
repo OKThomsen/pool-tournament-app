@@ -21,11 +21,6 @@ export function TournamentDetailPage() {
   return <Placeholder title={`${t.tournaments.title} #${id}`} />;
 }
 
-export function OngoingTournamentPage() {
-  const { id } = useParams();
-  return <Placeholder title={`${t.stages.pools} #${id}`} />;
-}
-
 /** Full-screen view for the flatscreen in the club. Rendered without the site header. */
 export function LivePage() {
   return (

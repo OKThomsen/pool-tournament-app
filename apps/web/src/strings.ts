@@ -88,6 +88,16 @@ export const t = {
     completeQualifiers: 'complete qualifier brackets',
     concludeTournament: 'conclude tournament',
     upNext: 'Up next',
+    week: 'Uge',
+    cancelTournament: 'Annuller turnering',
+    confirmStart: 'Er puljerne klar? Bagefter kan de ikke ændres.',
+    confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
+  },
+  pools: {
+    pool: 'Pulje',
+    dragHelp:
+      'Træk en spiller over på en anden for at bytte dem, eller ind i en anden pulje for at flytte spilleren.',
+    tooSmall: 'En pulje skal have mindst 2 spillere.',
   },
   yes: 'Ja',
   no: 'Nej',

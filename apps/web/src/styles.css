@@ -295,3 +295,50 @@ select {
   gap: 16px;
   align-items: center;
 }
+
+.pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pool-zone {
+  min-height: 120px;
+  padding: 12px;
+  background: rgb(255 255 255 / 60%);
+  outline: 2px dashed transparent;
+}
+
+.pool-zone.over {
+  outline-color: var(--color-header);
+}
+
+.pool-zone h2,
+.pool-zone h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.chip {
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2px solid transparent;
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.chip.over {
+  border-color: var(--color-header);
+}
+
+.chip.placeholder {
+  opacity: 0.4;
+}
+
+.chip.dragging {
+  cursor: grabbing;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+}

@@ -67,6 +67,12 @@ shows how the players will be split into pools (from `poolSizes` in `@franks/cor
 app imports straight from source via a Vite alias). If a tournament is already in progress, the
 page links to it instead.
 
+The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
+the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
+another pool to move them (pools keep at least 2 players). Every change is saved at once. On
+touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
+a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 
