@@ -36,3 +36,19 @@ export function seasonForDate(date: string): Season {
 export function todayInDenmark(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(now);
 }
+
+/**
+ * The ISO 8601 week number (1–53) of a date, as used in Danish calendars. Weeks start on Monday,
+ * and week 1 is the week with the year's first Thursday.
+ *
+ * @param date YYYY-MM-DD
+ */
+export function weekNumber(date: string): number {
+  const day = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(day.getTime())) throw new RangeError(`Not a date: ${date}`);
+  // Move to the Thursday of the same week; its year is the week's year.
+  const weekday = day.getUTCDay() || 7;
+  day.setUTCDate(day.getUTCDate() + 4 - weekday);
+  const yearStart = Date.UTC(day.getUTCFullYear(), 0, 1);
+  return Math.ceil(((day.getTime() - yearStart) / 86_400_000 + 1) / 7);
+}

@@ -202,7 +202,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
-| `seasons.ts` | `seasonForDate`, `todayInDenmark`, `MEMBER_BONUS`: which season a date is in. |
+| `seasons.ts` | `seasonForDate`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in. |
 
 ### Rules as implemented
 
