@@ -52,6 +52,11 @@ and Logout instead of Log ind. Logout asks for confirmation first, using the reu
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
 `api()` in `apps/web/src/api.ts`.
 
+Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
+in separate columns and all-time statistics. Sæsonpoint shows "–" until seasons are built. When
+logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting
+asks for confirmation).
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 

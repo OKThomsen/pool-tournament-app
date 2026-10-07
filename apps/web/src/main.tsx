@@ -5,13 +5,13 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
 import { RequireAdmin } from './components/RequireAdmin';
 import { LoginPage } from './pages/LoginPage';
+import { PlayersPage } from './pages/PlayersPage';
 import {
   CreateTournamentPage,
   FrontPage,
   LivePage,
   NotFoundPage,
   OngoingTournamentPage,
-  PlayersPage,
   TournamentDetailPage,
   TournamentsPage,
 } from './pages/pages';

@@ -166,3 +166,47 @@ button.primary {
   background: var(--color-header);
   color: var(--color-header-text);
 }
+
+/* Wide tables scroll sideways inside their panel on small screens. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+tbody tr:nth-child(even) {
+  background: rgb(255 255 255 / 35%);
+}
+
+.actions {
+  white-space: nowrap;
+}
+
+.actions .link + .link {
+  margin-left: 12px;
+}
+
+.player-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.player-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.player-form input {
+  padding: 8px;
+  border: 0;
+  font: inherit;
+}
+
+.player-form input[type='number'] {
+  width: 6em;
+}
+
+.player-form .error {
+  flex-basis: 100%;
+}
