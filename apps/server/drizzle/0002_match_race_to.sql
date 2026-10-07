@@ -1,0 +1,1 @@
+ALTER TABLE "matches" ADD COLUMN "race_to" integer DEFAULT 2 NOT NULL;

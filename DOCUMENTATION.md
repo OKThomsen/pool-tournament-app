@@ -80,7 +80,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
-| `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, frames, play order. |
+| `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, race length, frames, play order. |
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
@@ -152,6 +152,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
   Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
+- **Race length**: stored per match (`matches.race_to`, default 2). Pool matches are race to 2.
+  For the knockout the admin picks a race length (usually 2, longer when there's time) and can
+  change it for a single match. Scores aren't checked against the race length yet, because
+  frame handicaps may change how many frames a player needs.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
@@ -173,3 +177,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | 6 players → one pool of 6; 7 → 4 + 3; 11 → 4 + 4 + 3. The admin can move players between pools. |
 | 2026-10-07 | Qualification: pool winners first, then the best runners-up (workbook rule). |
 | 2026-10-07 | Players from the same pool are kept apart in the quarterfinals, not in the semifinals. |
+| 2026-10-07 | Knockout race length is chosen by the admin (default race to 2). |
