@@ -1,6 +1,7 @@
 import { asc, eq, ne } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import {
+  knockoutSeeds,
   matches,
   players,
   poolMembers,
@@ -42,16 +43,31 @@ export async function tournamentDetail(db: Executor, id: number) {
     .orderBy(players.name);
 
   const memberRows = await db
-    .select({ poolId: pools.id, name: pools.name, playerId: poolMembers.playerId })
+    .select({
+      poolId: pools.id,
+      name: pools.name,
+      playerId: poolMembers.playerId,
+      tiebreak: poolMembers.adminTiebreak,
+    })
     .from(pools)
     .innerJoin(poolMembers, eq(poolMembers.poolId, pools.id))
     .where(eq(pools.tournamentId, id))
     .orderBy(asc(pools.name), asc(poolMembers.position));
-  const poolList: { id: number; name: string; playerIds: number[] }[] = [];
+  // `tiebreak` is the admin's order for ties that results can't break (see poolStandings).
+  const poolList: { id: number; name: string; playerIds: number[]; tiebreak: number[] }[] = [];
   for (const row of memberRows) {
-    const pool = poolList.find((p) => p.id === row.poolId);
-    if (pool) pool.playerIds.push(row.playerId);
-    else poolList.push({ id: row.poolId, name: row.name, playerIds: [row.playerId] });
+    let pool = poolList.find((p) => p.id === row.poolId);
+    if (!pool) {
+      pool = { id: row.poolId, name: row.name, playerIds: [], tiebreak: [] };
+      poolList.push(pool);
+    }
+    pool.playerIds.push(row.playerId);
+  }
+  for (const pool of poolList) {
+    pool.tiebreak = memberRows
+      .filter((row) => row.poolId === pool.id && row.tiebreak !== null)
+      .sort((a, b) => a.tiebreak! - b.tiebreak!)
+      .map((row) => row.playerId);
   }
 
   const matchList = await db
@@ -71,7 +87,16 @@ export async function tournamentDetail(db: Executor, id: number) {
     .where(eq(matches.tournamentId, id))
     .orderBy(asc(matches.poolId), asc(matches.scheduleOrder), asc(matches.id));
 
-  return { ...tournament, players: entrants, pools: poolList, matches: matchList };
+  // Knockout seeds, best first. Empty until "complete qualifier brackets".
+  const seeds = (
+    await db
+      .select({ playerId: knockoutSeeds.playerId })
+      .from(knockoutSeeds)
+      .where(eq(knockoutSeeds.tournamentId, id))
+      .orderBy(asc(knockoutSeeds.seed))
+  ).map((row) => row.playerId);
+
+  return { ...tournament, players: entrants, pools: poolList, matches: matchList, seeds };
 }
 
 export type TournamentDetail = NonNullable<Awaited<ReturnType<typeof tournamentDetail>>>;

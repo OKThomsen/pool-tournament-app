@@ -9,7 +9,7 @@ import {
   weekNumber,
 } from '@franks/core';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { requireAdmin } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
 import { isUniqueViolation } from '../db/errors.js';
@@ -24,6 +24,7 @@ import {
 import { seasonId } from '../db/seasons.js';
 import type { Events } from '../events.js';
 import { ongoingTournament, tournamentDetail } from '../tournaments/detail.js';
+import { knockoutChangeAllowed, startKnockout, syncBracket } from '../tournaments/knockout.js';
 
 const idParams = {
   type: 'object',
@@ -265,6 +266,45 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     },
   } as const;
 
+  /**
+   * Sets (or with `next = null` clears) a result. A knockout result also updates who plays the
+   * later matches, and may not change a winner a later, already-played match depends on.
+   */
+  async function applyResult(
+    id: number,
+    matchId: number,
+    next: { framesA: number; framesB: number } | null,
+    reply: FastifyReply,
+  ) {
+    const found = await scorableMatch(id, matchId);
+    if ('error' in found) return reply.code(found.error).send({ error: found.code });
+    if (next) {
+      try {
+        assertValidScore(next.framesA, next.framesB, found.match.raceTo);
+      } catch {
+        return reply.code(400).send({ error: 'invalid_score' });
+      }
+    }
+    const knockout = found.match.stage !== 'pool';
+    const before = await tournamentDetail(db, id);
+    if (knockout && !knockoutChangeAllowed(before!, matchId, next)) {
+      return reply.code(409).send({ error: 'later_match_played' });
+    }
+    await db.transaction(async (tx) => {
+      await tx
+        .update(matches)
+        .set({
+          framesA: next?.framesA ?? null,
+          framesB: next?.framesB ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(matches.id, matchId));
+      if (knockout) await syncBracket(tx, before!);
+    });
+    events.tournamentChanged(id);
+    return tournamentDetail(db, id);
+  }
+
   /** Enters or corrects a result. Frames are the match's player A and B, in that order. */
   app.put<{ Params: { id: number; matchId: number }; Body: { framesA: number; framesB: number } }>(
     '/tournaments/:id/matches/:matchId/result',
@@ -283,37 +323,101 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         },
       },
     },
-    async (request, reply) => {
-      const { id, matchId } = request.params;
-      const found = await scorableMatch(id, matchId);
-      if ('error' in found) return reply.code(found.error).send({ error: found.code });
-      const { framesA, framesB } = request.body;
-      try {
-        assertValidScore(framesA, framesB, found.match.raceTo);
-      } catch {
-        return reply.code(400).send({ error: 'invalid_score' });
-      }
-      await db
-        .update(matches)
-        .set({ framesA, framesB, updatedAt: new Date() })
-        .where(eq(matches.id, matchId));
-      events.tournamentChanged(id);
-      return tournamentDetail(db, id);
-    },
+    (request, reply) => applyResult(request.params.id, request.params.matchId, request.body, reply),
   );
 
   /** Clears a result entered by mistake, so the match counts as not played. */
   app.delete<{ Params: { id: number; matchId: number } }>(
     '/tournaments/:id/matches/:matchId/result',
     { preHandler: requireAdmin, schema: { params: matchParams } },
+    (request, reply) => applyResult(request.params.id, request.params.matchId, null, reply),
+  );
+
+  /**
+   * The admin's order for players in one pool that wins, set score and head-to-head can't
+   * separate. Best first. Only while the pools are being played.
+   */
+  app.put<{ Params: { id: number; poolId: number }; Body: { playerIds: number[] } }>(
+    '/tournaments/:id/pools/:poolId/tiebreak',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id', 'poolId'],
+          properties: {
+            id: { type: 'integer', minimum: 1 },
+            poolId: { type: 'integer', minimum: 1 },
+          },
+        },
+        body: {
+          type: 'object',
+          required: ['playerIds'],
+          additionalProperties: false,
+          properties: { playerIds: { ...playerIdList, minItems: 2 } },
+        },
+      },
+    },
     async (request, reply) => {
-      const { id, matchId } = request.params;
-      const found = await scorableMatch(id, matchId);
-      if ('error' in found) return reply.code(found.error).send({ error: found.code });
-      await db
-        .update(matches)
-        .set({ framesA: null, framesB: null, updatedAt: new Date() })
-        .where(eq(matches.id, matchId));
+      const { id, poolId } = request.params;
+      const detail = await tournamentDetail(db, id);
+      const pool = detail?.pools.find((p) => p.id === poolId);
+      if (!detail || !pool) return reply.code(404).send({ error: 'not_found' });
+      if (detail.status !== 'pools') return reply.code(409).send({ error: 'not_in_pools' });
+      const { playerIds } = request.body;
+      if (!playerIds.every((p) => pool.playerIds.includes(p))) {
+        return reply.code(400).send({ error: 'player_not_in_pool' });
+      }
+      await db.transaction(async (tx) => {
+        for (const [position, playerId] of playerIds.entries()) {
+          await tx
+            .update(poolMembers)
+            .set({ adminTiebreak: position })
+            .where(and(eq(poolMembers.poolId, poolId), eq(poolMembers.playerId, playerId)));
+        }
+      });
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * "complete qualifier brackets": `{ size: 4 | 8, raceTo, adminOrder? }`. 409
+   * `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first:
+   * ties inside a pool go through the tiebreak route, ties between pools in `adminOrder`.
+   */
+  app.post<{
+    Params: { id: number };
+    Body: { size: 4 | 8; raceTo: number; adminOrder?: number[] };
+  }>(
+    '/tournaments/:id/knockout',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['size', 'raceTo'],
+          additionalProperties: false,
+          properties: {
+            size: { type: 'integer', enum: [4, 8] },
+            raceTo: { type: 'integer', minimum: 1, maximum: 15 },
+            adminOrder: playerIdList,
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      const { size, raceTo, adminOrder = [] } = request.body;
+      const result = await db.transaction((tx) =>
+        startKnockout(tx, detail, size, raceTo, adminOrder),
+      );
+      if (!result.ok) {
+        return reply.code(result.status).send({ error: result.error, ties: result.ties });
+      }
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },
