@@ -48,8 +48,12 @@ Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logge
 `null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
 `RequireAdmin`, which sends visitors to `/login` and back afterwards. That only hides pages; the
 API checks the session on every admin request. When logged in, the header shows Ny Turnering
-and Logout instead of Log ind. API calls go through `api()` in `apps/web/src/api.ts`. All UI text lives in `apps/web/src/strings.ts`, and the
-placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
+and Logout instead of Log ind. Logout asks for confirmation first, using the reusable
+`ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
+`api()` in `apps/web/src/api.ts`.
+
+All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
+the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker
 

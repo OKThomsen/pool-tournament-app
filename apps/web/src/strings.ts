@@ -45,6 +45,11 @@ export const t = {
     tooManyAttempts: 'For mange forsøg. Prøv igen om lidt.',
     failed: 'Login mislykkedes. Prøv igen.',
   },
+  logout: {
+    confirm: 'Er du sikker på at du vil logge ud?',
+    yes: 'Log ud',
+    cancel: 'Annuller',
+  },
   create: {
     addPlayer: 'Tilføj spiller',
     addNewPlayer: 'Tilføj ny spiller',

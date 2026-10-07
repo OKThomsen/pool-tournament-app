@@ -144,3 +144,25 @@ button.pill {
   margin: 0;
   color: var(--color-brand);
 }
+
+.confirm {
+  max-width: 360px;
+  text-align: center;
+}
+
+.confirm::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+button.primary {
+  padding: 10px 20px;
+  border: 0;
+  background: var(--color-header);
+  color: var(--color-header-text);
+}
