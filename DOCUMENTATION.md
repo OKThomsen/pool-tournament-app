@@ -176,7 +176,7 @@ shows two identical names. Handicaps are whole numbers from −20 to 20.
 season. It's stored per season in `memberships`, so past seasons keep their bonus, and shown on
 the player as a simple yes/no for the current season. It resets when a new season starts until
 the player renews. Season points = points from the season's concluded tournaments +
-`MEMBER_BONUS` (50) if the player is a member that season.
+`MEMBER_BONUS` (10) if the player is a member that season.
 
 ### Seasons API
 
@@ -278,7 +278,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `seasons` | One row per season label (`01/YYYY` … `04/YYYY`), created the first time a season is used. |
-| `memberships` | Player + season: the player renewed their membership for that season (+50 season points). |
+| `memberships` | Player + season: the player renewed their membership for that season (+10 season points). |
 | `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
@@ -391,4 +391,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
+| 2026-10-07 | Member bonus is 10 season points, not 50 (from the customer). |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |
