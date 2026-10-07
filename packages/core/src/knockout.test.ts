@@ -1,60 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { groupA, groupB, groupC } from './fixtures.test-data.js';
-import { knockoutBracket } from './knockout.js';
+import { firstRound, knockoutBracket } from './knockout.js';
 import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
-import {
-  qualifyFromPools,
-  suggestedKnockoutSize,
-  UnsupportedQualificationError,
-} from './qualification.js';
 import { seededRng } from './random.js';
 import { seedQualifiers } from './seeding.js';
-import { poolStandings, type StandingRow } from './standings.js';
 
 const seeds8 = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
 const aWins = { framesA: 2, framesB: 0 };
-
-describe('qualifyFromPools', () => {
-  const pools = [groupA, groupB, groupC].map((g) => poolStandings(g.players, g.results));
-
-  it('takes the same number from each pool', () => {
-    const fourPools = [...pools, pools[0]!];
-    const { qualifiers } = qualifyFromPools(fourPools, 8);
-    expect(qualifiers).toHaveLength(8);
-    expect(qualifiers.slice(0, 2).map((q) => q.playerId)).toEqual(['Kasper', 'Christian']);
-  });
-
-  it('refuses places that cannot be shared evenly (open question)', () => {
-    expect(() => qualifyFromPools(pools, 4)).toThrow(UnsupportedQualificationError);
-  });
-
-  it('reports an unresolved tie at the cut-off', () => {
-    const row = (playerId: string, rank: number, unresolvedTie = false): StandingRow => ({
-      playerId,
-      rank,
-      unresolvedTie,
-      played: 0,
-      won: 0,
-      lost: 0,
-      framesFor: 0,
-      framesAgainst: 0,
-      setScore: 0,
-    });
-    const pool = [row('A', 1), row('B', 2, true), row('C', 2, true), row('D', 4)];
-    // One per pool: the cut falls after A, clear of the B/C tie.
-    expect(qualifyFromPools([pool, pool, pool, pool], 4).tiesAtCutoff).toEqual([]);
-    // Two per pool: the cut falls between B and C.
-    expect(qualifyFromPools([pool, pool], 4).tiesAtCutoff).toEqual([
-      ['B', 'C'],
-      ['B', 'C'],
-    ]);
-  });
-
-  it('preselects quarterfinals from 14 players, like the workbook', () => {
-    expect(suggestedKnockoutSize(13)).toBe(4);
-    expect(suggestedKnockoutSize(14)).toBe(8);
-  });
-});
 
 describe('seedQualifiers', () => {
   it('orders by wins, then set score', () => {
@@ -72,6 +23,74 @@ describe('seedQualifiers', () => {
       Array.from({ length: 20 }, (_, i) => seedQualifiers(tied, seededRng(i)).join()),
     );
     expect(draws.size).toBeGreaterThan(1);
+  });
+});
+
+describe('firstRound', () => {
+  // Every seed in its own pool unless a test says otherwise.
+  const pools =
+    (overrides: Record<string, string> = {}) =>
+    (p: string) =>
+      overrides[p] ?? p;
+
+  it('uses strict seeding when no two opponents share a pool', () => {
+    expect(firstRound(seeds8, pools())).toEqual({
+      pairings: [
+        ['S1', 'S8'],
+        ['S4', 'S5'],
+        ['S2', 'S7'],
+        ['S3', 'S6'],
+      ],
+      samePoolMatches: 0,
+    });
+  });
+
+  it('gives seed 1 the next weakest opponent from another pool', () => {
+    const { pairings, samePoolMatches } = firstRound(seeds8, pools({ S1: 'A', S8: 'A' }));
+    expect(pairings).toEqual([
+      ['S1', 'S7'],
+      ['S4', 'S5'],
+      ['S2', 'S8'],
+      ['S3', 'S6'],
+    ]);
+    expect(samePoolMatches).toBe(0);
+  });
+
+  it('changes as little as possible for the higher seeds', () => {
+    // Only seed 4 and seed 5 clash, so seeds 1–3 keep their strict opponents where possible.
+    const { pairings } = firstRound(seeds8, pools({ S4: 'A', S5: 'A' }));
+    expect(pairings).toEqual([
+      ['S1', 'S8'],
+      ['S4', 'S6'],
+      ['S2', 'S7'],
+      ['S3', 'S5'],
+    ]);
+  });
+
+  it('falls back to strict seeding when a clash is unavoidable', () => {
+    const everyoneInA = () => 'A';
+    expect(firstRound(seeds8, everyoneInA)).toEqual({
+      pairings: [
+        ['S1', 'S8'],
+        ['S4', 'S5'],
+        ['S2', 'S7'],
+        ['S3', 'S6'],
+      ],
+      samePoolMatches: 4,
+    });
+  });
+
+  it('never rearranges semifinals', () => {
+    const { pairings } = firstRound(['S1', 'S2', 'S3', 'S4'], () => 'A');
+    expect(pairings).toEqual([
+      ['S1', 'S4'],
+      ['S2', 'S3'],
+    ]);
+  });
+
+  it('feeds the rearranged pairings into the bracket', () => {
+    const qf1 = knockoutBracket(seeds8, {}, pools({ S1: 'A', S8: 'A' }))[0]!;
+    expect([qf1.playerA, qf1.playerB]).toEqual(['S1', 'S7']);
   });
 });
 
@@ -117,6 +136,12 @@ describe('knockoutBracket', () => {
 
   it('rejects a drawn score', () => {
     expect(() => knockoutBracket(seeds8, { QF1: { framesA: 1, framesB: 1 } })).toThrow();
+  });
+
+  it('checks each score against its own race length', () => {
+    const longQF1 = { framesA: 3, framesB: 1, raceTo: 3 };
+    expect(knockoutBracket(seeds8, { QF1: longQF1 })[0]!.winner).toBe('S1');
+    expect(() => knockoutBracket(seeds8, { QF1: { framesA: 2, framesB: 1, raceTo: 3 } })).toThrow();
   });
 });
 

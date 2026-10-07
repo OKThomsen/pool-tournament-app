@@ -8,6 +8,20 @@
       "when": 1791379116460,
       "tag": "0000_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791380795947,
+      "tag": "0001_pool_admin_tiebreak",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791381588414,
+      "tag": "0002_match_race_to",
+      "breakpoints": true
     }
   ]
 }

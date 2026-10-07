@@ -82,6 +82,31 @@ describe('poolStandings', () => {
     expect(rows.every((row) => !row.unresolvedTie)).toBe(true);
   });
 
+  describe('when the admin settles a tie', () => {
+    const cycle: MatchResult[] = [
+      { playerA: 'A', playerB: 'B', framesA: 2, framesB: 1 },
+      { playerA: 'B', playerB: 'C', framesA: 2, framesB: 1 },
+      { playerA: 'C', playerB: 'A', framesA: 2, framesB: 1 },
+    ];
+
+    it("ranks the tied players in the admin's order", () => {
+      const rows = poolStandings(['A', 'B', 'C'], cycle, ['C', 'A', 'B']);
+      expect(order(rows)).toEqual(['C', 'A', 'B']);
+      expect(rows.map((row) => row.rank)).toEqual([1, 2, 3]);
+      expect(rows.some((row) => row.unresolvedTie)).toBe(false);
+    });
+
+    it('ignores the admin order where results already decide', () => {
+      const rows = poolStandings(groupA.players, groupA.results, [...groupA.players].reverse());
+      expect(order(rows)).toEqual(['Kasper', 'Christian', 'Prasad', 'Sarah Liv']);
+    });
+
+    it('keeps the tie open until every tied player is ordered', () => {
+      const rows = poolStandings(['A', 'B', 'C'], cycle, ['C', 'A']);
+      expect(rows.every((row) => row.unresolvedTie)).toBe(true);
+    });
+  });
+
   it('leaves a tie unresolved while the deciding match is unplayed', () => {
     const rows = poolStandings(['A', 'B'], []);
     expect(rows.every((row) => row.unresolvedTie && row.rank === 1)).toBe(true);

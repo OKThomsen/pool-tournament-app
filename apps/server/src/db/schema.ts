@@ -93,6 +93,11 @@ export const poolMembers = pgTable(
       .notNull()
       .references(() => players.id),
     position: integer('position').notNull(),
+    /**
+     * The admin's order for a tie that wins, set score and head-to-head can't break.
+     * Lower ranks higher. Null when the admin hasn't had to choose.
+     */
+    adminTiebreak: integer('admin_tiebreak'),
   },
   (t) => [primaryKey({ columns: [t.poolId, t.playerId] })],
 );
@@ -129,6 +134,11 @@ export const matches = pgTable(
     slot: text('slot'),
     playerAId: integer('player_a_id').references(() => players.id),
     playerBId: integer('player_b_id').references(() => players.id),
+    /**
+     * Frames needed to win. Pool matches are race to 2; the admin chooses for the knockout and
+     * can change it per match (for example a longer final).
+     */
+    raceTo: integer('race_to').notNull().default(2),
     framesA: integer('frames_a'),
     framesB: integer('frames_b'),
     /** Position in the pool's play order (drives the "up next" panel). */

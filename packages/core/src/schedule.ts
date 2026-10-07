@@ -1,3 +1,4 @@
+import { permutations } from './ordering.js';
 import type { Pairing, PlayerId } from './types.js';
 
 export interface Round {
@@ -103,11 +104,4 @@ export function backToBackCount(order: readonly Pairing[]): number {
 
 function sharesPlayer(x: Pairing, y: Pairing): boolean {
   return [x.playerA, x.playerB].some((p) => p === y.playerA || p === y.playerB);
-}
-
-function permutations<T>(items: readonly T[]): T[][] {
-  if (items.length <= 1) return [[...items]];
-  return items.flatMap((item, i) =>
-    permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]),
-  );
 }

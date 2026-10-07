@@ -80,7 +80,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
-| `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, frames, play order. |
+| `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, race length, frames, play order. |
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
@@ -105,7 +105,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 |---|---|
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
-| `pools.ts` | `poolSplits`, `drawPools`, `swapPlayers`: splitting players into pools of 4–5, random draw, admin swaps. |
+| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`: default pool sizes, random draw, admin changes. |
 | `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
@@ -116,19 +116,48 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Pool ranking**: matches won → set score (frames for − frames against) → head-to-head. With
   three or more tied players, head-to-head is a mini-league of their matches against each other,
   applied again to whoever is still level. A tie that can't be broken (a cycle such as A>B>C>A,
-  or a deciding match not yet played) is **flagged** with `unresolvedTie`, not broken at random.
-- **Schedule**: circle-method round robin. In a pool of 5, each player sits out exactly one
-  round, so nobody sits out twice in a row. `playOrder` also orders matches within each round so
-  that in a pool of 5 nobody plays two matches back to back. That can't be avoided in a pool of
-  4, where every round has all four players.
-- **Pool splits**: `poolSplits(n)` lists every valid split, fewest pools first (20 players →
-  4×5 or 5×4). 6, 7 and 11 players have no split. Choosing between splits is still open.
-- **Qualification**: the same number from each pool (for example, top 2 of 4 pools for
-  quarterfinals). Uneven cases throw `UnsupportedQualificationError` until the rule is decided.
-  An unresolved tie across the cut-off is reported in `tiesAtCutoff`.
+  or a deciding match not yet played) is **flagged** with `unresolvedTie`, and the **admin
+  chooses** the order. The choice is passed to `poolStandings` as `adminOrder` and stored in
+  `pool_members.admin_tiebreak`. It only applies to players results can't separate.
+- **Tables**: the club has enough tables for every pool match to be played at once.
+- **Pools of 4**: no schedule and no "up next" panel. Players just play whoever they haven't
+  played yet, and results can be entered in any order.
+- **Pools of 5**: circle-method round robin (`roundRobinRounds`). Each round has two matches and
+  one player sitting out, and each player sits out exactly once, so nobody sits out twice in a
+  row. The "up next" panel (`upNext`, `nextOpponent`) follows this order. `playOrder` also
+  avoids back-to-back matches across round boundaries, in case matches are ever called one at a
+  time.
+- **Pool splits**: `poolSizes(n)` uses as few pools of 4–5 as possible, so 20 players make four
+  pools of 5. Counts that can't be split that way have fixed splits: 6 → one pool of 6
+  (everyone plays everyone), 7 → 4 + 3, 11 → 4 + 4 + 3.
+- **Admin changes to pools**: after the random draw the admin can swap two players
+  (`swapPlayers`, sizes unchanged) or move a player to another pool (`movePlayer`, sizes
+  change; a pool can't drop below 2 players).
+- **Odd and even pools**: pools of 3 and 5 follow the round order and show "up next"; each player
+  sits out exactly once. Pools of 4 and 6 have no schedule.
+- **Qualification** (`qualifyFromPools`): by finishing position. Every pool winner first, then
+  the best runners-up, then the best third places, until the 4 or 8 places are filled. When
+  only some players from a position fit, they're compared across pools by wins, then set
+  score; if still level, the admin chooses (`adminOrder`). `unresolved` lists every tie the
+  admin must settle first: ties between pools at the cut-off, and ties inside a pool that decide
+  a player's finishing position. With equal pools this is the same as "top N from each pool".
+  Wins are compared as raw counts, like the workbook. This favours bigger pools on purpose:
+  finishing second in a small pool is easier, and those players also play fewer matches.
 - **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
   QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
   2v3. The top two seeds can only meet in the final.
+- **Same-pool players apart** (`firstRound`, quarterfinals only): two players from the same pool
+  don't meet in a quarterfinal. Seeds 1–4 keep their places and seeds 5–8 are rearranged:
+  seed 1 gets the weakest opponent possible, then seed 2, 3 and 4. If a clash can't be
+  avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
+  Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
+  layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
+- **Race length**: stored per match (`matches.race_to`, default 2). Pool matches are race to 2.
+  For the knockout the admin picks a race length (usually 2, longer when there's time) and can
+  change it for a single match. `assertValidScore(a, b, raceTo)` only accepts a finished race:
+  the winner has exactly `raceTo` frames and the loser fewer.
+- **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
+  on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
@@ -144,3 +173,12 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Admins can edit player handicaps by hand. |
 | 2026-10-07 | Run locally with Docker for now; production hosting decided later. |
 | 2026-10-07 | Styling is placeholder until a later design pass. |
+| 2026-10-07 | Pool ties: wins → set score → head-to-head (mini-league for 3+); if still level, the admin chooses. |
+| 2026-10-07 | 20 players → four pools of 5 (as few pools as possible). |
+| 2026-10-07 | Every pool match has a table. Pools of 4 have no schedule; "up next" is only for pools of 5. |
+| 2026-10-07 | 6 players → one pool of 6; 7 → 4 + 3; 11 → 4 + 4 + 3. The admin can move players between pools. |
+| 2026-10-07 | Qualification: pool winners first, then the best runners-up (workbook rule). |
+| 2026-10-07 | Players from the same pool are kept apart in the quarterfinals, not in the semifinals. |
+| 2026-10-07 | Knockout race length is chosen by the admin (default race to 2). |
+| 2026-10-07 | Scores are checked against the race length; frame handicaps don't affect it. |
+| 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
