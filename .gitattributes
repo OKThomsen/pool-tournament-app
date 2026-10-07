@@ -1,0 +1,6 @@
+# Normalize line endings: LF in the repo and in containers
+* text=auto eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary
+*.ico binary

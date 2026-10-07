@@ -10,7 +10,18 @@ Living documentation for the tournament platform. Product rules and open questio
 
 ## Setup and commands
 
-_Not scaffolded yet._
+The repo is an npm workspaces monorepo. From the repo root:
+
+```sh
+npm install         # install all workspaces
+npm test            # run every workspace's tests
+npm run typecheck   # type-check every workspace
+npm run lint        # ESLint over the whole repo
+npm run format      # Prettier (Markdown is excluded)
+```
+
+Line endings are normalized to LF by `.gitattributes`, so files behave the same on Windows and
+inside Linux containers.
 
 ## Architecture
 
