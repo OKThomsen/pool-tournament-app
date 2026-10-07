@@ -30,7 +30,7 @@ export function poolView(tournament: Tournament, pool: Pool): PoolView {
     framesA: m.framesA!,
     framesB: m.framesB!,
   }));
-  const rows = poolStandings(pool.playerIds.map(String), results);
+  const rows = poolStandings(pool.playerIds.map(String), results, pool.tiebreak.map(String));
 
   const scheduled = pool.playerIds.length % 2 === 1;
   const atOnce = Math.floor(pool.playerIds.length / 2);

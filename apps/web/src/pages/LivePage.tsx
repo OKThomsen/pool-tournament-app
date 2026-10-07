@@ -1,3 +1,4 @@
+import { Bracket } from '../components/Bracket';
 import { PoolTable, UpNext } from '../components/PoolTable';
 import { formatDate } from '../format';
 import { poolView } from '../poolView';
@@ -33,6 +34,7 @@ function LiveTournament({ id }: { id: number }) {
           {t.tournaments.title} {formatDate(data.date)} · {data.format}
         </p>
       </header>
+      {data.status === 'knockout' && <Bracket tournament={data} names={names} />}
       {data.status === 'draft' ? (
         <p className="live-message">{t.live.drawing}</p>
       ) : (
@@ -42,7 +44,7 @@ function LiveTournament({ id }: { id: number }) {
             return (
               <section key={pool.id} className="pool-block">
                 <PoolTable view={view} names={names} slots={slots} />
-                <UpNext view={view} names={names} />
+                {data.status === 'pools' && <UpNext view={view} names={names} />}
               </section>
             );
           })}

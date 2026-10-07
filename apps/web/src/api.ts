@@ -2,6 +2,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | undefined,
+    /** The whole error response, for errors that carry details (like tied players). */
+    readonly body: Record<string, unknown> = {},
   ) {
     super(`API request failed with ${status}${code ? ` (${code})` : ''}`);
   }
@@ -18,8 +20,8 @@ export async function api<T>(
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
   if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new ApiError(response.status, body.error);
+    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    throw new ApiError(response.status, body.error as string | undefined, body);
   }
   return (response.status === 204 ? undefined : await response.json()) as T;
 }

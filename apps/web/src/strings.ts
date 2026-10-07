@@ -109,6 +109,27 @@ export const t = {
     raceTo: (n: number) => `Race to ${n}`,
     clear: 'Ryd resultat',
   },
+  qualify: {
+    knockout: 'Slutspil',
+    quarterfinals: 'Quarterfinals (8)',
+    semifinals: 'Semifinals (4)',
+    raceTo: 'Race to',
+    cannot: 'Der er ikke spillere nok til det valgte slutspil.',
+    qualifiers: (n: number) => `Disse ${n} går videre:`,
+    tie: (players: string) => `Står lige: ${players}`,
+    pickOrder: 'Klik spillerne i rækkefølge, bedste først.',
+    startOver: 'Start forfra',
+    tiesLeft: 'Der er stadig spillere, der står lige. Vælg rækkefølgen først.',
+    confirm: (round: string, raceTo: number) =>
+      `Start slutspillet med ${round}, race to ${raceTo}? Puljeresultaterne kan ikke ændres bagefter.`,
+  },
+  knockout: {
+    title: 'Slutspil',
+    waiting: 'Venter …',
+    laterPlayed:
+      'Det ville ændre, hvem der spiller en senere kamp, som allerede har et resultat. Ryd den kamps resultat først.',
+    done: 'Finalen og bronzekampen er spillet. Næste trin er conclude tournament.',
+  },
   live: {
     drawing: 'Puljerne bliver lavet …',
     noTournament: 'Ingen turnering i gang lige nu',

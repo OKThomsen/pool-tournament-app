@@ -86,7 +86,17 @@ won 2-0): one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), pl
 resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
-`/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type,
+When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
+quarterfinals or semifinals (the workbook's suggestion preselected) and the race length, and it
+shows who qualifies, worked out with `qualifyFromPools` like the server. A tie that decides who
+goes through must be settled first: the admin clicks the tied players in order, best first (a
+tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
+Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
+admins tap a player in a match to enter the result from that player's side. Pool tables stay
+visible but read-only.
+
+`/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
+tables and "Up next" in large type,
 or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 

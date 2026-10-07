@@ -494,3 +494,118 @@ select {
 .live-leaderboard ol {
   line-height: 1.6;
 }
+
+/* Qualification */
+.qualify {
+  margin-top: 24px;
+  padding: 16px;
+  background: #fff;
+}
+
+.qualify h2 {
+  margin-top: 0;
+}
+
+.choice {
+  display: flex;
+  gap: 16px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.choice legend {
+  margin-bottom: 4px;
+}
+
+.qualifiers {
+  columns: 2 14em;
+}
+
+.tie {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--color-panel);
+}
+
+.tie-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Knockout bracket: one column per round, stacked on narrow screens. */
+.bracket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15em, 100%), 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.round h3 {
+  margin: 0;
+}
+
+.match-card {
+  background: #fff;
+  border: 1px solid var(--color-panel);
+}
+
+.match-label {
+  padding: 4px 8px;
+  font-size: 0.8em;
+  background: var(--color-header);
+  color: var(--color-header-text);
+}
+
+.match-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 2.75em;
+  padding: 0 10px;
+  border: 0;
+  border-top: 1px solid var(--color-panel);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+}
+
+.match-side.win {
+  background: var(--color-win);
+}
+
+.match-side.loss {
+  background: var(--color-loss);
+}
+
+.match-side .seed {
+  min-width: 1.5em;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.match-side .name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.match-side .frames {
+  font-weight: 700;
+}
+
+.live .bracket {
+  font-size: 1.3rem;
+  margin-top: 24px;
+}
