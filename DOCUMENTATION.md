@@ -2,6 +2,7 @@
 
 Living documentation for the tournament platform. Product rules and open questions are in
 `CLAUDE.md`; this file describes how the app is built and run, and the rules as implemented.
+Open work and things waiting on the customer are in `TODO.md`.
 
 ## Prerequisites
 
@@ -364,7 +365,8 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
-- **Seasons** are calendar quarters, the same length as a membership: `01/YYYY` January–March,
+- **Seasons** are calendar quarters **as a placeholder** (the real season dates are coming from the
+  customer; see `TODO.md`): `01/YYYY` January–March,
   `02/YYYY` April–June, `03/YYYY` July–September, `04/YYYY` October–December. "Today" is
   always the date in Denmark.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
