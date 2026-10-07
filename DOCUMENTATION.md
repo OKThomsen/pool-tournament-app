@@ -141,8 +141,8 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   score; if still level, the admin chooses (`adminOrder`). `unresolved` lists every tie the
   admin must settle first: ties between pools at the cut-off, and ties inside a pool that decide
   a player's finishing position. With equal pools this is the same as "top N from each pool".
-  Wins are compared as raw counts, like the workbook, so players in bigger pools (more matches)
-  have an edge.
+  Wins are compared as raw counts, like the workbook. This favours bigger pools on purpose:
+  finishing second in a small pool is easier, and those players also play fewer matches.
 - **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
   QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
   2v3. The top two seeds can only meet in the final.
@@ -154,8 +154,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
 - **Race length**: stored per match (`matches.race_to`, default 2). Pool matches are race to 2.
   For the knockout the admin picks a race length (usually 2, longer when there's time) and can
-  change it for a single match. Scores aren't checked against the race length yet, because
-  frame handicaps may change how many frames a player needs.
+  change it for a single match. `assertValidScore(a, b, raceTo)` only accepts a finished race:
+  the winner has exactly `raceTo` frames and the loser fewer.
+- **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
+  on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
@@ -178,3 +180,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Qualification: pool winners first, then the best runners-up (workbook rule). |
 | 2026-10-07 | Players from the same pool are kept apart in the quarterfinals, not in the semifinals. |
 | 2026-10-07 | Knockout race length is chosen by the admin (default race to 2). |
+| 2026-10-07 | Scores are checked against the race length; frame handicaps don't affect it. |
+| 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |

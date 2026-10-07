@@ -7,6 +7,8 @@ export type KnockoutMatchId = 'QF1' | 'QF2' | 'QF3' | 'QF4' | 'SF1' | 'SF2' | 'T
 export interface Score {
   framesA: number;
   framesB: number;
+  /** Frames needed to win this match. Defaults to race to 2. */
+  raceTo?: number;
 }
 
 export interface BracketMatch {
@@ -116,7 +118,7 @@ function decide(
   if (playerA === null || playerB === null) {
     throw new Error(`${id} has a score but its players aren't decided yet`);
   }
-  assertValidScore(score.framesA, score.framesB);
+  assertValidScore(score.framesA, score.framesB, score.raceTo);
   const aWins = score.framesA > score.framesB;
   return {
     id,

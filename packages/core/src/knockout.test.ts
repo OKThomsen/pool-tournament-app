@@ -137,6 +137,12 @@ describe('knockoutBracket', () => {
   it('rejects a drawn score', () => {
     expect(() => knockoutBracket(seeds8, { QF1: { framesA: 1, framesB: 1 } })).toThrow();
   });
+
+  it('checks each score against its own race length', () => {
+    const longQF1 = { framesA: 3, framesB: 1, raceTo: 3 };
+    expect(knockoutBracket(seeds8, { QF1: longQF1 })[0]!.winner).toBe('S1');
+    expect(() => knockoutBracket(seeds8, { QF1: { framesA: 2, framesB: 1, raceTo: 3 } })).toThrow();
+  });
 });
 
 describe('placements and points', () => {
