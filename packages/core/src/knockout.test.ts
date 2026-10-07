@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { firstRound, knockoutBracket } from './knockout.js';
+import {
+  FEEDS_INTO,
+  firstRound,
+  KNOCKOUT_STAGE,
+  knockoutBracket,
+  knockoutSlots,
+} from './knockout.js';
 import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
 import { seededRng } from './random.js';
 import { seedQualifiers } from './seeding.js';
@@ -182,5 +188,19 @@ describe('placements and points', () => {
     expect(Object.values(DEFAULT_POINTS_TABLE)).toEqual([10, 7, 5, 4, 2, 1]);
     expect(pointsFor('5-8')).toBe(2);
     expect(pointsFor('1st', { ...DEFAULT_POINTS_TABLE, '1st': 12 })).toBe(12);
+  });
+});
+
+describe('bracket structure', () => {
+  it('lists the slots for each knockout size', () => {
+    expect(knockoutSlots(8)).toEqual(['QF1', 'QF2', 'QF3', 'QF4', 'SF1', 'SF2', 'THIRD', 'FINAL']);
+    expect(knockoutSlots(4)).toEqual(['SF1', 'SF2', 'THIRD', 'FINAL']);
+  });
+
+  it('feeds every match except the last two into a later one', () => {
+    for (const id of knockoutSlots(8)) {
+      const fed = FEEDS_INTO[id];
+      expect(fed.length > 0).toBe(KNOCKOUT_STAGE[id] === 'QF' || KNOCKOUT_STAGE[id] === 'SF');
+    }
   });
 });
