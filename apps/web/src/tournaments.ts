@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
 export type GameFormat = '8-ball' | '9-ball' | '10-ball';
@@ -46,6 +46,29 @@ export interface Tournament {
   matches: Match[];
   /** Knockout seeds, best first. Empty before the knockout. */
   seeds: number[];
+  /** Final placings, best first. Empty until the tournament is concluded. */
+  results: Result[];
+}
+
+export type Placement = '1st' | '2nd' | '3rd' | '4th' | '5-8' | 'participation';
+
+export interface Result {
+  playerId: number;
+  placement: Placement;
+  points: number;
+  /** Pool matches won. */
+  matchesWon: number;
+}
+
+/** A concluded tournament in the Turneringer list. */
+export interface TournamentSummary {
+  id: number;
+  date: string;
+  week: number;
+  season: string;
+  format: GameFormat;
+  winner: string | null;
+  participants: number;
 }
 
 export const tournamentKey = (id: number) => ['tournaments', id];
@@ -75,7 +98,10 @@ function useTournamentMutation<Input>(request: (input: Input) => Promise<Tournam
     mutationFn: request,
     onSuccess: (tournament) => {
       queryClient.setQueryData(tournamentKey(tournament.id), tournament);
-      return queryClient.invalidateQueries({ queryKey: ongoingKey });
+      // The ongoing tournament, the history, players and seasons may all have changed.
+      return queryClient.invalidateQueries({
+        predicate: (query) => query.queryHash !== hashKey(tournamentKey(tournament.id)),
+      });
     },
   });
 }
@@ -137,5 +163,25 @@ export function useSetPoolTiebreak(id: number) {
 export function useStartKnockout(id: number) {
   return useTournamentMutation((input: { size: 4 | 8; raceTo: number; adminOrder: number[] }) =>
     api<Tournament>(`/tournaments/${id}/knockout`, { method: 'POST', body: input }),
+  );
+}
+
+export function useConcludedTournaments() {
+  return useQuery({
+    queryKey: ['tournaments', 'concluded'],
+    queryFn: () => api<TournamentSummary[]>('/tournaments'),
+  });
+}
+
+/** "conclude tournament". */
+export function useConcludeTournament(id: number) {
+  return useTournamentMutation(() =>
+    api<Tournament>(`/tournaments/${id}/conclude`, { method: 'POST' }),
+  );
+}
+
+export function useReopenTournament(id: number) {
+  return useTournamentMutation(() =>
+    api<Tournament>(`/tournaments/${id}/reopen`, { method: 'POST' }),
   );
 }

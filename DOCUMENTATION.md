@@ -95,6 +95,14 @@ Then `Bracket` shows the knockout, one column per round with seed numbers in the
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
 visible but read-only.
 
+When the final and the third-place final are played, "conclude tournament" (after a
+confirmation) saves the results and opens the tournament's public page.
+
+Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
+Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
+placings, the bracket and the pools. Logged-in admins can click any result there to correct it
+(placings and points update at once), or "Genåbn turnering" for bigger changes.
+
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
 or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)

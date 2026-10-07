@@ -9,7 +9,8 @@ export function LiveUpdates() {
   const queryClient = useQueryClient();
   useEffect(() => {
     const source = new EventSource('/api/events');
-    const refresh = () => queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    // Refetch whatever is on screen: a concluded tournament also changes players and seasons.
+    const refresh = () => queryClient.invalidateQueries();
     source.addEventListener('tournament', refresh);
     // The browser reconnects by itself after a dropped connection; catch up on what was missed.
     source.addEventListener('open', refresh);

@@ -12,7 +12,9 @@ import { LoginPage } from './pages/LoginPage';
 import { OngoingTournamentPage } from './pages/OngoingTournamentPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
-import { NotFoundPage, TournamentDetailPage, TournamentsPage } from './pages/pages';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { TournamentDetailPage } from './pages/TournamentDetailPage';
+import { TournamentsPage } from './pages/TournamentsPage';
 import './styles.css';
 
 const queryClient = new QueryClient();

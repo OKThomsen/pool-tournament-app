@@ -24,6 +24,31 @@ export const t = {
     winner: 'Vinder',
     participants: 'Antal deltagere',
     format: 'Format',
+    none: 'Ingen afsluttede turneringer endnu.',
+  },
+  detail: {
+    inProgress: 'Turneringen er i gang.',
+    followLive: 'Følg den live',
+    placings: 'Placeringer',
+    placement: 'Placering',
+    points: 'Point',
+    poolWins: 'Vundne puljekampe',
+    correctHelp:
+      'Klik på et resultat for at rette det; placeringer og point opdateres med det samme. Større ændringer kræver, at turneringen genåbnes.',
+    reopen: 'Genåbn turnering',
+    confirmReopen:
+      'Genåbn turneringen? Den går tilbage til slutspillet, og dens point fjernes, indtil den afsluttes igen.',
+    needsReopen:
+      'Den rettelse ville ændre, hvem der gik videre eller mødte hinanden senere. Genåbn turneringen for at lave den.',
+    otherInProgress: 'Der er en anden turnering i gang. Afslut den først.',
+  },
+  placements: {
+    '1st': '1.',
+    '2nd': '2.',
+    '3rd': '3.',
+    '4th': '4.',
+    '5-8': '5.–8.',
+    participation: 'Deltager',
   },
   players: {
     title: 'Spillere',
@@ -92,6 +117,8 @@ export const t = {
     cancelTournament: 'Annuller turnering',
     confirmStart: 'Er puljerne klar? Bagefter kan de ikke ændres.',
     confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
+    confirmConclude:
+      'Afslut turneringen? Placeringer og point gemmes, og den kommer på listen over turneringer.',
   },
   pools: {
     pool: 'Pulje',

@@ -609,3 +609,25 @@ select {
   font-size: 1.3rem;
   margin-top: 24px;
 }
+
+/* A table whose rows open something. */
+table.clickable tbody tr {
+  cursor: pointer;
+}
+
+table.clickable tbody tr:hover {
+  background: rgb(255 255 255 / 70%);
+}
+
+.placings {
+  max-width: 40em;
+  background: #fff;
+}
+
+.placings .placement-1st {
+  font-weight: 700;
+}
+
+.notice .primary {
+  margin-top: 8px;
+}
