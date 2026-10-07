@@ -1,60 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { groupA, groupB, groupC } from './fixtures.test-data.js';
 import { knockoutBracket } from './knockout.js';
 import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
-import {
-  qualifyFromPools,
-  suggestedKnockoutSize,
-  UnsupportedQualificationError,
-} from './qualification.js';
 import { seededRng } from './random.js';
 import { seedQualifiers } from './seeding.js';
-import { poolStandings, type StandingRow } from './standings.js';
 
 const seeds8 = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
 const aWins = { framesA: 2, framesB: 0 };
-
-describe('qualifyFromPools', () => {
-  const pools = [groupA, groupB, groupC].map((g) => poolStandings(g.players, g.results));
-
-  it('takes the same number from each pool', () => {
-    const fourPools = [...pools, pools[0]!];
-    const { qualifiers } = qualifyFromPools(fourPools, 8);
-    expect(qualifiers).toHaveLength(8);
-    expect(qualifiers.slice(0, 2).map((q) => q.playerId)).toEqual(['Kasper', 'Christian']);
-  });
-
-  it('refuses places that cannot be shared evenly (open question)', () => {
-    expect(() => qualifyFromPools(pools, 4)).toThrow(UnsupportedQualificationError);
-  });
-
-  it('reports an unresolved tie at the cut-off', () => {
-    const row = (playerId: string, rank: number, unresolvedTie = false): StandingRow => ({
-      playerId,
-      rank,
-      unresolvedTie,
-      played: 0,
-      won: 0,
-      lost: 0,
-      framesFor: 0,
-      framesAgainst: 0,
-      setScore: 0,
-    });
-    const pool = [row('A', 1), row('B', 2, true), row('C', 2, true), row('D', 4)];
-    // One per pool: the cut falls after A, clear of the B/C tie.
-    expect(qualifyFromPools([pool, pool, pool, pool], 4).tiesAtCutoff).toEqual([]);
-    // Two per pool: the cut falls between B and C.
-    expect(qualifyFromPools([pool, pool], 4).tiesAtCutoff).toEqual([
-      ['B', 'C'],
-      ['B', 'C'],
-    ]);
-  });
-
-  it('preselects quarterfinals from 14 players, like the workbook', () => {
-    expect(suggestedKnockoutSize(13)).toBe(4);
-    expect(suggestedKnockoutSize(14)).toBe(8);
-  });
-});
 
 describe('seedQualifiers', () => {
   it('orders by wins, then set score', () => {

@@ -1,3 +1,4 @@
+import { breakByAdminOrder, groupByDesc } from './ordering.js';
 import type { StandingRow } from './standings.js';
 import type { PlayerId } from './types.js';
 
@@ -14,46 +15,72 @@ export class UnsupportedQualificationError extends Error {
 }
 
 export interface Qualification {
-  /** Pool by pool, best first within each pool. */
+  /** Pool winners first, then runners-up, and so on; best first within each of those. */
   qualifiers: StandingRow[];
-  /** Per pool, players in an unresolved tie across the qualification cut-off. Needs a decision. */
-  tiesAtCutoff: PlayerId[][];
+  /**
+   * Ties the admin has to settle before the knockout can start. Each entry is one group of
+   * tied players: either inside a pool (settle with `poolStandings`' admin order) or between
+   * pools for the last places (settle with this function's admin order).
+   */
+  unresolved: PlayerId[][];
 }
 
 /**
- * Takes the same number of players from every pool (for example the top two from each of four
- * pools for quarterfinals). Pools must already be ranked by `poolStandings`.
+ * Picks the knockout players by finishing position: every pool winner first, then the best
+ * runners-up, then the best third places, and so on until the places are filled.
  *
- * Qualification when the places can't be shared evenly between the pools isn't specified yet
- * (CLAUDE.md, open questions 1 and 2), so that case throws.
+ * When only some players from a finishing position fit, they're compared across pools by wins,
+ * then set score. If that's still level at the cut-off, the admin chooses (`adminOrder`).
+ *
+ * @param pools Each pool's standings from `poolStandings`.
  */
 export function qualifyFromPools(
   pools: readonly (readonly StandingRow[])[],
   size: KnockoutSize,
+  adminOrder: readonly PlayerId[] = [],
 ): Qualification {
-  if (pools.length === 0 || size % pools.length !== 0) {
-    throw new UnsupportedQualificationError(
-      `Can't share ${size} places evenly between ${pools.length} pools`,
-    );
+  const playerCount = pools.reduce((sum, pool) => sum + pool.length, 0);
+  if (playerCount < size) {
+    throw new UnsupportedQualificationError(`${playerCount} players can't fill ${size} places`);
   }
-  const perPool = size / pools.length;
+  const ranked = pools.map((pool) => [...pool].sort((x, y) => x.rank - y.rank));
+
   const qualifiers: StandingRow[] = [];
-  const tiesAtCutoff: PlayerId[][] = [];
-  for (const pool of pools) {
-    if (pool.length < perPool) {
-      throw new UnsupportedQualificationError(
-        `A pool of ${pool.length} can't send ${perPool} players through`,
-      );
+  const unresolved: PlayerId[][] = [];
+  let position = 0;
+  let partial = false;
+  while (qualifiers.length < size) {
+    const tier = ranked.flatMap((pool) => pool[position] ?? []);
+    const places = size - qualifiers.length;
+    const ordered = groupByDesc(tier, (row) => [row.won, row.setScore]).flatMap((group) =>
+      breakByAdminOrder(
+        group.map((row) => row.playerId),
+        adminOrder,
+      ),
+    );
+
+    const taken: PlayerId[] = [];
+    for (const group of ordered) {
+      if (taken.length >= places) break;
+      if (taken.length + group.length > places) unresolved.push(group);
+      taken.push(...group);
     }
-    const ranked = [...pool].sort((x, y) => x.rank - y.rank);
-    qualifiers.push(...ranked.slice(0, perPool));
-    const lastIn = ranked[perPool - 1]!;
-    const firstOut = ranked[perPool];
-    if (firstOut && firstOut.rank === lastIn.rank) {
-      tiesAtCutoff.push(
-        ranked.filter((row) => row.rank === lastIn.rank).map((row) => row.playerId),
-      );
+    const byId = new Map(tier.map((row) => [row.playerId, row]));
+    qualifiers.push(...taken.slice(0, places).map((id) => byId.get(id)!));
+    partial = tier.length > places;
+    if (!partial) position++;
+  }
+
+  // A tie inside a pool matters when it decides which finishing position a player gets.
+  const outcome = (index: number) =>
+    index < position ? 'in' : index === position && partial ? 'compared' : 'out';
+  for (const pool of ranked) {
+    for (const tied of groupByDesc(pool, (row) => [-row.rank])) {
+      if (tied.length < 2 || !tied[0]!.unresolvedTie) continue;
+      const outcomes = new Set(tied.map((row) => outcome(pool.indexOf(row))));
+      if (outcomes.size > 1) unresolved.push(tied.map((row) => row.playerId));
     }
   }
-  return { qualifiers, tiesAtCutoff };
+
+  return { qualifiers, unresolved };
 }

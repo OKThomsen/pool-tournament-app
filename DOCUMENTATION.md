@@ -135,9 +135,14 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   change; a pool can't drop below 2 players).
 - **Odd and even pools**: pools of 3 and 5 follow the round order and show "up next"; each player
   sits out exactly once. Pools of 4 and 6 have no schedule.
-- **Qualification**: the same number from each pool (for example, top 2 of 4 pools for
-  quarterfinals). Uneven cases throw `UnsupportedQualificationError` until the rule is decided.
-  An unresolved tie across the cut-off is reported in `tiesAtCutoff`.
+- **Qualification** (`qualifyFromPools`): by finishing position. Every pool winner first, then
+  the best runners-up, then the best third places, until the 4 or 8 places are filled. When
+  only some players from a position fit, they're compared across pools by wins, then set
+  score; if still level, the admin chooses (`adminOrder`). `unresolved` lists every tie the
+  admin must settle first: ties between pools at the cut-off, and ties inside a pool that decide
+  a player's finishing position. With equal pools this is the same as "top N from each pool".
+  Wins are compared as raw counts, like the workbook, so players in bigger pools (more matches)
+  have an edge.
 - **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
   QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
   2v3. The top two seeds can only meet in the final.
@@ -160,3 +165,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | 20 players → four pools of 5 (as few pools as possible). |
 | 2026-10-07 | Every pool match has a table. Pools of 4 have no schedule; "up next" is only for pools of 5. |
 | 2026-10-07 | 6 players → one pool of 6; 7 → 4 + 3; 11 → 4 + 4 + 3. The admin can move players between pools. |
+| 2026-10-07 | Qualification: pool winners first, then the best runners-up (workbook rule). |
