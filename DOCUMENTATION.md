@@ -194,6 +194,23 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match with `raceTo`, and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 
+| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. |
+| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again. 409 `tournament_in_progress` if another tournament is in progress. |
+| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
+
+A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
+from the third-place final, quarterfinal losers 5–8, the rest participation), **points** from
+`points_table`, **matches won** (pool wins, like the workbook's "Matches Won", which the handicap
+review uses), and a **handicap snapshot** taken when the tournament is first concluded. The
+tournament detail returns them as `results`, best first.
+
+**Corrections.** Pool results can be corrected after the pools close, but not in a way that
+changes who qualified (409 `would_change_qualification`). In a concluded tournament results can
+be corrected but not cleared (409 `tournament_concluded`), and placements and points are
+rewritten at once. A change that would alter an already-played later match (409
+`later_match_played`) needs the tournament reopened, the later result cleared, and the
+tournament concluded again.
+
 Knockout results use the same result routes. Entering or clearing one fills in who plays the
 later matches (`syncBracket`). A result that would change who plays an already-played later
 match is refused (409 `later_match_played`): clear the later result first. A score fix with the

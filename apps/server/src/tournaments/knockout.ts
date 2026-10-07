@@ -153,3 +153,47 @@ export async function syncBracket(db: Executor, detail: TournamentDetail): Promi
     }
   }
 }
+
+/** The knockout as it stands, worked out from the seeds and the knockout results so far. */
+export function currentBracket(detail: TournamentDetail) {
+  const scores: Partial<Record<KnockoutMatchId, Score>> = {};
+  for (const m of detail.matches) {
+    if (m.slot && m.framesA !== null && m.framesB !== null) {
+      scores[m.slot as KnockoutMatchId] = {
+        framesA: m.framesA,
+        framesB: m.framesB,
+        raceTo: m.raceTo,
+      };
+    }
+  }
+  return knockoutBracket(detail.seeds.map(String), scores, poolOf(detail));
+}
+
+/**
+ * Whether changing a pool result after the pools have closed keeps the same qualifiers. The
+ * knockout was already drawn from them, so a correction that would change who qualified is
+ * refused. Ties between pools are taken in seed order.
+ */
+export function qualifiersUnchanged(
+  detail: TournamentDetail,
+  matchId: number,
+  next: { framesA: number; framesB: number } | null,
+): boolean {
+  const corrected = {
+    ...detail,
+    matches: detail.matches.map((m) =>
+      m.id === matchId
+        ? { ...m, framesA: next?.framesA ?? null, framesB: next?.framesB ?? null }
+        : m,
+    ),
+  };
+  if (corrected.matches.some((m) => m.stage === 'pool' && m.framesA === null)) return false;
+  const size = detail.knockoutSize as KnockoutSize;
+  const { qualifiers, unresolved } = qualifyFromPools(
+    standingsByPool(corrected),
+    size,
+    detail.seeds.map(String),
+  );
+  const before = new Set(detail.seeds.map(String));
+  return unresolved.length === 0 && qualifiers.every((q) => before.has(q.playerId));
+}
