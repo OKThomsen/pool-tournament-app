@@ -41,6 +41,14 @@ export const t = {
     password: 'Password',
     submit: 'Log ind',
     cancel: 'Annuller',
+    wrongCredentials: 'Forkert brugernavn eller adgangskode',
+    tooManyAttempts: 'For mange forsøg. Prøv igen om lidt.',
+    failed: 'Login mislykkedes. Prøv igen.',
+  },
+  logout: {
+    confirm: 'Er du sikker på at du vil logge ud?',
+    yes: 'Log ud',
+    cancel: 'Annuller',
   },
   create: {
     addPlayer: 'Tilføj spiller',

@@ -42,8 +42,18 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
 `/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
-for the flatscreen in the club). All UI text lives in `apps/web/src/strings.ts`, and the
-placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
+for the flatscreen in the club).
+
+Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
+`null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
+`RequireAdmin`, which sends visitors to `/login` and back afterwards. That only hides pages; the
+API checks the session on every admin request. When logged in, the header shows Ny Turnering
+and Logout instead of Log ind. Logout asks for confirmation first, using the reusable
+`ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
+`api()` in `apps/web/src/api.ts`.
+
+All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
+the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker
 
@@ -57,6 +67,46 @@ The `Dockerfile` builds a single image: the Fastify server serves the API under 
 built React app for every other path, so client-side routes like `/live` work on reload. The
 image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
 so it can move to any container host later.
+
+### Admin accounts
+
+There is no sign-up. Only the owner creates admin accounts, with this command on the machine
+running the app, and hands out the logins:
+
+```sh
+npm run admin -w @franks/server -- create <username>        # asks for the password twice
+npm run admin -w @franks/server -- set-password <username>  # also signs them out everywhere
+npm run admin -w @franks/server -- list
+```
+
+Passwords need at least 8 characters. They're typed without being shown, and stored as scrypt
+hashes (`apps/server/src/auth/password.ts`). To script it, set `ADMIN_PASSWORD` instead of
+typing. In the Docker setup, run it inside the app container:
+
+```sh
+docker compose exec app node apps/server/dist/cli/admin.js create <username>
+```
+
+### Login API
+
+| Route | Who | What |
+|---|---|---|
+| `POST /api/auth/login` | public | `{ username, password }` → `{ username }` and a session cookie. 401 on a wrong username or password (same answer for both). At most 10 attempts per IP per 15 minutes, then 429. |
+| `POST /api/auth/logout` | anyone | Ends the session and clears the cookie. 204. |
+| `GET /api/auth/me` | admin | `{ username }`, or 401 when not logged in. |
+
+- Sessions last 30 days. The cookie (`session`) is `HttpOnly` and `SameSite=Lax`; set
+  `COOKIE_SECURE=true` once the app is served over HTTPS. Only a SHA-256 hash of the token is
+  stored in `sessions`.
+- Every request gets `request.admin` (or null) from `sessionPlugin`. Make a route admin-only
+  with `{ preHandler: requireAdmin }` (`apps/server/src/auth/plugin.ts`).
+- There is deliberately no route that creates admins; see "Admin accounts".
+
+### Server tests
+
+`npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
+separate `franks_test` database in the same container, created and migrated automatically, and
+emptied before each test. Override it with `TEST_DATABASE_URL`.
 
 ### Database changes
 

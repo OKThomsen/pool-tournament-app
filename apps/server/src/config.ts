@@ -10,4 +10,6 @@ export const config = {
   host: process.env.HOST ?? '0.0.0.0',
   /** Built frontend to serve. Unset in development, where Vite serves the frontend. */
   webDist: process.env.WEB_DIST,
+  /** Only send the session cookie over HTTPS. Must be true once the app is hosted. */
+  secureCookies: process.env.COOKIE_SECURE === 'true',
 };

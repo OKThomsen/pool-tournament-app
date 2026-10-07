@@ -3,11 +3,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
+import { RequireAdmin } from './components/RequireAdmin';
+import { LoginPage } from './pages/LoginPage';
 import {
   CreateTournamentPage,
   FrontPage,
   LivePage,
-  LoginPage,
   NotFoundPage,
   OngoingTournamentPage,
   PlayersPage,
@@ -30,8 +31,10 @@ createRoot(document.getElementById('root')!).render(
             <Route path="turneringer/:id" element={<TournamentDetailPage />} />
             <Route path="spillere" element={<PlayersPage />} />
             <Route path="login" element={<LoginPage />} />
-            <Route path="admin/turnering/ny" element={<CreateTournamentPage />} />
-            <Route path="admin/turnering/:id" element={<OngoingTournamentPage />} />
+            <Route path="admin" element={<RequireAdmin />}>
+              <Route path="turnering/ny" element={<CreateTournamentPage />} />
+              <Route path="turnering/:id" element={<OngoingTournamentPage />} />
+            </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
