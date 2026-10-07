@@ -8,3 +8,4 @@ export * from './qualification.js';
 export * from './seeding.js';
 export * from './knockout.js';
 export * from './placements.js';
+export * from './seasons.js';

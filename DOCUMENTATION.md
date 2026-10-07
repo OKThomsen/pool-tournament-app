@@ -179,6 +179,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
+| `seasons.ts` | `seasonForDate`, `todayInDenmark`, `MEMBER_BONUS`: which season a date is in. |
 
 ### Rules as implemented
 
@@ -229,6 +230,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+- **Seasons** are calendar quarters, the same length as a membership: `01/YYYY` January–March,
+  `02/YYYY` April–June, `03/YYYY` July–September, `04/YYYY` October–December. "Today" is
+  always the date in Denmark.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
   losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1.
 
@@ -251,3 +255,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Knockout race length is chosen by the admin (default race to 2). |
 | 2026-10-07 | Scores are checked against the race length; frame handicaps don't affect it. |
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
+| 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
