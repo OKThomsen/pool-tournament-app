@@ -60,6 +60,19 @@ When logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet o
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 
+Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
+and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
+player has exactly that name, "Tilføj ny spiller" creates them and adds them in one go. The page
+shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
+app imports straight from source via a Vite alias). If a tournament is already in progress, the
+page links to it instead.
+
+The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
+the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
+another pool to move them (pools keep at least 2 players). Every change is saved at once. On
+touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
+a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 
@@ -136,6 +149,20 @@ the player renews. Season points = points from the season's concluded tournament
 |---|---|---|
 | `GET /api/seasons/current` | public | `{ label, start, end, standings }` for the season today is in. `standings` lists everyone who played in the season or is a member, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member`, `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
 
+### Tournaments API
+
+A tournament goes `draft` → `pools` → `knockout` → `concluded`. Only one tournament can be in
+progress (not concluded) at a time; a partial unique index in the database enforces it.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/tournaments/ongoing` | public | `{ tournament: { id, date, status } \| null }`: the tournament in progress. |
+| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season, format, status, knockout size, `players` (with handicaps and Medlem for the tournament's season), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`). The season and week come from the date. 409 `tournament_in_progress` if another one isn't concluded. |
+| `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
+| `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
+| `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
+
 ### Server tests
 
 `npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
@@ -202,7 +229,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
-| `seasons.ts` | `seasonForDate`, `todayInDenmark`, `MEMBER_BONUS`: which season a date is in. |
+| `seasons.ts` | `seasonForDate`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in. |
 
 ### Rules as implemented
 
@@ -280,3 +307,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
+| 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |

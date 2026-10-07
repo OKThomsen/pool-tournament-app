@@ -232,3 +232,113 @@ tbody tr:nth-child(even) {
   align-items: center;
   gap: 6px;
 }
+
+select {
+  padding: 8px;
+  border: 0;
+  font: inherit;
+}
+
+.player-search {
+  position: relative;
+  max-width: 420px;
+}
+
+.player-search input {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  font: inherit;
+}
+
+.search-results {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.search-results button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.search-results button:hover,
+.search-results button:focus {
+  background: var(--color-panel);
+}
+
+.search-results .add-new {
+  font-weight: 600;
+}
+
+.muted {
+  padding: 8px 10px;
+  opacity: 0.7;
+}
+
+.entrants {
+  margin-top: 16px;
+  background: #fff;
+}
+
+.form-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.pool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pool-zone {
+  min-height: 120px;
+  padding: 12px;
+  background: rgb(255 255 255 / 60%);
+  outline: 2px dashed transparent;
+}
+
+.pool-zone.over {
+  outline-color: var(--color-header);
+}
+
+.pool-zone h2,
+.pool-zone h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.chip {
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2px solid transparent;
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.chip.over {
+  border-color: var(--color-header);
+}
+
+.chip.placeholder {
+  opacity: 0.4;
+}
+
+.chip.dragging {
+  cursor: grabbing;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+}

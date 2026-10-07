@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "tournaments_one_in_progress_idx" ON "tournaments" USING btree ((true)) WHERE status <> 'concluded';

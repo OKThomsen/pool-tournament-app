@@ -66,3 +66,14 @@ export function useDeletePlayer() {
     onSuccess: () => refresh(queryClient),
   });
 }
+
+/** "Tilføj spiller": players whose name starts with the query. Admin only. */
+export function useSearchPlayers(query: string) {
+  const q = query.trim();
+  return useQuery({
+    queryKey: ['players', 'search', q.toLowerCase()],
+    queryFn: () => api<Player[]>(`/players/search?q=${encodeURIComponent(q)}`),
+    enabled: q.length > 0,
+    staleTime: 30_000,
+  });
+}
