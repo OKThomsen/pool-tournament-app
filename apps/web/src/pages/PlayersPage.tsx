@@ -48,6 +48,7 @@ export function PlayersPage() {
                 <th>{t.players.name}</th>
                 <th>{t.players.baseHandicap}</th>
                 <th>{t.players.frameHandicap}</th>
+                <th>{t.players.member}</th>
                 <th>{t.players.seasonPoints}</th>
                 <th>{t.players.participation}</th>
                 <th>{t.players.wins}</th>
@@ -69,8 +70,8 @@ export function PlayersPage() {
                     <td>{player.name}</td>
                     <td>{player.baseHandicap}</td>
                     <td>{player.frameHandicap}</td>
-                    {/* Season points arrive with seasons. */}
-                    <td>–</td>
+                    <td>{player.member ? t.yes : t.no}</td>
+                    <td>{player.seasonPoints}</td>
                     <td>{player.participation}</td>
                     <td>{player.wins}</td>
                     <td>{player.semifinals}</td>
@@ -116,7 +117,7 @@ function errorMessage(error: Error): string {
   return t.saveFailed;
 }
 
-const emptyInput: PlayerInput = { name: '', baseHandicap: 0, frameHandicap: 0 };
+const emptyInput: PlayerInput = { name: '', baseHandicap: 0, frameHandicap: 0, member: false };
 
 function AddPlayerForm() {
   const createPlayer = useCreatePlayer();
@@ -148,6 +149,7 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
     name: player.name,
     baseHandicap: player.baseHandicap,
     frameHandicap: player.frameHandicap,
+    member: player.member,
   });
 
   const save = (event: FormEvent) => {
@@ -157,7 +159,7 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
 
   return (
     <tr>
-      <td colSpan={9}>
+      <td colSpan={10}>
         <form className="player-form" onSubmit={save}>
           <PlayerFields input={input} onChange={setInput} />
           <button type="submit" className="primary" disabled={updatePlayer.isPending}>
@@ -216,6 +218,14 @@ function PlayerFields({
           value={input.frameHandicap}
           onChange={(event) => onChange({ ...input, frameHandicap: Number(event.target.value) })}
         />
+      </label>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={input.member}
+          onChange={(event) => onChange({ ...input, member: event.target.checked })}
+        />
+        {t.players.memberThisSeason}
       </label>
     </>
   );

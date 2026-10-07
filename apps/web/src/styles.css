@@ -210,3 +210,25 @@ tbody tr:nth-child(even) {
 .player-form .error {
   flex-basis: 100%;
 }
+
+.leaderboard h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.leaderboard h2 a {
+  text-decoration: none;
+}
+
+.leaderboard ol {
+  margin: 0;
+  padding-left: 2em;
+  line-height: 1.6;
+}
+
+.checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}

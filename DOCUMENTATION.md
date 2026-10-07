@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
 `/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
-for the flatscreen in the club).
+for the flatscreen in the club) and `/saeson`.
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
 `null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
@@ -53,9 +53,12 @@ and Logout instead of Log ind. Logout asks for confirmation first, using the reu
 `api()` in `apps/web/src/api.ts`.
 
 Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
-in separate columns and all-time statistics. Sæsonpoint shows "–" until seasons are built. When
-logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting
-asks for confirmation).
+in separate columns, Medlem and Sæsonpoint for the current season, and all-time statistics.
+When logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet on each row
+(deleting asks for confirmation). The forms have a "Medlem denne sæson" checkbox.
+
+Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings.
+The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
@@ -138,6 +141,13 @@ the player renews. Season points = points from the season's concluded tournament
 `npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
 separate `franks_test` database in the same container, created and migrated automatically, and
 emptied before each test. Override it with `TEST_DATABASE_URL`.
+
+### Hand-written SQL subqueries
+
+Drizzle leaves column names unqualified in single-table queries (`"id"` rather than
+`"players"."id"`). Inside a hand-written `sql` subquery that can silently bind to the wrong
+table's column. In such subqueries, wrap every column in `qualified()` from
+`apps/server/src/db/seasons.ts`.
 
 ### Database changes
 
