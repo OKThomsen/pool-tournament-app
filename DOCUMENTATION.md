@@ -146,6 +146,12 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
   QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
   2v3. The top two seeds can only meet in the final.
+- **Same-pool players apart** (`firstRound`, quarterfinals only): two players from the same pool
+  don't meet in a quarterfinal. Seeds 1–4 keep their places and seeds 5–8 are rearranged:
+  seed 1 gets the weakest opponent possible, then seed 2, 3 and 4. If a clash can't be
+  avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
+  Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
+  layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
@@ -166,3 +172,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Every pool match has a table. Pools of 4 have no schedule; "up next" is only for pools of 5. |
 | 2026-10-07 | 6 players → one pool of 6; 7 → 4 + 3; 11 → 4 + 4 + 3. The admin can move players between pools. |
 | 2026-10-07 | Qualification: pool winners first, then the best runners-up (workbook rule). |
+| 2026-10-07 | Players from the same pool are kept apart in the quarterfinals, not in the semifinals. |

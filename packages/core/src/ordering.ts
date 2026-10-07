@@ -30,3 +30,14 @@ function compareDesc(x: number[], y: number[]): number {
   }
   return 0;
 }
+
+/**
+ * Every ordering of the items, in order of preference: the first item's original position
+ * varies slowest, so the input order itself comes first.
+ */
+export function permutations<T>(items: readonly T[]): T[][] {
+  if (items.length <= 1) return [[...items]];
+  return items.flatMap((item, i) =>
+    permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((rest) => [item, ...rest]),
+  );
+}

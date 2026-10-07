@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { knockoutBracket } from './knockout.js';
+import { firstRound, knockoutBracket } from './knockout.js';
 import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
 import { seededRng } from './random.js';
 import { seedQualifiers } from './seeding.js';
@@ -23,6 +23,74 @@ describe('seedQualifiers', () => {
       Array.from({ length: 20 }, (_, i) => seedQualifiers(tied, seededRng(i)).join()),
     );
     expect(draws.size).toBeGreaterThan(1);
+  });
+});
+
+describe('firstRound', () => {
+  // Every seed in its own pool unless a test says otherwise.
+  const pools =
+    (overrides: Record<string, string> = {}) =>
+    (p: string) =>
+      overrides[p] ?? p;
+
+  it('uses strict seeding when no two opponents share a pool', () => {
+    expect(firstRound(seeds8, pools())).toEqual({
+      pairings: [
+        ['S1', 'S8'],
+        ['S4', 'S5'],
+        ['S2', 'S7'],
+        ['S3', 'S6'],
+      ],
+      samePoolMatches: 0,
+    });
+  });
+
+  it('gives seed 1 the next weakest opponent from another pool', () => {
+    const { pairings, samePoolMatches } = firstRound(seeds8, pools({ S1: 'A', S8: 'A' }));
+    expect(pairings).toEqual([
+      ['S1', 'S7'],
+      ['S4', 'S5'],
+      ['S2', 'S8'],
+      ['S3', 'S6'],
+    ]);
+    expect(samePoolMatches).toBe(0);
+  });
+
+  it('changes as little as possible for the higher seeds', () => {
+    // Only seed 4 and seed 5 clash, so seeds 1–3 keep their strict opponents where possible.
+    const { pairings } = firstRound(seeds8, pools({ S4: 'A', S5: 'A' }));
+    expect(pairings).toEqual([
+      ['S1', 'S8'],
+      ['S4', 'S6'],
+      ['S2', 'S7'],
+      ['S3', 'S5'],
+    ]);
+  });
+
+  it('falls back to strict seeding when a clash is unavoidable', () => {
+    const everyoneInA = () => 'A';
+    expect(firstRound(seeds8, everyoneInA)).toEqual({
+      pairings: [
+        ['S1', 'S8'],
+        ['S4', 'S5'],
+        ['S2', 'S7'],
+        ['S3', 'S6'],
+      ],
+      samePoolMatches: 4,
+    });
+  });
+
+  it('never rearranges semifinals', () => {
+    const { pairings } = firstRound(['S1', 'S2', 'S3', 'S4'], () => 'A');
+    expect(pairings).toEqual([
+      ['S1', 'S4'],
+      ['S2', 'S3'],
+    ]);
+  });
+
+  it('feeds the rearranged pairings into the bracket', () => {
+    const qf1 = knockoutBracket(seeds8, {}, pools({ S1: 'A', S8: 'A' }))[0]!;
+    expect([qf1.playerA, qf1.playerB]).toEqual(['S1', 'S7']);
   });
 });
 
