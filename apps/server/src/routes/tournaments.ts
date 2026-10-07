@@ -1,4 +1,5 @@
 import {
+  assertValidScore,
   drawPools,
   MIN_PLAYERS_PER_POOL,
   playOrder,
@@ -21,6 +22,7 @@ import {
   tournaments,
 } from '../db/schema.js';
 import { seasonId } from '../db/seasons.js';
+import type { Events } from '../events.js';
 import { ongoingTournament, tournamentDetail } from '../tournaments/detail.js';
 
 const idParams = {
@@ -52,7 +54,10 @@ async function savePools(db: Executor, tournamentId: number, arrangement: number
   }
 }
 
-export const tournamentRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
+export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events }> = async (
+  app,
+  { db, events },
+) => {
   /** The tournament in progress (not concluded), or null. */
   app.get('/tournaments/ongoing', async () => ({ tournament: await ongoingTournament(db) }));
 
@@ -117,6 +122,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database }> = async (app
           await savePools(tx, tournament!.id, drawn);
           return tournament!.id;
         });
+        events.tournamentChanged(id);
         return reply.code(201).send(await tournamentDetail(db, id));
       } catch (error) {
         if (isUniqueViolation(error)) {
@@ -168,6 +174,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database }> = async (app
       }
 
       await db.transaction((tx) => savePools(tx, id, arrangement));
+      events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },
   );
@@ -206,6 +213,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database }> = async (app
           .set({ status: 'pools' })
           .where(and(eq(tournaments.id, id), eq(tournaments.status, 'draft')));
       });
+      events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },
   );
@@ -222,7 +230,92 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database }> = async (app
         return reply.code(409).send({ error: 'tournament_concluded' });
       }
       await db.delete(tournaments).where(eq(tournaments.id, id));
+      events.tournamentChanged(id);
       return reply.code(204).send();
+    },
+  );
+
+  /**
+   * Finds a match the admin may score right now: it belongs to the tournament, both players are
+   * known, and its stage is being played (pool matches while the pools are on).
+   */
+  type Scorable = { match: typeof matches.$inferSelect } | { error: 404 | 409; code: string };
+
+  async function scorableMatch(tournamentId: number, matchId: number): Promise<Scorable> {
+    const [row] = await db
+      .select({ match: matches, status: tournaments.status })
+      .from(matches)
+      .innerJoin(tournaments, eq(tournaments.id, matches.tournamentId))
+      .where(and(eq(matches.id, matchId), eq(matches.tournamentId, tournamentId)));
+    if (!row) return { error: 404, code: 'not_found' };
+    const playing = row.match.stage === 'pool' ? row.status === 'pools' : row.status === 'knockout';
+    if (!playing) return { error: 409, code: 'stage_closed' };
+    if (row.match.playerAId === null || row.match.playerBId === null) {
+      return { error: 409, code: 'players_not_decided' };
+    }
+    return { match: row.match };
+  }
+
+  const matchParams = {
+    type: 'object',
+    required: ['id', 'matchId'],
+    properties: {
+      id: { type: 'integer', minimum: 1 },
+      matchId: { type: 'integer', minimum: 1 },
+    },
+  } as const;
+
+  /** Enters or corrects a result. Frames are the match's player A and B, in that order. */
+  app.put<{ Params: { id: number; matchId: number }; Body: { framesA: number; framesB: number } }>(
+    '/tournaments/:id/matches/:matchId/result',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: matchParams,
+        body: {
+          type: 'object',
+          required: ['framesA', 'framesB'],
+          additionalProperties: false,
+          properties: {
+            framesA: { type: 'integer', minimum: 0, maximum: 99 },
+            framesB: { type: 'integer', minimum: 0, maximum: 99 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id, matchId } = request.params;
+      const found = await scorableMatch(id, matchId);
+      if ('error' in found) return reply.code(found.error).send({ error: found.code });
+      const { framesA, framesB } = request.body;
+      try {
+        assertValidScore(framesA, framesB, found.match.raceTo);
+      } catch {
+        return reply.code(400).send({ error: 'invalid_score' });
+      }
+      await db
+        .update(matches)
+        .set({ framesA, framesB, updatedAt: new Date() })
+        .where(eq(matches.id, matchId));
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /** Clears a result entered by mistake, so the match counts as not played. */
+  app.delete<{ Params: { id: number; matchId: number } }>(
+    '/tournaments/:id/matches/:matchId/result',
+    { preHandler: requireAdmin, schema: { params: matchParams } },
+    async (request, reply) => {
+      const { id, matchId } = request.params;
+      const found = await scorableMatch(id, matchId);
+      if ('error' in found) return reply.code(found.error).send({ error: found.code });
+      await db
+        .update(matches)
+        .set({ framesA: null, framesB: null, updatedAt: new Date() })
+        .where(eq(matches.id, matchId));
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
     },
   );
 };

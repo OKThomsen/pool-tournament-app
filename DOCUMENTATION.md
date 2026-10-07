@@ -162,6 +162,16 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
 | `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
+| `PUT /api/tournaments/:id/matches/:matchId/result` | admin | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
+| `DELETE /api/tournaments/:id/matches/:matchId/result` | admin | Clears a result entered by mistake. |
+
+### Live updates
+
+`GET /api/events` is a public Server-Sent Events stream. Every change to a tournament (created,
+pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
+`data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
+seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
+memory, which is fine for one server process.
 
 ### Server tests
 
