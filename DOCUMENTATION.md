@@ -34,6 +34,17 @@ npm run dev -w @franks/server     # API on http://localhost:3000, restarts on ch
 The server applies pending migrations and seeds the points table on startup.
 `GET /api/health` returns `{"status":"ok"}` when the API can reach the database.
 
+### Running the frontend locally
+
+```sh
+npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the server on :3000
+```
+
+Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
+for the flatscreen in the club). All UI text lives in `apps/web/src/strings.ts`, and the
+placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
+
 ### Database changes
 
 1. Edit `apps/server/src/db/schema.ts`.

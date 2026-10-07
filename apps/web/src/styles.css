@@ -1,0 +1,99 @@
+/* Placeholder styling until the design pass. Change the look through these variables. */
+:root {
+  --color-header: #343577;
+  --color-header-text: #ffffff;
+  --color-background: #f8f3e8;
+  --color-panel: #d6d6ff;
+  --color-panel-border: #343577;
+  --color-pill: #d6d6ff;
+  --color-text: #1c1c1c;
+  --color-brand: #971712;
+  --color-win: #c6efce;
+  --color-loss: #ffc7ce;
+  --radius: 12px;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+a {
+  color: inherit;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-header);
+  color: var(--color-header-text);
+}
+
+.brand {
+  margin-right: auto;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pill {
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: var(--color-pill);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.panel {
+  padding: 16px;
+  border: 6px solid var(--color-panel-border);
+  background: var(--color-panel);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 720px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.live {
+  min-height: 100vh;
+  padding: 24px;
+  font-size: 1.5rem;
+}
