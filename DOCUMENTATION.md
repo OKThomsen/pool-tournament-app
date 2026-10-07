@@ -45,6 +45,19 @@ Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `
 for the flatscreen in the club). All UI text lives in `apps/web/src/strings.ts`, and the
 placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
 
+### Running everything in Docker
+
+```sh
+docker compose up -d --build      # app on http://localhost:8080, Postgres on :5432
+docker compose logs -f app        # follow the app's logs
+docker compose stop               # stop, keeping the data
+```
+
+The `Dockerfile` builds a single image: the Fastify server serves the API under `/api` and the
+built React app for every other path, so client-side routes like `/live` work on reload. The
+image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
+so it can move to any container host later.
+
 ### Database changes
 
 1. Edit `apps/server/src/db/schema.ts`.

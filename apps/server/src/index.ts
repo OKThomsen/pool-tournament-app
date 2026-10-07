@@ -7,7 +7,7 @@ const { db, pool } = createDb(config.databaseUrl);
 await runMigrations(db);
 await seedDefaults(db);
 
-const app = await buildApp({ db });
+const app = await buildApp({ db, webDist: config.webDist });
 
 const shutdown = async () => {
   await app.close();

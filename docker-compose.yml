@@ -16,5 +16,16 @@ services:
       timeout: 5s
       retries: 10
 
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-franks}:${POSTGRES_PASSWORD:-franks}@db:5432/${POSTGRES_DB:-franks}
+    ports:
+      - '8080:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   db-data:
