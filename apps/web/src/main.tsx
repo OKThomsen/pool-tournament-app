@@ -4,11 +4,12 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
 import { RequireAdmin } from './components/RequireAdmin';
+import { FrontPage } from './pages/FrontPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlayersPage } from './pages/PlayersPage';
+import { SeasonPage } from './pages/SeasonPage';
 import {
   CreateTournamentPage,
-  FrontPage,
   LivePage,
   NotFoundPage,
   OngoingTournamentPage,
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="turneringer" element={<TournamentsPage />} />
             <Route path="turneringer/:id" element={<TournamentDetailPage />} />
             <Route path="spillere" element={<PlayersPage />} />
+            <Route path="saeson" element={<SeasonPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="admin" element={<RequireAdmin />}>
               <Route path="turnering/ny" element={<CreateTournamentPage />} />

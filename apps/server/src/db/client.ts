@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import * as schema from './schema.js';
 
 export type Database = ReturnType<typeof createDb>['db'];
+/** The database or a transaction on it; both run queries the same way. */
+export type Executor = Database | Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export function createDb(databaseUrl: string) {
   const pool = new pg.Pool({ connectionString: databaseUrl });

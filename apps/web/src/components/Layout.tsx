@@ -33,6 +33,9 @@ export function Layout() {
         <NavLink to="/spillere" className="pill">
           {t.nav.players}
         </NavLink>
+        <NavLink to="/saeson" className="pill">
+          {t.nav.season}
+        </NavLink>
         {admin ? (
           <button
             type="button"

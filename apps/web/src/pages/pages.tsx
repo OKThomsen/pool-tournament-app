@@ -12,15 +12,6 @@ function Placeholder({ title }: { title: string }) {
   );
 }
 
-export function FrontPage() {
-  return (
-    <div className="columns">
-      <Placeholder title={t.frontpage.title} />
-      <Placeholder title={t.frontpage.leaderboard} />
-    </div>
-  );
-}
-
 export function TournamentsPage() {
   return <Placeholder title={t.tournaments.title} />;
 }
