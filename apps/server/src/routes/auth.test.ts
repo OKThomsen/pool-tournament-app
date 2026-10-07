@@ -71,7 +71,8 @@ describe('POST /api/auth/login', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('limits login attempts per IP address', async () => {
+  // Ten deliberately slow password checks, so this needs more than the default 5 seconds.
+  it('limits login attempts per IP address', { timeout: 30_000 }, async () => {
     const ip = '10.0.0.99';
     for (let i = 0; i < 10; i++) {
       expect((await login('frank', 'forkert-kodeord', ip)).statusCode).toBe(401);

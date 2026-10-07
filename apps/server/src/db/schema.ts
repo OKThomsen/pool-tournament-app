@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   date,
@@ -10,6 +11,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const gameFormat = pgEnum('game_format', ['8-ball', '9-ball', '10-ball']);
@@ -33,7 +35,8 @@ export const players = pgTable(
     lastAdjusted: date('last_adjusted'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('players_name_idx').on(t.name)],
+  // Names are unique regardless of case, so the player search never shows two identical names.
+  (t) => [uniqueIndex('players_name_lower_idx').on(sql`lower(${t.name})`)],
 );
 
 /** Seasons are labelled 01/YYYY and 02/YYYY. */
