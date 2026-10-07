@@ -631,3 +631,8 @@ table.clickable tbody tr:hover {
 .notice .primary {
   margin-top: 8px;
 }
+
+.pill.language {
+  min-width: 3.2em;
+  font-weight: 600;
+}

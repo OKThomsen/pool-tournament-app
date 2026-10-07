@@ -2,11 +2,12 @@ import { isPlayed } from '../poolView';
 import { t } from '../strings';
 import type { Match, Tournament } from '../tournaments';
 
+// Titles are looked up when rendering, so they follow the current language.
 const ROUNDS = [
-  { stage: 'QF', title: t.stages.quarterfinals },
-  { stage: 'SF', title: t.stages.semifinals },
-  { stage: 'THIRD', title: t.stages.thirdPlace },
-  { stage: 'FINAL', title: t.stages.final },
+  { stage: 'QF', title: () => t.stages.quarterfinals },
+  { stage: 'SF', title: () => t.stages.semifinals },
+  { stage: 'THIRD', title: () => t.stages.thirdPlace },
+  { stage: 'FINAL', title: () => t.stages.final },
 ] as const;
 
 interface BracketProps {
@@ -29,7 +30,7 @@ export function Bracket({ tournament, names, onPlayerClick }: BracketProps) {
     <div className="bracket">
       {ROUNDS.filter((round) => knockout.some((m) => m.stage === round.stage)).map((round) => (
         <section key={round.stage} className="round">
-          <h3>{round.title}</h3>
+          <h3>{round.title()}</h3>
           {knockout
             .filter((m) => m.stage === round.stage)
             .map((match) => (

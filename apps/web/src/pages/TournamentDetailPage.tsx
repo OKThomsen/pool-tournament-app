@@ -36,7 +36,7 @@ export function TournamentDetailPage() {
   return (
     <section className="panel">
       <h1>
-        {t.tournaments.title} {formatDate(data.date)}
+        {t.tournaments.one} {formatDate(data.date)}
       </h1>
       <p>
         {data.format} · {t.ongoing.week} {data.week} · {t.season.title} {data.season} ·{' '}

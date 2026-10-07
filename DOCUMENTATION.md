@@ -109,8 +109,14 @@ tables and "Up next" in large type,
 or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
-All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
-the top of `apps/web/src/styles.css`.
+**Languages.** The UI is in Danish (default) and English. All text lives in
+`apps/web/src/strings.ts` as two dictionaries, `da` and `en`; TypeScript makes `en` keep the
+same shape as `da`, so a string missing in one language is a build error. Components use `t`,
+which points at the current language. The "EN"/"DA" pill in the header switches it
+(`components/Language.tsx`); the choice is remembered in the browser (`localStorage`), and `/live`
+uses whatever that browser chose. Add every new string to both dictionaries.
+
+The placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker
 
@@ -399,4 +405,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
 | 2026-10-07 | Member bonus is 10 season points, not 50 (from the customer). |
 | 2026-10-07 | Open pages reload themselves when a new version of the app is deployed. |
+| 2026-10-07 | The UI comes in Danish (default) and English, switchable in the header. |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |

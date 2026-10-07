@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useLogout, useSession } from '../auth';
 import { t } from '../strings';
 import { ConfirmDialog } from './ConfirmDialog';
+import { LanguageSwitch } from './Language';
 
 /** Header and navigation from the wireframes, with admin links when logged in. */
 export function Layout() {
@@ -52,6 +53,7 @@ export function Layout() {
             </NavLink>
           )
         )}
+        <LanguageSwitch />
       </header>
       <ConfirmDialog
         open={confirmingLogout}
