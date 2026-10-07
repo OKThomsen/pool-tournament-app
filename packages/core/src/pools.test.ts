@@ -1,26 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { drawPools, poolSplits, swapPlayers } from './pools.js';
+import { drawPools, poolSizes, swapPlayers } from './pools.js';
 import { seededRng } from './random.js';
 
-describe('poolSplits', () => {
+describe('poolSizes', () => {
   it.each([
-    [5, [[5]]],
-    [8, [[4, 4]]],
-    [9, [[5, 4]]],
-    [16, [[4, 4, 4, 4]]],
-    [
-      20,
-      [
-        [5, 5, 5, 5],
-        [4, 4, 4, 4, 4],
-      ],
-    ],
+    [5, [5]],
+    [8, [4, 4]],
+    [9, [5, 4]],
+    [13, [5, 4, 4]],
+    [16, [4, 4, 4, 4]],
+    [19, [5, 5, 5, 4]],
+    [20, [5, 5, 5, 5]],
   ])('splits %i players into %j', (count, expected) => {
-    expect(poolSplits(count)).toEqual(expected);
+    expect(poolSizes(count)).toEqual(expected);
   });
 
   it.each([3, 6, 7, 11])('has no split for %i players', (count) => {
-    expect(poolSplits(count)).toEqual([]);
+    expect(poolSizes(count)).toBeNull();
   });
 });
 

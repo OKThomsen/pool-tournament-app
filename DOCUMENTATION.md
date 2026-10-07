@@ -105,7 +105,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 |---|---|
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
-| `pools.ts` | `poolSplits`, `drawPools`, `swapPlayers`: splitting players into pools of 4–5, random draw, admin swaps. |
+| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`: splitting players into pools of 4–5, random draw, admin swaps. |
 | `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
@@ -123,8 +123,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   round, so nobody sits out twice in a row. `playOrder` also orders matches within each round so
   that in a pool of 5 nobody plays two matches back to back. That can't be avoided in a pool of
   4, where every round has all four players.
-- **Pool splits**: `poolSplits(n)` lists every valid split, fewest pools first (20 players →
-  4×5 or 5×4). 6, 7 and 11 players have no split. Choosing between splits is still open.
+- **Pool splits**: `poolSizes(n)` uses as few pools of 4–5 as possible, so 20 players make four
+  pools of 5. Between 5 and 20 players, 20 is the only count with a choice. 6, 7 and 11
+  players have no split (`null`); how to handle them is still open.
 - **Qualification**: the same number from each pool (for example, top 2 of 4 pools for
   quarterfinals). Uneven cases throw `UnsupportedQualificationError` until the rule is decided.
   An unresolved tie across the cut-off is reported in `tiesAtCutoff`.
@@ -147,3 +148,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Run locally with Docker for now; production hosting decided later. |
 | 2026-10-07 | Styling is placeholder until a later design pass. |
 | 2026-10-07 | Pool ties: wins → set score → head-to-head (mini-league for 3+); if still level, the admin chooses. |
+| 2026-10-07 | 20 players → four pools of 5 (as few pools as possible). |

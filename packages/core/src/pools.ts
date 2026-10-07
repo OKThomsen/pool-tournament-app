@@ -5,22 +5,21 @@ export const MIN_POOL_SIZE = 4;
 export const MAX_POOL_SIZE = 5;
 
 /**
- * Every way to split the players into pools of 4–5, fewest pools first. Returns an empty list
- * when no split exists (for example 6, 7 or 11 players).
+ * Splits the players into pools of 4–5, using as few pools as possible (20 players → four pools
+ * of 5, not five of 4). Returns null when no split exists, for example 6, 7 or 11 players.
  */
-export function poolSplits(playerCount: number): number[][] {
-  if (playerCount < MIN_POOL_SIZE) return [];
-  const splits: number[][] = [];
+export function poolSizes(playerCount: number): number[] | null {
+  if (playerCount < MIN_POOL_SIZE) return null;
   for (let large = Math.floor(playerCount / MAX_POOL_SIZE); large >= 0; large--) {
     const rest = playerCount - large * MAX_POOL_SIZE;
     if (rest % MIN_POOL_SIZE === 0) {
-      splits.push([
+      return [
         ...Array<number>(large).fill(MAX_POOL_SIZE),
         ...Array<number>(rest / MIN_POOL_SIZE).fill(MIN_POOL_SIZE),
-      ]);
+      ];
     }
   }
-  return splits;
+  return null;
 }
 
 /** Fills pools of the given sizes at random. */
