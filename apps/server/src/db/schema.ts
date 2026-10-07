@@ -60,20 +60,29 @@ export const memberships = pgTable(
   (t) => [primaryKey({ columns: [t.playerId, t.seasonId] })],
 );
 
-export const tournaments = pgTable('tournaments', {
-  id: serial('id').primaryKey(),
-  date: date('date').notNull(),
-  seasonId: integer('season_id')
-    .notNull()
-    .references(() => seasons.id),
-  week: integer('week').notNull(),
-  format: gameFormat('format').notNull(),
-  /** 4 (semifinals) or 8 (quarterfinals); chosen when the pools are complete. */
-  knockoutSize: integer('knockout_size'),
-  status: tournamentStatus('status').notNull().default('draft'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  concludedAt: timestamp('concluded_at', { withTimezone: true }),
-});
+export const tournaments = pgTable(
+  'tournaments',
+  {
+    id: serial('id').primaryKey(),
+    date: date('date').notNull(),
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id),
+    week: integer('week').notNull(),
+    format: gameFormat('format').notNull(),
+    /** 4 (semifinals) or 8 (quarterfinals); chosen when the pools are complete. */
+    knockoutSize: integer('knockout_size'),
+    status: tournamentStatus('status').notNull().default('draft'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    concludedAt: timestamp('concluded_at', { withTimezone: true }),
+  },
+  // At most one tournament in progress (not concluded) at a time.
+  () => [
+    uniqueIndex('tournaments_one_in_progress_idx')
+      .on(sql`(true)`)
+      .where(sql`status <> 'concluded'`),
+  ],
+);
 
 export const tournamentPlayers = pgTable(
   'tournament_players',

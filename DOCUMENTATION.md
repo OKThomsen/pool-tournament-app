@@ -136,6 +136,20 @@ the player renews. Season points = points from the season's concluded tournament
 |---|---|---|
 | `GET /api/seasons/current` | public | `{ label, start, end, standings }` for the season today is in. `standings` lists everyone who played in the season or is a member, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member`, `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
 
+### Tournaments API
+
+A tournament goes `draft` → `pools` → `knockout` → `concluded`. Only one tournament can be in
+progress (not concluded) at a time; a partial unique index in the database enforces it.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/tournaments/ongoing` | public | `{ tournament: { id, date, status } \| null }`: the tournament in progress. |
+| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season, format, status, knockout size, `players` (with handicaps and Medlem for the tournament's season), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`). The season and week come from the date. 409 `tournament_in_progress` if another one isn't concluded. |
+| `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
+| `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
+| `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
+
 ### Server tests
 
 `npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
@@ -280,3 +294,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
+| 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |

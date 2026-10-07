@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAdmin } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
+import { isUniqueViolation } from '../db/errors.js';
 import { players, results, tournamentPlayers, tournaments } from '../db/schema.js';
 import { currentSeason, isMemberIn, seasonPointsIn, setMembership } from '../db/seasons.js';
 
@@ -21,12 +22,6 @@ interface PlayerBody {
   frameHandicap?: number;
   /** Member this season. */
   member?: boolean;
-}
-
-/** Postgres' unique-violation error code. */
-function isUniqueViolation(error: unknown): boolean {
-  const cause = (error as { cause?: { code?: string } }).cause ?? error;
-  return (cause as { code?: string }).code === '23505';
 }
 
 /** A player's own fields, plus whether they're a member this season. */
