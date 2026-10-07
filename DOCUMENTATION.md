@@ -58,6 +58,25 @@ built React app for every other path, so client-side routes like `/live` work on
 image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
 so it can move to any container host later.
 
+### Admin accounts
+
+There is no sign-up. Only the owner creates admin accounts, with this command on the machine
+running the app, and hands out the logins:
+
+```sh
+npm run admin -w @franks/server -- create <username>        # asks for the password twice
+npm run admin -w @franks/server -- set-password <username>  # also signs them out everywhere
+npm run admin -w @franks/server -- list
+```
+
+Passwords need at least 10 characters. They're typed without being shown, and stored as scrypt
+hashes (`apps/server/src/auth/password.ts`). To script it, set `ADMIN_PASSWORD` instead of
+typing. In the Docker setup, run it inside the app container:
+
+```sh
+docker compose exec app node apps/server/dist/cli/admin.js create <username>
+```
+
 ### Database changes
 
 1. Edit `apps/server/src/db/schema.ts`.
