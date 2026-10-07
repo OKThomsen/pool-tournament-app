@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-franks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-franks}
+      POSTGRES_DB: ${POSTGRES_DB:-franks}
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-franks}:${POSTGRES_PASSWORD:-franks}@db:5432/${POSTGRES_DB:-franks}
+    ports:
+      - '8080:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
