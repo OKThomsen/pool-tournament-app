@@ -23,6 +23,44 @@ npm run format      # Prettier (Markdown is excluded)
 Line endings are normalized to LF by `.gitattributes`, so files behave the same on Windows and
 inside Linux containers.
 
+### Running the server locally
+
+```sh
+cp .env.example .env              # once; local settings, git-ignored
+docker compose up -d db           # Postgres on localhost:5432 (data in the db-data volume)
+npm run dev -w @franks/server     # API on http://localhost:3000, restarts on changes
+```
+
+The server applies pending migrations and seeds the points table on startup.
+`GET /api/health` returns `{"status":"ok"}` when the API can reach the database.
+
+### Database changes
+
+1. Edit `apps/server/src/db/schema.ts`.
+2. `npm run db:generate -w @franks/server -- --name <what_changed>` writes a SQL migration to
+   `apps/server/drizzle/`. Review it and commit it with the schema change.
+3. Restart the server (or run `npm run db:migrate -w @franks/server`) to apply it.
+
+To start over with an empty database: `docker compose down -v` (deletes all local data).
+
+## Data model
+
+Defined in `apps/server/src/db/schema.ts`. Only raw frame scores are stored; standings,
+qualification, seeding and the knockout bracket are derived with `@franks/core`.
+
+| Table | Purpose |
+|---|---|
+| `players` | Name, member, base/frame handicap, last adjusted date. |
+| `seasons` | `01/YYYY`, `02/YYYY`. |
+| `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
+| `tournament_players` | Who entered a tournament. |
+| `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
+| `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
+| `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, frames, play order. |
+| `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
+| `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
+| `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
+
 ## Architecture
 
 Planned (see `CLAUDE.md` → Tech stack):
