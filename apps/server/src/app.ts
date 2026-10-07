@@ -6,6 +6,7 @@ import type { Database } from './db/client.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { playerRoutes } from './routes/players.js';
+import { seasonRoutes } from './routes/seasons.js';
 
 export interface AppOptions {
   db: Database;
@@ -24,6 +25,7 @@ export async function buildApp({ db, webDist, secureCookies = false, logger = tr
   await app.register(healthRoutes, { prefix: '/api', db });
   await app.register(authRoutes, { prefix: '/api', db, secureCookies });
   await app.register(playerRoutes, { prefix: '/api', db });
+  await app.register(seasonRoutes, { prefix: '/api', db });
 
   if (webDist) {
     await app.register(fastifyStatic, { root: webDist, wildcard: false });

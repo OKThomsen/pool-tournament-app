@@ -127,6 +127,12 @@ the player as a simple yes/no for the current season. It resets when a new seaso
 the player renews. Season points = points from the season's concluded tournaments +
 `MEMBER_BONUS` (50) if the player is a member that season.
 
+### Seasons API
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/seasons/current` | public | `{ label, start, end, standings }` for the season today is in. `standings` lists everyone who played in the season or is a member, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member`, `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
+
 ### Server tests
 
 `npm test -w @franks/server` needs Postgres running (`docker compose up -d db`). The tests use a
