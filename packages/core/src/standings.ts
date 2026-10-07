@@ -1,4 +1,5 @@
 import { winnerOf } from './match.js';
+import { breakByAdminOrder, groupByDesc } from './ordering.js';
 import type { MatchResult, PlayerId } from './types.js';
 
 export interface StandingRow {
@@ -50,7 +51,7 @@ export function poolStandings(
   }
   for (const row of stats.values()) row.setScore = row.framesFor - row.framesAgainst;
 
-  const byRecord = groupBy([...stats.values()], (row) => [row.won, row.setScore]);
+  const byRecord = groupByDesc([...stats.values()], (row) => [row.won, row.setScore]);
   const ordered = byRecord
     .flatMap((group) =>
       breakByHeadToHead(
@@ -82,34 +83,9 @@ function breakByHeadToHead(tied: PlayerId[], results: readonly MatchResult[]): P
       h2hWins.set(winner, h2hWins.get(winner)! + 1);
     }
   }
-  const groups = groupBy(tied, (id) => [h2hWins.get(id)!]);
+  const groups = groupByDesc(tied, (id) => [h2hWins.get(id)!]);
   if (groups.length === 1) return [tied];
   return groups.flatMap((group) => breakByHeadToHead(group, results));
-}
-
-/** Splits a still-tied group in the admin's chosen order, if the admin has ordered all of it. */
-function breakByAdminOrder(tied: PlayerId[], adminOrder: readonly PlayerId[]): PlayerId[][] {
-  if (tied.length === 1 || !tied.every((id) => adminOrder.includes(id))) return [tied];
-  return [...tied].sort((x, y) => adminOrder.indexOf(x) - adminOrder.indexOf(y)).map((id) => [id]);
-}
-
-/** Splits items into groups with equal keys, ordered by key descending. Stable within a group. */
-function groupBy<T>(items: readonly T[], key: (item: T) => number[]): T[][] {
-  const sorted = [...items].sort((x, y) => compareDesc(key(x), key(y)));
-  const groups: T[][] = [];
-  for (const item of sorted) {
-    const last = groups.at(-1);
-    if (last && compareDesc(key(last[0]!), key(item)) === 0) last.push(item);
-    else groups.push([item]);
-  }
-  return groups;
-}
-
-function compareDesc(x: number[], y: number[]): number {
-  for (let i = 0; i < x.length; i++) {
-    if (x[i] !== y[i]) return y[i]! - x[i]!;
-  }
-  return 0;
 }
 
 function emptyRow(playerId: PlayerId): StandingRow {
