@@ -86,7 +86,17 @@ won 2-0): one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), pl
 resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
-`/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type,
+When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
+quarterfinals or semifinals (the workbook's suggestion preselected) and the race length, and it
+shows who qualifies, worked out with `qualifyFromPools` like the server. A tie that decides who
+goes through must be settled first: the admin clicks the tied players in order, best first (a
+tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
+Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
+admins tap a player in a match to enter the result from that player's side. Pool tables stay
+visible but read-only.
+
+`/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
+tables and "Up next" in large type,
 or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
@@ -181,6 +191,17 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin | Clears a result entered by mistake. |
+| `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
+| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match with `raceTo`, and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
+
+Knockout results use the same result routes. Entering or clearing one fills in who plays the
+later matches (`syncBracket`). A result that would change who plays an already-played later
+match is refused (409 `later_match_played`): clear the later result first. A score fix with the
+same winner is always allowed. Pool results are closed once the knockout starts (409
+`stage_closed`).
+
+The tournament detail also has `seeds` (player ids, best first; empty before the knockout) and,
+per pool, `tiebreak`.
 
 ### Live updates
 

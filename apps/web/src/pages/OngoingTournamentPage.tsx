@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
+import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PoolEditor } from '../components/PoolEditor';
 import { PoolTable, UpNext } from '../components/PoolTable';
+import { QualifyPanel } from '../components/QualifyPanel';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { formatDate } from '../format';
-import { poolView } from '../poolView';
+import { isPlayed, poolView } from '../poolView';
 import { t } from '../strings';
 import {
   useCancelTournament,
@@ -15,6 +17,7 @@ import {
   useSetResult,
   useStartTournament,
   useTournament,
+  type Match,
   type Tournament,
 } from '../tournaments';
 
@@ -111,7 +114,10 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   );
 }
 
-/** After "finalize brackets": enter results in the pool tables. */
+/**
+ * After "finalize brackets": enter pool results; when every pool is done, "complete qualifier
+ * brackets"; then enter knockout results in the bracket.
+ */
 function PoolPlay({ tournament }: { tournament: Tournament }) {
   const setResult = useSetResult(tournament.id);
   const clearResult = useClearResult(tournament.id);
@@ -121,27 +127,46 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const busy = setResult.isPending || clearResult.isPending;
   const close = () => setScoring(null);
+  const inPools = tournament.status === 'pools';
+  const score = (match: Match, player: number) => setScoring({ match, player });
+
+  const error = setResult.error ?? clearResult.error;
+  const knockoutDone = ['FINAL', 'THIRD'].every((slot) => {
+    const match = tournament.matches.find((m) => m.slot === slot);
+    return match && isPlayed(match);
+  });
 
   return (
     <>
-      <h2>{t.stages.pools}</h2>
-      {(setResult.error || clearResult.error) && (
+      {error && (
         <p className="error" role="alert">
-          {t.saveFailed}
+          {error instanceof ApiError && error.code === 'later_match_played'
+            ? t.knockout.laterPlayed
+            : t.saveFailed}
         </p>
       )}
+      {tournament.status === 'knockout' && (
+        <>
+          <h2>{t.knockout.title}</h2>
+          <Bracket tournament={tournament} names={names} onPlayerClick={score} />
+          {knockoutDone && <p className="notice">{t.knockout.done}</p>}
+        </>
+      )}
+      <h2>{t.stages.pools}</h2>
       {views.map((view) => (
         <div key={view.pool.id} className="pool-block">
           <PoolTable
             view={view}
             names={names}
             slots={slots}
-            onCellClick={(match, player) => setScoring({ match, player })}
+            onCellClick={inPools ? score : undefined}
           />
-          <UpNext view={view} names={names} />
+          {inPools && <UpNext view={view} names={names} />}
         </div>
       ))}
-      {views.every((view) => view.complete) && <p className="notice">{t.pools.allComplete}</p>}
+      {inPools && views.every((view) => view.complete) && (
+        <QualifyPanel tournament={tournament} views={views} names={names} />
+      )}
       <ScoreDialog
         scoring={scoring}
         names={names}

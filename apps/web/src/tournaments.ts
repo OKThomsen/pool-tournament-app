@@ -16,6 +16,8 @@ export interface Pool {
   id: number;
   name: string;
   playerIds: number[];
+  /** The admin's order for ties that results can't break, best first. */
+  tiebreak: number[];
 }
 
 export interface Match {
@@ -42,6 +44,8 @@ export interface Tournament {
   players: Entrant[];
   pools: Pool[];
   matches: Match[];
+  /** Knockout seeds, best first. Empty before the knockout. */
+  seeds: number[];
 }
 
 export const tournamentKey = (id: number) => ['tournaments', id];
@@ -117,5 +121,21 @@ export function useSetResult(id: number) {
 export function useClearResult(id: number) {
   return useTournamentMutation((matchId: number) =>
     api<Tournament>(`/tournaments/${id}/matches/${matchId}/result`, { method: 'DELETE' }),
+  );
+}
+
+export function useSetPoolTiebreak(id: number) {
+  return useTournamentMutation((input: { poolId: number; playerIds: number[] }) =>
+    api<Tournament>(`/tournaments/${id}/pools/${input.poolId}/tiebreak`, {
+      method: 'PUT',
+      body: { playerIds: input.playerIds },
+    }),
+  );
+}
+
+/** "complete qualifier brackets". */
+export function useStartKnockout(id: number) {
+  return useTournamentMutation((input: { size: 4 | 8; raceTo: number; adminOrder: number[] }) =>
+    api<Tournament>(`/tournaments/${id}/knockout`, { method: 'POST', body: input }),
   );
 }

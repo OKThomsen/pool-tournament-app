@@ -4,6 +4,38 @@ import type { PlayerId } from './types.js';
 
 export type KnockoutMatchId = 'QF1' | 'QF2' | 'QF3' | 'QF4' | 'SF1' | 'SF2' | 'THIRD' | 'FINAL';
 
+export type KnockoutStage = 'QF' | 'SF' | 'THIRD' | 'FINAL';
+
+/** The stage each bracket slot belongs to. */
+export const KNOCKOUT_STAGE: Record<KnockoutMatchId, KnockoutStage> = {
+  QF1: 'QF',
+  QF2: 'QF',
+  QF3: 'QF',
+  QF4: 'QF',
+  SF1: 'SF',
+  SF2: 'SF',
+  THIRD: 'THIRD',
+  FINAL: 'FINAL',
+};
+
+/** The slots a knockout of 4 or 8 players uses, in playing order. */
+export function knockoutSlots(size: 4 | 8): KnockoutMatchId[] {
+  const later: KnockoutMatchId[] = ['SF1', 'SF2', 'THIRD', 'FINAL'];
+  return size === 8 ? ['QF1', 'QF2', 'QF3', 'QF4', ...later] : later;
+}
+
+/** The matches whose players come from this match: its winner (and, from a semifinal, loser). */
+export const FEEDS_INTO: Record<KnockoutMatchId, KnockoutMatchId[]> = {
+  QF1: ['SF1'],
+  QF2: ['SF1'],
+  QF3: ['SF2'],
+  QF4: ['SF2'],
+  SF1: ['THIRD', 'FINAL'],
+  SF2: ['THIRD', 'FINAL'],
+  THIRD: [],
+  FINAL: [],
+};
+
 export interface Score {
   framesA: number;
   framesB: number;
