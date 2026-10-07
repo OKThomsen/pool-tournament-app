@@ -21,16 +21,6 @@ export function TournamentDetailPage() {
   return <Placeholder title={`${t.tournaments.title} #${id}`} />;
 }
 
-/** Full-screen view for the flatscreen in the club. Rendered without the site header. */
-export function LivePage() {
-  return (
-    <div className="live">
-      <h1>{t.brand}</h1>
-      <p>{t.placeholder}</p>
-    </div>
-  );
-}
-
 export function NotFoundPage() {
   return <Placeholder title={t.notFound} />;
 }

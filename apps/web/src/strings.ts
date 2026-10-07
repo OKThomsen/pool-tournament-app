@@ -98,6 +98,20 @@ export const t = {
     dragHelp:
       'Træk en spiller over på en anden for at bytte dem, eller ind i en anden pulje for at flytte spilleren.',
     tooSmall: 'En pulje skal have mindst 2 spillere.',
+    setScore: 'Set score',
+    won: 'Vundne',
+    tied: 'Står lige. Admin vælger rækkefølgen, når kvalifikationen afgøres.',
+    sittingOut: 'Sidder over',
+    complete: 'Alle kampe i puljen er spillet.',
+    allComplete: 'Alle puljekampe er spillet. Næste trin er complete qualifier brackets.',
+  },
+  score: {
+    raceTo: (n: number) => `Race to ${n}`,
+    clear: 'Ryd resultat',
+  },
+  live: {
+    drawing: 'Puljerne bliver lavet …',
+    noTournament: 'Ingen turnering i gang lige nu',
   },
   yes: 'Ja',
   no: 'Nej',

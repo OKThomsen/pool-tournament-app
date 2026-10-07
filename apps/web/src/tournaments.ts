@@ -104,3 +104,18 @@ export function useCancelTournament(id: number) {
     },
   });
 }
+
+export function useSetResult(id: number) {
+  return useTournamentMutation((input: { matchId: number; framesA: number; framesB: number }) =>
+    api<Tournament>(`/tournaments/${id}/matches/${input.matchId}/result`, {
+      method: 'PUT',
+      body: { framesA: input.framesA, framesB: input.framesB },
+    }),
+  );
+}
+
+export function useClearResult(id: number) {
+  return useTournamentMutation((matchId: number) =>
+    api<Tournament>(`/tournaments/${id}/matches/${matchId}/result`, { method: 'DELETE' }),
+  );
+}

@@ -73,13 +73,30 @@ another pool to move them (pools keep at least 2 players). Every change is saved
 touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
 a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
 
+In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
+Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
+Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
+the extra fields empty, so all pools have the same size and line up. Long names are cut off with
+"…" and shown in full on hover. In the matrix,
+a played cell shows the row player's score, green for a win and red for a loss. The set score
+("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
+are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
+`ScoreDialog`, asked from that row player's side (in August's row against Oskar, 2-0 means August
+won 2-0): one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), plus "Ryd
+resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be
+played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
+
+`/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type,
+or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
+listens to `/api/events` and refetches tournament data on every change, on every page.
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker
 
 ```sh
-docker compose up -d --build      # app on http://localhost:8080, Postgres on :5432
+docker compose up -d --build      # app on http://localhost:8080, Postgres on :5432 (APP_PORT, DB_PORT)
 docker compose logs -f app        # follow the app's logs
 docker compose stop               # stop, keeping the data
 ```
@@ -162,6 +179,16 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
 | `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
+| `PUT /api/tournaments/:id/matches/:matchId/result` | admin | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
+| `DELETE /api/tournaments/:id/matches/:matchId/result` | admin | Clears a result entered by mistake. |
+
+### Live updates
+
+`GET /api/events` is a public Server-Sent Events stream. Every change to a tournament (created,
+pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
+`data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
+seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
+memory, which is fine for one server process.
 
 ### Server tests
 
@@ -175,6 +202,17 @@ Drizzle leaves column names unqualified in single-table queries (`"id"` rather t
 `"players"."id"`). Inside a hand-written `sql` subquery that can silently bind to the wrong
 table's column. In such subqueries, wrap every column in `qualified()` from
 `apps/server/src/db/seasons.ts`.
+
+### End-to-end checks on a separate stack
+
+Never test against the local stack on :8080; it holds real data (players, tournaments in
+progress). Run a throwaway copy with its own ports and database volume instead:
+
+```sh
+APP_PORT=8081 DB_PORT=5433 docker compose -p franks-e2e up -d --build   # app on :8081
+# … create an admin with `docker compose -p franks-e2e exec app node apps/server/dist/cli/admin.js create e2e`
+docker compose -p franks-e2e down -v                                   # delete it all again
+```
 
 ### Database changes
 
