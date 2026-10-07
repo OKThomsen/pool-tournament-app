@@ -77,7 +77,8 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 a played cell shows the row player's score, green for a win and red for a loss. The set score
 ("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
 are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
-`ScoreDialog`: one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), plus "Ryd
+`ScoreDialog`, asked from that row player's side (in August's row against Oskar, 2-0 means August
+won 2-0): one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), plus "Ryd
 resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 

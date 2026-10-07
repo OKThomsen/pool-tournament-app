@@ -5,8 +5,8 @@ import type { Match } from '../tournaments';
 interface PoolTableProps {
   view: PoolView;
   names: Map<number, string>;
-  /** Set for admins: clicking a cell enters or changes that match's result. */
-  onCellClick?: (match: Match) => void;
+  /** Set for admins: clicking a cell enters or changes that match, from the row player's side. */
+  onCellClick?: (match: Match, rowPlayer: number) => void;
 }
 
 /**
@@ -56,7 +56,7 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
                           type="button"
                           className="cell-button"
                           aria-label={label}
-                          onClick={() => onCellClick(match)}
+                          onClick={() => onCellClick(match, rowId)}
                         >
                           {score?.text ?? '+'}
                         </button>

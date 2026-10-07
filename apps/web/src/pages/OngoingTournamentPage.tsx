@@ -4,7 +4,7 @@ import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PoolEditor } from '../components/PoolEditor';
 import { PoolTable, UpNext } from '../components/PoolTable';
-import { ScoreDialog } from '../components/ScoreDialog';
+import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { t } from '../strings';
@@ -15,7 +15,6 @@ import {
   useSetResult,
   useStartTournament,
   useTournament,
-  type Match,
   type Tournament,
 } from '../tournaments';
 
@@ -116,7 +115,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
 function PoolPlay({ tournament }: { tournament: Tournament }) {
   const setResult = useSetResult(tournament.id);
   const clearResult = useClearResult(tournament.id);
-  const [scoring, setScoring] = useState<Match | null>(null);
+  const [scoring, setScoring] = useState<Scoring | null>(null);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
   const busy = setResult.isPending || clearResult.isPending;
@@ -132,19 +131,23 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
       )}
       {views.map((view) => (
         <div key={view.pool.id} className="pool-block">
-          <PoolTable view={view} names={names} onCellClick={setScoring} />
+          <PoolTable
+            view={view}
+            names={names}
+            onCellClick={(match, player) => setScoring({ match, player })}
+          />
           <UpNext view={view} names={names} />
         </div>
       ))}
       {views.every((view) => view.complete) && <p className="notice">{t.pools.allComplete}</p>}
       <ScoreDialog
-        match={scoring}
+        scoring={scoring}
         names={names}
         busy={busy}
         onScore={(framesA, framesB) =>
-          setResult.mutate({ matchId: scoring!.id, framesA, framesB }, { onSuccess: close })
+          setResult.mutate({ matchId: scoring!.match.id, framesA, framesB }, { onSuccess: close })
         }
-        onClear={() => clearResult.mutate(scoring!.id, { onSuccess: close })}
+        onClear={() => clearResult.mutate(scoring!.match.id, { onSuccess: close })}
         onClose={close}
       />
     </>
