@@ -18,13 +18,24 @@ import {
   players,
   poolMembers,
   pools,
+  results,
   tournamentPlayers,
   tournaments,
 } from '../db/schema.js';
 import { seasonId } from '../db/seasons.js';
 import type { Events } from '../events.js';
-import { ongoingTournament, tournamentDetail } from '../tournaments/detail.js';
-import { knockoutChangeAllowed, startKnockout, syncBracket } from '../tournaments/knockout.js';
+import {
+  concludedTournaments,
+  ongoingTournament,
+  tournamentDetail,
+} from '../tournaments/detail.js';
+import {
+  knockoutChangeAllowed,
+  qualifiersUnchanged,
+  startKnockout,
+  syncBracket,
+} from '../tournaments/knockout.js';
+import { writeResults } from '../tournaments/results.js';
 
 const idParams = {
   type: 'object',
@@ -240,7 +251,9 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
    * Finds a match the admin may score right now: it belongs to the tournament, both players are
    * known, and its stage is being played (pool matches while the pools are on).
    */
-  type Scorable = { match: typeof matches.$inferSelect } | { error: 404 | 409; code: string };
+  type Scorable =
+    | { match: typeof matches.$inferSelect; status: typeof tournaments.$inferSelect.status }
+    | { error: 404 | 409; code: string };
 
   async function scorableMatch(tournamentId: number, matchId: number): Promise<Scorable> {
     const [row] = await db
@@ -249,12 +262,17 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       .innerJoin(tournaments, eq(tournaments.id, matches.tournamentId))
       .where(and(eq(matches.id, matchId), eq(matches.tournamentId, tournamentId)));
     if (!row) return { error: 404, code: 'not_found' };
-    const playing = row.match.stage === 'pool' ? row.status === 'pools' : row.status === 'knockout';
-    if (!playing) return { error: 409, code: 'stage_closed' };
+    // Pool results from the pools onward; knockout results from the knockout onward. Results in
+    // a concluded tournament can still be corrected (see applyResult).
+    const open =
+      row.match.stage === 'pool'
+        ? row.status !== 'draft'
+        : row.status === 'knockout' || row.status === 'concluded';
+    if (!open) return { error: 409, code: 'stage_closed' };
     if (row.match.playerAId === null || row.match.playerBId === null) {
       return { error: 409, code: 'players_not_decided' };
     }
-    return { match: row.match };
+    return { match: row.match, status: row.status };
   }
 
   const matchParams = {
@@ -267,8 +285,13 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   } as const;
 
   /**
-   * Sets (or with `next = null` clears) a result. A knockout result also updates who plays the
-   * later matches, and may not change a winner a later, already-played match depends on.
+   * Sets (or with `next = null` clears) a result.
+   *
+   * - A knockout result also updates who plays the later matches, and may not change a winner
+   *   that a later, already-played match depends on.
+   * - A pool result after the pools have closed may not change who qualified.
+   * - In a concluded tournament results can be corrected but not cleared, and placements and
+   *   points are rewritten. Bigger changes need the tournament reopened.
    */
   async function applyResult(
     id: number,
@@ -286,9 +309,16 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       }
     }
     const knockout = found.match.stage !== 'pool';
-    const before = await tournamentDetail(db, id);
-    if (knockout && !knockoutChangeAllowed(before!, matchId, next)) {
+    const concluded = found.status === 'concluded';
+    const before = (await tournamentDetail(db, id))!;
+    if (concluded && next === null) {
+      return reply.code(409).send({ error: 'tournament_concluded' });
+    }
+    if (knockout && !knockoutChangeAllowed(before, matchId, next)) {
       return reply.code(409).send({ error: 'later_match_played' });
+    }
+    if (!knockout && found.status !== 'pools' && !qualifiersUnchanged(before, matchId, next)) {
+      return reply.code(409).send({ error: 'would_change_qualification' });
     }
     await db.transaction(async (tx) => {
       await tx
@@ -299,7 +329,8 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           updatedAt: new Date(),
         })
         .where(eq(matches.id, matchId));
-      if (knockout) await syncBracket(tx, before!);
+      if (knockout) await syncBracket(tx, before);
+      if (concluded) await writeResults(tx, (await tournamentDetail(tx, id))!);
     });
     events.tournamentChanged(id);
     return tournamentDetail(db, id);
@@ -417,6 +448,72 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       );
       if (!result.ok) {
         return reply.code(result.status).send({ error: result.error, ties: result.ties });
+      }
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /** Concluded tournaments, newest first, for the Turneringer list. */
+  app.get('/tournaments', async () => concludedTournaments(db));
+
+  /**
+   * "conclude tournament": once the final and the third-place final are played, writes every
+   * player's placement, points, matches won and handicap snapshot, and closes the tournament.
+   */
+  app.post<{ Params: { id: number } }>(
+    '/tournaments/:id/conclude',
+    { preHandler: requireAdmin, schema: { params: idParams } },
+    async (request, reply) => {
+      const { id } = request.params;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      if (detail.status !== 'knockout') return reply.code(409).send({ error: 'not_in_knockout' });
+      const finished = ['FINAL', 'THIRD'].every((slot) =>
+        detail.matches.some((m) => m.slot === slot && m.framesA !== null),
+      );
+      if (!finished) return reply.code(409).send({ error: 'knockout_unfinished' });
+
+      await db.transaction(async (tx) => {
+        await writeResults(tx, detail);
+        await tx
+          .update(tournaments)
+          .set({ status: 'concluded', concludedAt: new Date() })
+          .where(eq(tournaments.id, id));
+      });
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * Reopens a concluded tournament for corrections too big to make in place (like a different
+   * quarterfinal winner after the semifinal was played). Its results are removed until it is
+   * concluded again. Only possible when no other tournament is in progress.
+   */
+  app.post<{ Params: { id: number } }>(
+    '/tournaments/:id/reopen',
+    { preHandler: requireAdmin, schema: { params: idParams } },
+    async (request, reply) => {
+      const { id } = request.params;
+      const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
+      if (!tournament) return reply.code(404).send({ error: 'not_found' });
+      if (tournament.status !== 'concluded') {
+        return reply.code(409).send({ error: 'not_concluded' });
+      }
+      try {
+        await db.transaction(async (tx) => {
+          await tx
+            .update(tournaments)
+            .set({ status: 'knockout', concludedAt: null })
+            .where(eq(tournaments.id, id));
+          await tx.delete(results).where(eq(results.tournamentId, id));
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          return reply.code(409).send({ error: 'tournament_in_progress' });
+        }
+        throw error;
       }
       events.tournamentChanged(id);
       return tournamentDetail(db, id);

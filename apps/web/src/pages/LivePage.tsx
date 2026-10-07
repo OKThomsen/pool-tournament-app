@@ -31,7 +31,7 @@ function LiveTournament({ id }: { id: number }) {
       <header className="live-header">
         <h1>{t.brand}</h1>
         <p>
-          {t.tournaments.title} {formatDate(data.date)} · {data.format}
+          {t.tournaments.one} {formatDate(data.date)} · {data.format}
         </p>
       </header>
       {data.status === 'knockout' && <Bracket tournament={data} names={names} />}

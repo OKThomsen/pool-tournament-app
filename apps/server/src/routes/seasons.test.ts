@@ -49,10 +49,11 @@ describe('GET /api/seasons/current', () => {
     await setMembership(db, sarah!.id, currentSeason().label, true);
 
     const { standings } = (await app.inject({ url: '/api/seasons/current' })).json();
+    // Sarah's bonus (10) equals Mads' win, so they share second place (by name within it).
+    expect(MEMBER_BONUS).toBe(10);
     expect(standings).toEqual([
-      expect.objectContaining({ rank: 1, name: 'Sarah', points: MEMBER_BONUS, participation: 0 }),
       expect.objectContaining({
-        rank: 2,
+        rank: 1,
         name: 'Ann',
         points: 17,
         participation: 2,
@@ -60,7 +61,8 @@ describe('GET /api/seasons/current', () => {
         semifinals: 2,
         quarterfinals: 1,
       }),
-      expect.objectContaining({ rank: 3, name: 'Mads', points: 10, wins: 1 }),
+      expect.objectContaining({ rank: 2, name: 'Mads', points: 10, wins: 1 }),
+      expect.objectContaining({ rank: 2, name: 'Sarah', points: MEMBER_BONUS, participation: 0 }),
       expect.objectContaining({ rank: 4, name: 'Kent', points: 3, semifinals: 0 }),
     ]);
   });

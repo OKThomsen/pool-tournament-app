@@ -1,4 +1,4 @@
-import { asc, eq, ne } from 'drizzle-orm';
+import { asc, desc, eq, ne, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import {
   knockoutSeeds,
@@ -6,11 +6,12 @@ import {
   players,
   poolMembers,
   pools,
+  results,
   seasons,
   tournamentPlayers,
   tournaments,
 } from '../db/schema.js';
-import { isMemberIn } from '../db/seasons.js';
+import { isMemberIn, qualified } from '../db/seasons.js';
 
 /** Everything about one tournament, as the admin and live views need it. */
 export async function tournamentDetail(db: Executor, id: number) {
@@ -96,7 +97,27 @@ export async function tournamentDetail(db: Executor, id: number) {
       .orderBy(asc(knockoutSeeds.seed))
   ).map((row) => row.playerId);
 
-  return { ...tournament, players: entrants, pools: poolList, matches: matchList, seeds };
+  // Final placings, best first (the placement enum is declared in that order). Empty until
+  // "conclude tournament".
+  const placings = await db
+    .select({
+      playerId: results.playerId,
+      placement: results.placement,
+      points: results.points,
+      matchesWon: results.matchesWon,
+    })
+    .from(results)
+    .where(eq(results.tournamentId, id))
+    .orderBy(asc(results.placement), asc(results.playerId));
+
+  return {
+    ...tournament,
+    players: entrants,
+    pools: poolList,
+    matches: matchList,
+    seeds,
+    results: placings,
+  };
 }
 
 export type TournamentDetail = NonNullable<Awaited<ReturnType<typeof tournamentDetail>>>;
@@ -109,4 +130,30 @@ export async function ongoingTournament(db: Executor) {
     .where(ne(tournaments.status, 'concluded'))
     .limit(1);
   return row ?? null;
+}
+
+/** Concluded tournaments, newest first: date, format, winner and number of players. */
+export async function concludedTournaments(db: Executor) {
+  return db
+    .select({
+      id: tournaments.id,
+      date: tournaments.date,
+      week: tournaments.week,
+      season: seasons.label,
+      format: tournaments.format,
+      winner: sql<string | null>`(
+        select ${players.name} from ${results}
+        join ${players} on ${qualified(players.id)} = ${qualified(results.playerId)}
+        where ${qualified(results.tournamentId)} = ${qualified(tournaments.id)}
+          and ${qualified(results.placement)} = '1st'
+      )`,
+      participants: sql<number>`(
+        select count(*)::int from ${tournamentPlayers}
+        where ${qualified(tournamentPlayers.tournamentId)} = ${qualified(tournaments.id)}
+      )`,
+    })
+    .from(tournaments)
+    .innerJoin(seasons, eq(seasons.id, tournaments.seasonId))
+    .where(eq(tournaments.status, 'concluded'))
+    .orderBy(desc(tournaments.date), desc(tournaments.id));
 }

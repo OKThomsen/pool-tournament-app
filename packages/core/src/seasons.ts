@@ -1,5 +1,5 @@
 /** Season points a player gets for being a member (renewing their membership) that season. */
-export const MEMBER_BONUS = 50;
+export const MEMBER_BONUS = 10;
 
 export interface Season {
   /** `01/2026` … `04/2026`: the quarter and the year. */

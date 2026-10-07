@@ -13,6 +13,8 @@ interface ScoreDialogProps {
   scoring: Scoring | null;
   names: Map<number, string>;
   busy: boolean;
+  /** Offer "Ryd resultat". Off for concluded tournaments, whose results can only be corrected. */
+  allowClear?: boolean;
   /** Frames in the match's own order: player A, then player B. */
   onScore: (framesA: number, framesB: number) => void;
   onClear: () => void;
@@ -43,6 +45,7 @@ function ScoreChoices({
   scoring,
   names,
   busy,
+  allowClear = true,
   onScore,
   onClear,
   onClose,
@@ -76,7 +79,7 @@ function ScoreChoices({
         ))}
       </div>
       <div className="confirm-buttons">
-        {isPlayed(match) && (
+        {allowClear && isPlayed(match) && (
           <button type="button" className="link" disabled={busy} onClick={onClear}>
             {t.score.clear}
           </button>

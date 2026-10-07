@@ -237,11 +237,135 @@ describe('knockout results', () => {
     expect(bySlot(changed, 'SF1').playerAId).toBe(bySlot(changed, 'QF1').playerBId);
   });
 
-  it('closes the pools once the knockout has started', async () => {
-    const k = await knockoutTournament();
-    const poolMatch = k.matches.find((m) => m.stage === 'pool')!;
-    const response = await score(k, poolMatch, 0, 2);
+  it('allows a pool correction after the pools close only if the qualifiers stay the same', async () => {
+    // Semifinals: the top two of each pool. Pools finished in draw order (first player best).
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const [poolA] = k.pools;
+    const [first, second, third] = poolA!.playerIds;
+    const between = (a: number, b: number) =>
+      k.matches.find(
+        (m) =>
+          m.stage === 'pool' &&
+          ((m.playerAId === a && m.playerBId === b) || (m.playerAId === b && m.playerBId === a)),
+      )!;
+
+    // Same winner, closer score: nobody else qualifies.
+    const fix = between(first!, second!);
+    const fixed = await score(
+      k,
+      fix,
+      fix.playerAId === first ? 2 : 1,
+      fix.playerAId === first ? 1 : 2,
+    );
+    expect(fixed.statusCode).toBe(200);
+
+    // The third player beating the second would put the third player through instead.
+    const flip = between(second!, third!);
+    const flipped = await score(
+      k,
+      flip,
+      flip.playerAId === third ? 2 : 0,
+      flip.playerAId === third ? 0 : 2,
+    );
+    expect(flipped.statusCode).toBe(409);
+    expect(flipped.json().error).toBe('would_change_qualification');
+  });
+});
+
+describe('concluding', () => {
+  /** A semifinal-only tournament with the knockout played: SF1, SF2, third place, final. */
+  async function finishedKnockout(): Promise<Tournament> {
+    const t = await playPools(await startedTournament());
+    let k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    for (const slot of ['SF1', 'SF2', 'THIRD', 'FINAL']) {
+      k = (await score(k, bySlot(k, slot), 2, 0)).json();
+    }
+    return k;
+  }
+
+  const conclude = (t: Tournament) =>
+    app.inject({ method: 'POST', url: `/api/tournaments/${t.id}/conclude`, cookies });
+
+  it('needs the final and the third-place final played', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const response = await conclude(k);
     expect(response.statusCode).toBe(409);
-    expect(response.json().error).toBe('stage_closed');
+    expect(response.json().error).toBe('knockout_unfinished');
+  });
+
+  it('writes placements, points, pool wins and handicaps, and lists the tournament', async () => {
+    const k = await finishedKnockout();
+    const response = await conclude(k);
+    expect(response.statusCode).toBe(200);
+    const done = response.json();
+    expect(done.status).toBe('concluded');
+
+    const placing = (slot: string, side: 'playerAId' | 'playerBId') =>
+      done.results.find((r: { playerId: number }) => r.playerId === bySlot(done, slot)[side]);
+    expect(placing('FINAL', 'playerAId')).toMatchObject({ placement: '1st', points: 10 });
+    expect(placing('FINAL', 'playerBId')).toMatchObject({ placement: '2nd', points: 7 });
+    expect(placing('THIRD', 'playerAId')).toMatchObject({ placement: '3rd', points: 5 });
+    expect(placing('THIRD', 'playerBId')).toMatchObject({ placement: '4th', points: 4 });
+    expect(done.results).toHaveLength(8);
+    expect(
+      done.results.filter((r: { placement: string }) => r.placement === 'participation'),
+    ).toHaveLength(4);
+    // Pool winners won all 3 of their pool matches.
+    const poolWinner = done.pools[0].playerIds[0];
+    expect(
+      done.results.find((r: { playerId: number }) => r.playerId === poolWinner).matchesWon,
+    ).toBe(3);
+
+    const list = (await app.inject({ url: '/api/tournaments' })).json();
+    expect(list).toEqual([
+      expect.objectContaining({
+        id: k.id,
+        participants: 8,
+        format: '8-ball',
+        winner: expect.any(String),
+      }),
+    ]);
+    // The slot for a tournament in progress is free again.
+    expect((await app.inject({ url: '/api/tournaments/ongoing' })).json().tournament).toBeNull();
+  });
+
+  it('rewrites placements when a concluded result is corrected', async () => {
+    const k = await finishedKnockout();
+    const done: Tournament & { results: { playerId: number; placement: string }[] } = (
+      await conclude(k)
+    ).json();
+    const final = bySlot(done, 'FINAL');
+    // The final's loser actually won.
+    const corrected = (await score(done, final, 1, 2)).json();
+    const winner = corrected.results.find((r: { placement: string }) => r.placement === '1st');
+    expect(winner.playerId).toBe(final.playerBId);
+    expect(corrected.status).toBe('concluded');
+  });
+
+  it('refuses to clear a result in a concluded tournament', async () => {
+    const k = await finishedKnockout();
+    await conclude(k);
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/api/tournaments/${k.id}/matches/${bySlot(k, 'FINAL').id}/result`,
+      cookies,
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('tournament_concluded');
+  });
+
+  it('reopens a concluded tournament for bigger corrections', async () => {
+    const k = await finishedKnockout();
+    await conclude(k);
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${k.id}/reopen`,
+      cookies,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'knockout', results: [] });
+    expect((await app.inject({ url: '/api/tournaments' })).json()).toEqual([]);
   });
 });

@@ -1,8 +1,9 @@
 import pg from 'pg';
 import { runMigrations } from '../db/client.js';
+import { seedDefaults } from '../db/seed.js';
 import { createTestDb, TEST_DATABASE_URL } from './database.js';
 
-/** Creates the test database if needed and brings it up to the latest migration. */
+/** Creates the test database if needed, migrates it and adds the reference data (points table). */
 export default async function setup() {
   const url = new URL(TEST_DATABASE_URL);
   const name = url.pathname.slice(1);
@@ -21,5 +22,6 @@ export default async function setup() {
 
   const { db, pool } = createTestDb();
   await runMigrations(db);
+  await seedDefaults(db);
   await pool.end();
 }

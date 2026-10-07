@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -13,6 +13,7 @@ import { t } from '../strings';
 import {
   useCancelTournament,
   useClearResult,
+  useConcludeTournament,
   useSavePools,
   useSetResult,
   useStartTournament,
@@ -33,10 +34,12 @@ export function OngoingTournamentPage() {
   if (tournament.isError) return <p className="error">{t.loadFailed}</p>;
 
   const data = tournament.data;
+  // A concluded tournament lives on its public page, where admins can still correct it.
+  if (data.status === 'concluded') return <Navigate to={`/turneringer/${data.id}`} replace />;
   return (
     <section className="panel">
       <h1>
-        {t.tournaments.title} {formatDate(data.date)}
+        {t.tournaments.one} {formatDate(data.date)}
       </h1>
       <p>
         {data.format} · {t.ongoing.week} {data.week} · {t.season.title} {data.season} ·{' '}
@@ -149,7 +152,7 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
         <>
           <h2>{t.knockout.title}</h2>
           <Bracket tournament={tournament} names={names} onPlayerClick={score} />
-          {knockoutDone && <p className="notice">{t.knockout.done}</p>}
+          {knockoutDone && <Conclude tournament={tournament} />}
         </>
       )}
       <h2>{t.stages.pools}</h2>
@@ -178,5 +181,43 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
         onClose={close}
       />
     </>
+  );
+}
+
+/** "conclude tournament": saves placements and points, then shows the finished tournament. */
+function Conclude({ tournament }: { tournament: Tournament }) {
+  const conclude = useConcludeTournament(tournament.id);
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className="notice">
+      <p>{t.knockout.done}</p>
+      {conclude.error && (
+        <p className="error" role="alert">
+          {t.saveFailed}
+        </p>
+      )}
+      <button
+        type="button"
+        className="primary"
+        disabled={conclude.isPending}
+        onClick={() => setConfirming(true)}
+      >
+        {t.ongoing.concludeTournament}
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        message={t.ongoing.confirmConclude}
+        confirmLabel={t.ongoing.concludeTournament}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          setConfirming(false);
+          conclude.mutate(undefined, {
+            onSuccess: () => navigate(`/turneringer/${tournament.id}`),
+          });
+        }}
+        onCancel={() => setConfirming(false)}
+      />
+    </div>
   );
 }

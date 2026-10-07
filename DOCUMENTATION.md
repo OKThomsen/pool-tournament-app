@@ -2,6 +2,7 @@
 
 Living documentation for the tournament platform. Product rules and open questions are in
 `CLAUDE.md`; this file describes how the app is built and run, and the rules as implemented.
+Open work and things waiting on the customer are in `TODO.md`.
 
 ## Prerequisites
 
@@ -95,13 +96,27 @@ Then `Bracket` shows the knockout, one column per round with seed numbers in the
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
 visible but read-only.
 
+When the final and the third-place final are played, "conclude tournament" (after a
+confirmation) saves the results and opens the tournament's public page.
+
+Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
+Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
+placings, the bracket and the pools. Logged-in admins can click any result there to correct it
+(placings and points update at once), or "Genåbn turnering" for bigger changes.
+
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
 or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
-All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
-the top of `apps/web/src/styles.css`.
+**Languages.** The UI is in Danish (default) and English. All text lives in
+`apps/web/src/strings.ts` as two dictionaries, `da` and `en`; TypeScript makes `en` keep the
+same shape as `da`, so a string missing in one language is a build error. Components use `t`,
+which points at the current language. The "EN"/"DA" pill in the header switches it
+(`components/Language.tsx`); the choice is remembered in the browser (`localStorage`), and `/live`
+uses whatever that browser chose. Add every new string to both dictionaries.
+
+The placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker
 
@@ -168,7 +183,7 @@ shows two identical names. Handicaps are whole numbers from −20 to 20.
 season. It's stored per season in `memberships`, so past seasons keep their bonus, and shown on
 the player as a simple yes/no for the current season. It resets when a new season starts until
 the player renews. Season points = points from the season's concluded tournaments +
-`MEMBER_BONUS` (50) if the player is a member that season.
+`MEMBER_BONUS` (10) if the player is a member that season.
 
 ### Seasons API
 
@@ -194,6 +209,23 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match with `raceTo`, and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 
+| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. |
+| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again. 409 `tournament_in_progress` if another tournament is in progress. |
+| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
+
+A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
+from the third-place final, quarterfinal losers 5–8, the rest participation), **points** from
+`points_table`, **matches won** (pool wins, like the workbook's "Matches Won", which the handicap
+review uses), and a **handicap snapshot** taken when the tournament is first concluded. The
+tournament detail returns them as `results`, best first.
+
+**Corrections.** Pool results can be corrected after the pools close, but not in a way that
+changes who qualified (409 `would_change_qualification`). In a concluded tournament results can
+be corrected but not cleared (409 `tournament_concluded`), and placements and points are
+rewritten at once. A change that would alter an already-played later match (409
+`later_match_played`) needs the tournament reopened, the later result cleared, and the
+tournament concluded again.
+
 Knockout results use the same result routes. Entering or clearing one fills in who plays the
 later matches (`syncBracket`). A result that would change who plays an already-played later
 match is refused (409 `later_match_played`): clear the later result first. A score fix with the
@@ -205,7 +237,11 @@ per pool, `tiebreak`.
 
 ### Live updates
 
-`GET /api/events` is a public Server-Sent Events stream. Every change to a tournament (created,
+`GET /api/events` is a public Server-Sent Events stream. On connecting it sends `event: hello` with
+`data: {"version": "…"}`: a hash of the frontend's `index.html` (`"dev"` when Vite serves the
+frontend). `LiveUpdates` remembers the first version it sees and reloads the page when a later
+connection reports a different one, so pages left open (the flatscreen on `/live`) pick up an
+update as soon as the server restarts with it. Every change to a tournament (created,
 pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
 `data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
 seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
@@ -253,7 +289,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `seasons` | One row per season label (`01/YYYY` … `04/YYYY`), created the first time a season is used. |
-| `memberships` | Player + season: the player renewed their membership for that season (+50 season points). |
+| `memberships` | Player + season: the player renewed their membership for that season (+10 season points). |
 | `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
@@ -339,7 +375,8 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
-- **Seasons** are calendar quarters, the same length as a membership: `01/YYYY` January–March,
+- **Seasons** are calendar quarters **as a placeholder** (the real season dates are coming from the
+  customer; see `TODO.md`): `01/YYYY` January–March,
   `02/YYYY` April–June, `03/YYYY` July–September, `04/YYYY` October–December. "Today" is
   always the date in Denmark.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
@@ -366,4 +403,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
 | 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |
+| 2026-10-07 | Member bonus is 10 season points, not 50 (from the customer). |
+| 2026-10-07 | Open pages reload themselves when a new version of the app is deployed. |
+| 2026-10-07 | The UI comes in Danish (default) and English, switchable in the header. |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |
