@@ -105,7 +105,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 |---|---|
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
-| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`: splitting players into pools of 4–5, random draw, admin swaps. |
+| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`: default pool sizes, random draw, admin changes. |
 | `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
@@ -128,8 +128,13 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   avoids back-to-back matches across round boundaries, in case matches are ever called one at a
   time.
 - **Pool splits**: `poolSizes(n)` uses as few pools of 4–5 as possible, so 20 players make four
-  pools of 5. Between 5 and 20 players, 20 is the only count with a choice. 6, 7 and 11
-  players have no split (`null`); how to handle them is still open.
+  pools of 5. Counts that can't be split that way have fixed splits: 6 → one pool of 6
+  (everyone plays everyone), 7 → 4 + 3, 11 → 4 + 4 + 3.
+- **Admin changes to pools**: after the random draw the admin can swap two players
+  (`swapPlayers`, sizes unchanged) or move a player to another pool (`movePlayer`, sizes
+  change; a pool can't drop below 2 players).
+- **Odd and even pools**: pools of 3 and 5 follow the round order and show "up next"; each player
+  sits out exactly once. Pools of 4 and 6 have no schedule.
 - **Qualification**: the same number from each pool (for example, top 2 of 4 pools for
   quarterfinals). Uneven cases throw `UnsupportedQualificationError` until the rule is decided.
   An unresolved tie across the cut-off is reported in `tiesAtCutoff`.
@@ -154,3 +159,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Pool ties: wins → set score → head-to-head (mini-league for 3+); if still level, the admin chooses. |
 | 2026-10-07 | 20 players → four pools of 5 (as few pools as possible). |
 | 2026-10-07 | Every pool match has a table. Pools of 4 have no schedule; "up next" is only for pools of 5. |
+| 2026-10-07 | 6 players → one pool of 6; 7 → 4 + 3; 11 → 4 + 4 + 3. The admin can move players between pools. |
