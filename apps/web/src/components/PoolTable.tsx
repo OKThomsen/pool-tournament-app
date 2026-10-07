@@ -14,20 +14,35 @@ interface PoolTableProps {
  * shows the row player's score, green for a win and red for a loss. The set score (frames won
  * and lost) is to the left of the name; wins and rank are on the right.
  */
+/** Column widths in em. Every result cell is the same size. */
+const COLUMN = { setScore: 6.5, name: 8, cell: 4.5, won: 4.5, rank: 3 };
+
 export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
+  // Fixed column widths (in em, so they grow with the font on /live) give every pool the same grid.
+  const width =
+    COLUMN.setScore + COLUMN.name + pool.playerIds.length * COLUMN.cell + COLUMN.won + COLUMN.rank;
   return (
     <div className="table-scroll">
-      <table className="pool-table">
+      <table className="pool-table" style={{ width: `${width}em` }}>
         <caption>
           {t.pools.pool} {pool.name}
         </caption>
+        <colgroup>
+          <col style={{ width: `${COLUMN.setScore}em` }} />
+          <col style={{ width: `${COLUMN.name}em` }} />
+          {pool.playerIds.map((id) => (
+            <col key={id} style={{ width: `${COLUMN.cell}em` }} />
+          ))}
+          <col style={{ width: `${COLUMN.won}em` }} />
+          <col style={{ width: `${COLUMN.rank}em` }} />
+        </colgroup>
         <thead>
           <tr>
             <th className="set-score">{t.pools.setScore}</th>
             <th>{t.players.name}</th>
             {pool.playerIds.map((id) => (
-              <th key={id} className="opponent">
+              <th key={id} className="opponent" title={names.get(id)}>
                 {names.get(id)}
               </th>
             ))}
@@ -43,7 +58,9 @@ export function PoolTable({ view, names, onCellClick }: PoolTableProps) {
                 <td className="set-score">
                   {row.framesFor} W - {row.framesAgainst} L
                 </td>
-                <th scope="row">{names.get(rowId)}</th>
+                <th scope="row" title={names.get(rowId)}>
+                  {names.get(rowId)}
+                </th>
                 {pool.playerIds.map((colId) => {
                   if (colId === rowId) return <td key={colId} className="self" />;
                   const match = matchBetween(rowId, colId)!;

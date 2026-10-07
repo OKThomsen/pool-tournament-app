@@ -349,8 +349,8 @@ select {
 }
 
 .pool-table {
-  width: auto;
-  min-width: 100%;
+  /* Fixed layout: the column widths set in PoolTable are kept exactly. */
+  table-layout: fixed;
   background: #fff;
 }
 
@@ -364,13 +364,17 @@ select {
 
 .pool-table th,
 .pool-table td {
+  height: 2.75em;
+  padding: 0 6px;
   border: 1px solid var(--color-panel);
   text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .pool-table th[scope='row'] {
   text-align: left;
-  white-space: nowrap;
 }
 
 .pool-table .opponent {
@@ -378,7 +382,6 @@ select {
 }
 
 .pool-table .set-score {
-  white-space: nowrap;
   font-size: 0.85rem;
 }
 
@@ -398,8 +401,7 @@ select {
 
 .cell-button {
   width: 100%;
-  min-width: 3em;
-  min-height: 2.2em;
+  height: 100%;
   border: 0;
   background: none;
 }

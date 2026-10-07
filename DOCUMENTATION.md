@@ -73,7 +73,9 @@ another pool to move them (pools keep at least 2 players). Every change is saved
 touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
 a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
 
-In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook:
+In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
+Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) so every result cell is the same
+size and all pools line up; long names are cut off with "…" and shown in full on hover. In it,
 a played cell shows the row player's score, green for a win and red for a loss. The set score
 ("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
 are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
