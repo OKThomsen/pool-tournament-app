@@ -42,7 +42,13 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
 `/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
-for the flatscreen in the club). All UI text lives in `apps/web/src/strings.ts`, and the
+for the flatscreen in the club).
+
+Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
+`null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
+`RequireAdmin`, which sends visitors to `/login` and back afterwards. That only hides pages; the
+API checks the session on every admin request. When logged in, the header shows Ny Turnering
+and Logout instead of Log ind. API calls go through `api()` in `apps/web/src/api.ts`. All UI text lives in `apps/web/src/strings.ts`, and the
 placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
 
 ### Running everything in Docker

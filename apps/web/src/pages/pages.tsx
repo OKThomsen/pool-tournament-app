@@ -34,10 +34,6 @@ export function PlayersPage() {
   return <Placeholder title={t.players.title} />;
 }
 
-export function LoginPage() {
-  return <Placeholder title={t.login.title} />;
-}
-
 export function CreateTournamentPage() {
   return <Placeholder title={t.nav.newTournament} />;
 }
