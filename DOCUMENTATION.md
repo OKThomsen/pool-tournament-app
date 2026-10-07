@@ -79,7 +79,7 @@ the top of `apps/web/src/styles.css`.
 ### Running everything in Docker
 
 ```sh
-docker compose up -d --build      # app on http://localhost:8080, Postgres on :5432
+docker compose up -d --build      # app on http://localhost:8080, Postgres on :5432 (APP_PORT, DB_PORT)
 docker compose logs -f app        # follow the app's logs
 docker compose stop               # stop, keeping the data
 ```
@@ -185,6 +185,17 @@ Drizzle leaves column names unqualified in single-table queries (`"id"` rather t
 `"players"."id"`). Inside a hand-written `sql` subquery that can silently bind to the wrong
 table's column. In such subqueries, wrap every column in `qualified()` from
 `apps/server/src/db/seasons.ts`.
+
+### End-to-end checks on a separate stack
+
+Never test against the local stack on :8080; it holds real data (players, tournaments in
+progress). Run a throwaway copy with its own ports and database volume instead:
+
+```sh
+APP_PORT=8081 DB_PORT=5433 docker compose -p franks-e2e up -d --build   # app on :8081
+# … create an admin with `docker compose -p franks-e2e exec app node apps/server/dist/cli/admin.js create e2e`
+docker compose -p franks-e2e down -v                                   # delete it all again
+```
 
 ### Database changes
 

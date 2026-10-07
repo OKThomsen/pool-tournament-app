@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-franks}
       POSTGRES_DB: ${POSTGRES_DB:-franks}
     ports:
-      - '5432:5432'
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-franks}:${POSTGRES_PASSWORD:-franks}@db:5432/${POSTGRES_DB:-franks}
     ports:
-      - '8080:3000'
+      - '${APP_PORT:-8080}:3000'
     depends_on:
       db:
         condition: service_healthy
