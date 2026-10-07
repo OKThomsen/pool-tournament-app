@@ -119,10 +119,14 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   or a deciding match not yet played) is **flagged** with `unresolvedTie`, and the **admin
   chooses** the order. The choice is passed to `poolStandings` as `adminOrder` and stored in
   `pool_members.admin_tiebreak`. It only applies to players results can't separate.
-- **Schedule**: circle-method round robin. In a pool of 5, each player sits out exactly one
-  round, so nobody sits out twice in a row. `playOrder` also orders matches within each round so
-  that in a pool of 5 nobody plays two matches back to back. That can't be avoided in a pool of
-  4, where every round has all four players.
+- **Tables**: the club has enough tables for every pool match to be played at once.
+- **Pools of 4**: no schedule and no "up next" panel. Players just play whoever they haven't
+  played yet, and results can be entered in any order.
+- **Pools of 5**: circle-method round robin (`roundRobinRounds`). Each round has two matches and
+  one player sitting out, and each player sits out exactly once, so nobody sits out twice in a
+  row. The "up next" panel (`upNext`, `nextOpponent`) follows this order. `playOrder` also
+  avoids back-to-back matches across round boundaries, in case matches are ever called one at a
+  time.
 - **Pool splits**: `poolSizes(n)` uses as few pools of 4–5 as possible, so 20 players make four
   pools of 5. Between 5 and 20 players, 20 is the only count with a choice. 6, 7 and 11
   players have no split (`null`); how to handle them is still open.
@@ -149,3 +153,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Styling is placeholder until a later design pass. |
 | 2026-10-07 | Pool ties: wins → set score → head-to-head (mini-league for 3+); if still level, the admin chooses. |
 | 2026-10-07 | 20 players → four pools of 5 (as few pools as possible). |
+| 2026-10-07 | Every pool match has a table. Pools of 4 have no schedule; "up next" is only for pools of 5. |
