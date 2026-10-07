@@ -3,13 +3,19 @@ import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PoolEditor } from '../components/PoolEditor';
+import { PoolTable, UpNext } from '../components/PoolTable';
+import { ScoreDialog } from '../components/ScoreDialog';
 import { formatDate } from '../format';
+import { poolView } from '../poolView';
 import { t } from '../strings';
 import {
   useCancelTournament,
+  useClearResult,
   useSavePools,
+  useSetResult,
   useStartTournament,
   useTournament,
+  type Match,
   type Tournament,
 } from '../tournaments';
 
@@ -34,11 +40,7 @@ export function OngoingTournamentPage() {
         {data.format} · {t.ongoing.week} {data.week} · {t.season.title} {data.season} ·{' '}
         {t.create.count(data.players.length)}
       </p>
-      {data.status === 'draft' ? (
-        <DraftPools tournament={data} />
-      ) : (
-        <PoolOverview tournament={data} />
-      )}
+      {data.status === 'draft' ? <DraftPools tournament={data} /> : <PoolPlay tournament={data} />}
     </section>
   );
 }
@@ -110,31 +112,41 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   );
 }
 
-/** After "finalize brackets": the pools and their match order. Results come in the next step. */
-function PoolOverview({ tournament }: { tournament: Tournament }) {
+/** After "finalize brackets": enter results in the pool tables. */
+function PoolPlay({ tournament }: { tournament: Tournament }) {
+  const setResult = useSetResult(tournament.id);
+  const clearResult = useClearResult(tournament.id);
+  const [scoring, setScoring] = useState<Match | null>(null);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+  const views = tournament.pools.map((pool) => poolView(tournament, pool));
+  const busy = setResult.isPending || clearResult.isPending;
+  const close = () => setScoring(null);
+
   return (
     <>
       <h2>{t.stages.pools}</h2>
-      <div className="pool-grid">
-        {tournament.pools.map((pool) => (
-          <section key={pool.id} className="pool-zone">
-            <h3>
-              {t.pools.pool} {pool.name}
-            </h3>
-            <ol>
-              {tournament.matches
-                .filter((m) => m.poolId === pool.id)
-                .map((m) => (
-                  <li key={m.id}>
-                    {names.get(m.playerAId!)} – {names.get(m.playerBId!)}
-                  </li>
-                ))}
-            </ol>
-          </section>
-        ))}
-      </div>
-      <p className="muted">{t.placeholder}</p>
+      {(setResult.error || clearResult.error) && (
+        <p className="error" role="alert">
+          {t.saveFailed}
+        </p>
+      )}
+      {views.map((view) => (
+        <div key={view.pool.id} className="pool-block">
+          <PoolTable view={view} names={names} onCellClick={setScoring} />
+          <UpNext view={view} names={names} />
+        </div>
+      ))}
+      {views.every((view) => view.complete) && <p className="notice">{t.pools.allComplete}</p>}
+      <ScoreDialog
+        match={scoring}
+        names={names}
+        busy={busy}
+        onScore={(framesA, framesB) =>
+          setResult.mutate({ matchId: scoring!.id, framesA, framesB }, { onSuccess: close })
+        }
+        onClear={() => clearResult.mutate(scoring!.id, { onSuccess: close })}
+        onClose={close}
+      />
     </>
   );
 }

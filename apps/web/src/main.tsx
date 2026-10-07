@@ -3,14 +3,16 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
+import { LiveUpdates } from './components/LiveUpdates';
 import { RequireAdmin } from './components/RequireAdmin';
 import { CreateTournamentPage } from './pages/CreateTournamentPage';
 import { FrontPage } from './pages/FrontPage';
+import { LivePage } from './pages/LivePage';
 import { LoginPage } from './pages/LoginPage';
 import { OngoingTournamentPage } from './pages/OngoingTournamentPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
-import { LivePage, NotFoundPage, TournamentDetailPage, TournamentsPage } from './pages/pages';
+import { NotFoundPage, TournamentDetailPage, TournamentsPage } from './pages/pages';
 import './styles.css';
 
 const queryClient = new QueryClient();
@@ -18,6 +20,7 @@ const queryClient = new QueryClient();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <LiveUpdates />
       <BrowserRouter>
         <Routes>
           <Route path="/live" element={<LivePage />} />

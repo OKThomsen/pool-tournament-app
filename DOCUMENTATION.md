@@ -73,6 +73,18 @@ another pool to move them (pools keep at least 2 players). Every change is saved
 touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
 a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
 
+In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook:
+a played cell shows the row player's score, green for a win and red for a loss. The set score
+("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
+are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
+`ScoreDialog`: one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), plus "Ryd
+resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be
+played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
+
+`/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type,
+or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
+listens to `/api/events` and refetches tournament data on every change, on every page.
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 

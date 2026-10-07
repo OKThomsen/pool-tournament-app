@@ -342,3 +342,142 @@ select {
   cursor: grabbing;
   box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
 }
+
+/* Pool tables: the winner's cell green, the loser's red (from the spec). */
+.pool-block {
+  margin-bottom: 24px;
+}
+
+.pool-table {
+  width: auto;
+  min-width: 100%;
+  background: #fff;
+}
+
+.pool-table caption {
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 700;
+  background: var(--color-header);
+  color: var(--color-header-text);
+}
+
+.pool-table th,
+.pool-table td {
+  border: 1px solid var(--color-panel);
+  text-align: center;
+}
+
+.pool-table th[scope='row'] {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pool-table .opponent {
+  font-size: 0.85rem;
+}
+
+.pool-table .set-score {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.pool-table .self {
+  background: var(--color-panel);
+}
+
+.pool-table .win,
+.score-button.win {
+  background: var(--color-win);
+}
+
+.pool-table .loss,
+.score-button.loss {
+  background: var(--color-loss);
+}
+
+.cell-button {
+  width: 100%;
+  min-width: 3em;
+  min-height: 2.2em;
+  border: 0;
+  background: none;
+}
+
+.up-next {
+  margin: 8px 0 0;
+}
+
+.notice {
+  padding: 12px;
+  background: #fff;
+  font-weight: 600;
+}
+
+.score-dialog {
+  text-align: center;
+}
+
+.score-dialog h2 {
+  margin-top: 0;
+}
+
+.score-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.score-button {
+  min-width: 4em;
+  padding: 14px 10px;
+  border: 2px solid transparent;
+  font-size: 1.2rem;
+}
+
+.score-button.current {
+  border-color: var(--color-header);
+}
+
+/* /live on the flatscreen */
+.live-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 24px;
+}
+
+.live-header h1 {
+  margin: 0;
+  color: var(--color-brand);
+}
+
+.live-header p {
+  margin: 0;
+}
+
+.live-message {
+  font-size: 2rem;
+}
+
+.live-pools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.live .pool-table {
+  font-size: 1.3rem;
+}
+
+.live-leaderboard {
+  max-width: 600px;
+  margin-top: 24px;
+}
+
+.live-leaderboard ol {
+  line-height: 1.6;
+}
