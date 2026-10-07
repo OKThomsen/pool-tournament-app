@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import {
-  boolean,
   date,
   index,
   integer,
@@ -29,7 +28,6 @@ export const players = pgTable(
   {
     id: serial('id').primaryKey(),
     name: text('name').notNull(),
-    member: boolean('member').notNull().default(false),
     baseHandicap: integer('base_handicap').notNull().default(0),
     frameHandicap: integer('frame_handicap').notNull().default(0),
     lastAdjusted: date('last_adjusted'),
@@ -39,11 +37,28 @@ export const players = pgTable(
   (t) => [uniqueIndex('players_name_lower_idx').on(sql`lower(${t.name})`)],
 );
 
-/** Seasons are labelled 01/YYYY and 02/YYYY. */
+/** Calendar quarters, labelled 01/YYYY to 04/YYYY (see seasonForDate in @franks/core). */
 export const seasons = pgTable('seasons', {
   id: serial('id').primaryKey(),
   label: text('label').notNull().unique(),
 });
+
+/**
+ * A player renewed their membership for a season, worth the member bonus in that season. The
+ * player's "Medlem" yes/no is whether they have a membership for the current season.
+ */
+export const memberships = pgTable(
+  'memberships',
+  {
+    playerId: integer('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+    seasonId: integer('season_id')
+      .notNull()
+      .references(() => seasons.id),
+  },
+  (t) => [primaryKey({ columns: [t.playerId, t.seasonId] })],
+);
 
 export const tournaments = pgTable('tournaments', {
   id: serial('id').primaryKey(),

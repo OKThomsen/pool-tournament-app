@@ -111,15 +111,21 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/players` | public | Every player, by name, with all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
+| `GET /api/players` | public | Every player, by name, with `member` and `seasonPoints` for the current season and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
 | `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
 | `GET /api/players/:id` | public | One player. |
-| `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap? }` → 201. |
-| `PATCH /api/players/:id` | admin | Change name and/or handicaps. A handicap change sets `lastAdjusted` to today (Danish time). |
+| `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member? }` → 201. |
+| `PATCH /api/players/:id` | admin | Change name, handicaps and/or `member`. A handicap change sets `lastAdjusted` to today (Danish time). `member` records or removes the membership for the current season. |
 | `DELETE /api/players/:id` | admin | 204. Refused with 409 `player_has_tournaments` if the player has been in a tournament, so history stays intact. |
 
 Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so the search never
 shows two identical names. Handicaps are whole numbers from −20 to 20.
+
+**Membership and season points.** A membership lasts one season (3 months) and is renewed per
+season. It's stored per season in `memberships`, so past seasons keep their bonus, and shown on
+the player as a simple yes/no for the current season. It resets when a new season starts until
+the player renews. Season points = points from the season's concluded tournaments +
+`MEMBER_BONUS` (50) if the player is a member that season.
 
 ### Server tests
 
@@ -143,8 +149,9 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 
 | Table | Purpose |
 |---|---|
-| `players` | Name (unique ignoring case), member, base/frame handicap, last adjusted date. |
-| `seasons` | `01/YYYY`, `02/YYYY`. |
+| `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
+| `seasons` | One row per season label (`01/YYYY` … `04/YYYY`), created the first time a season is used. |
+| `memberships` | Player + season: the player renewed their membership for that season (+50 season points). |
 | `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
@@ -256,3 +263,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Scores are checked against the race length; frame handicaps don't affect it. |
 | 2026-10-07 | Qualification and seeding compare raw wins across pools of different sizes, on purpose. |
 | 2026-10-07 | Seasons are calendar quarters, labelled 01/YYYY–04/YYYY. |
+| 2026-10-07 | Membership is per season (+50 season points), shown as a yes/no for the current season. |

@@ -1,8 +1,10 @@
+import { MEMBER_BONUS } from '@franks/core';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
-import { players, results, seasons, tournamentPlayers, tournaments } from '../db/schema.js';
+import { currentSeason, setMembership } from '../db/seasons.js';
 import { loginAsAdmin } from '../test/auth.js';
 import { createTestDb, resetDb } from '../test/database.js';
+import { addPlayers, addTournament } from '../test/fixtures.js';
 
 const { db, pool } = createTestDb();
 const app = await buildApp({ db, logger: false });
@@ -18,57 +20,25 @@ afterAll(async () => {
   await pool.end();
 });
 
-async function addPlayers(...names: string[]) {
-  return db
-    .insert(players)
-    .values(names.map((name) => ({ name })))
-    .returning();
-}
-
-/** A concluded tournament with the given placements. */
-async function addTournament(knockoutSize: 4 | 8, placements: [number, string][]) {
-  const [season] = await db
-    .insert(seasons)
-    .values({ label: '01/2026' })
-    .onConflictDoNothing()
-    .returning();
-  const seasonId = season?.id ?? (await db.select().from(seasons))[0]!.id;
-  const [tournament] = await db
-    .insert(tournaments)
-    .values({
-      date: '2026-04-30',
-      seasonId,
-      week: 1,
-      format: '8-ball',
-      knockoutSize,
-      status: 'concluded',
-    })
-    .returning();
-  for (const [playerId, placement] of placements) {
-    await db.insert(tournamentPlayers).values({ tournamentId: tournament!.id, playerId });
-    await db.insert(results).values({
-      tournamentId: tournament!.id,
-      playerId,
-      placement: placement as '1st',
-      points: 0,
-      matchesWon: 0,
-      baseHandicap: 0,
-      frameHandicap: 0,
-    });
-  }
-}
+const lastSeason = { label: '01/2000', start: '2000-01-01' };
 
 describe('GET /api/players', () => {
   it('lists players by name with all-time statistics', async () => {
-    const [mads, ann] = await addPlayers('Mads', 'ann');
-    await addTournament(8, [
-      [mads!.id, '1st'],
-      [ann!.id, '5-8'],
-    ]);
-    await addTournament(4, [
-      [mads!.id, '3rd'],
-      [ann!.id, 'participation'],
-    ]);
+    const [mads, ann] = await addPlayers(db, 'Mads', 'ann');
+    await addTournament(db, {
+      placements: [
+        [mads!.id, '1st'],
+        [ann!.id, '5-8'],
+      ],
+    });
+    await addTournament(db, {
+      knockoutSize: 4,
+      season: lastSeason,
+      placements: [
+        [mads!.id, '3rd'],
+        [ann!.id, 'participation'],
+      ],
+    });
 
     const response = await app.inject({ url: '/api/players' });
     expect(response.statusCode).toBe(200);
@@ -79,15 +49,35 @@ describe('GET /api/players', () => {
     ]);
   });
 
+  it("counts season points from this season's tournaments plus the member bonus", async () => {
+    const [mads, ann] = await addPlayers(db, 'Mads', 'ann');
+    await addTournament(db, {
+      placements: [
+        [mads!.id, '1st'],
+        [ann!.id, '2nd'],
+      ],
+    });
+    await addTournament(db, { season: lastSeason, placements: [[mads!.id, '1st']] });
+    await setMembership(db, ann!.id, lastSeason.label, true);
+    await setMembership(db, mads!.id, currentSeason().label, true);
+
+    const players = (await app.inject({ url: '/api/players' })).json();
+    expect(players).toMatchObject([
+      // Ann was a member last season, which doesn't count now.
+      { name: 'ann', member: false, seasonPoints: 7 },
+      { name: 'Mads', member: true, seasonPoints: 10 + MEMBER_BONUS },
+    ]);
+  });
+
   it('is public', async () => {
-    await addPlayers('Mads');
+    await addPlayers(db, 'Mads');
     expect((await app.inject({ url: '/api/players' })).json()).toHaveLength(1);
   });
 });
 
 describe('GET /api/players/search', () => {
   it('matches the start of the name, ignoring case', async () => {
-    await addPlayers('Mads', 'Martin Johansen', 'Emma', 'Ma_x');
+    await addPlayers(db, 'Mads', 'Martin Johansen', 'Emma', 'Ma_x');
     const search = async (q: string) =>
       (await app.inject({ url: `/api/players/search?q=${encodeURIComponent(q)}`, cookies }))
         .json()
@@ -116,8 +106,18 @@ describe('POST /api/players', () => {
     expect(response.json()).toMatchObject({ name: 'Prasad', baseHandicap: -2, frameHandicap: 0 });
   });
 
+  it('can make the new player a member for this season', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/players',
+      cookies,
+      payload: { name: 'Prasad', member: true },
+    });
+    expect(response.json()).toMatchObject({ name: 'Prasad', member: true });
+  });
+
   it('refuses a name that already exists in any capitalisation', async () => {
-    await addPlayers('Prasad');
+    await addPlayers(db, 'Prasad');
     const response = await app.inject({
       method: 'POST',
       url: '/api/players',
@@ -150,7 +150,7 @@ describe('POST /api/players', () => {
 
 describe('PATCH /api/players/:id', () => {
   it('renames without touching the last adjusted date', async () => {
-    const [player] = await addPlayers('Kent');
+    const [player] = await addPlayers(db, 'Kent');
     const response = await app.inject({
       method: 'PATCH',
       url: `/api/players/${player!.id}`,
@@ -160,8 +160,22 @@ describe('PATCH /api/players/:id', () => {
     expect(response.json()).toMatchObject({ name: 'Kent B', lastAdjusted: null });
   });
 
+  it("records and removes this season's membership", async () => {
+    const [player] = await addPlayers(db, 'Kent');
+    const patch = (member: boolean) =>
+      app.inject({
+        method: 'PATCH',
+        url: `/api/players/${player!.id}`,
+        cookies,
+        payload: { member },
+      });
+    expect((await patch(true)).json()).toMatchObject({ member: true, lastAdjusted: null });
+    expect((await patch(true)).json().member).toBe(true);
+    expect((await patch(false)).json().member).toBe(false);
+  });
+
   it('sets the last adjusted date when a handicap changes', async () => {
-    const [player] = await addPlayers('Kent');
+    const [player] = await addPlayers(db, 'Kent');
     const response = await app.inject({
       method: 'PATCH',
       url: `/api/players/${player!.id}`,
@@ -180,7 +194,7 @@ describe('PATCH /api/players/:id', () => {
       payload: { name: 'X' },
     });
     expect(unknown.statusCode).toBe(404);
-    const [player] = await addPlayers('Kent');
+    const [player] = await addPlayers(db, 'Kent');
     const anonymous = await app.inject({
       method: 'PATCH',
       url: `/api/players/${player!.id}`,
@@ -192,15 +206,15 @@ describe('PATCH /api/players/:id', () => {
 
 describe('DELETE /api/players/:id', () => {
   it('deletes a player who never played', async () => {
-    const [player] = await addPlayers('Kent');
+    const [player] = await addPlayers(db, 'Kent');
     const url = `/api/players/${player!.id}`;
     expect((await app.inject({ method: 'DELETE', url, cookies })).statusCode).toBe(204);
     expect((await app.inject({ url })).statusCode).toBe(404);
   });
 
   it('keeps a player who has played, for the history', async () => {
-    const [player] = await addPlayers('Kent');
-    await addTournament(4, [[player!.id, 'participation']]);
+    const [player] = await addPlayers(db, 'Kent');
+    await addTournament(db, { knockoutSize: 4, placements: [[player!.id, 'participation']] });
     const response = await app.inject({
       method: 'DELETE',
       url: `/api/players/${player!.id}`,
@@ -211,7 +225,7 @@ describe('DELETE /api/players/:id', () => {
   });
 
   it('is admin-only', async () => {
-    const [player] = await addPlayers('Kent');
+    const [player] = await addPlayers(db, 'Kent');
     const response = await app.inject({ method: 'DELETE', url: `/api/players/${player!.id}` });
     expect(response.statusCode).toBe(401);
   });

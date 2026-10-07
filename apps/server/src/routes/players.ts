@@ -1,11 +1,14 @@
+import { todayInDenmark } from '@franks/core';
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAdmin } from '../auth/plugin.js';
-import type { Database } from '../db/client.js';
+import type { Database, Executor } from '../db/client.js';
 import { players, results, tournamentPlayers, tournaments } from '../db/schema.js';
+import { currentSeason, isMemberIn, seasonPointsIn, setMembership } from '../db/seasons.js';
 
 const handicap = { type: 'integer', minimum: -20, maximum: 20 } as const;
 const name = { type: 'string', minLength: 1, maxLength: 60, pattern: '\\S' } as const;
+const member = { type: 'boolean' } as const;
 const idParams = {
   type: 'object',
   required: ['id'],
@@ -16,11 +19,8 @@ interface PlayerBody {
   name: string;
   baseHandicap?: number;
   frameHandicap?: number;
-}
-
-/** Today's date in Denmark as YYYY-MM-DD, whatever time zone the server runs in. */
-function todayInDenmark(): string {
-  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(new Date());
+  /** Member this season. */
+  member?: boolean;
 }
 
 /** Postgres' unique-violation error code. */
@@ -29,23 +29,37 @@ function isUniqueViolation(error: unknown): boolean {
   return (cause as { code?: string }).code === '23505';
 }
 
-const playerColumns = {
-  id: players.id,
-  name: players.name,
-  baseHandicap: players.baseHandicap,
-  frameHandicap: players.frameHandicap,
-  lastAdjusted: players.lastAdjusted,
-};
+/** A player's own fields, plus whether they're a member this season. */
+function playerColumns(seasonLabel: string) {
+  return {
+    id: players.id,
+    name: players.name,
+    baseHandicap: players.baseHandicap,
+    frameHandicap: players.frameHandicap,
+    lastAdjusted: players.lastAdjusted,
+    member: isMemberIn(seasonLabel, players.id),
+  };
+}
+
+async function findPlayer(db: Executor, id: number) {
+  const [player] = await db
+    .select(playerColumns(currentSeason().label))
+    .from(players)
+    .where(eq(players.id, id));
+  return player;
+}
 
 export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
   /**
-   * Every player with all-time statistics from concluded tournaments. Wins = tournaments won,
-   * semifinals = reached the semifinals, quarterfinals = played in a quarterfinal.
+   * Every player with this season's points and all-time statistics from concluded tournaments.
+   * Wins = tournaments won, semifinals = reached the semifinals, quarterfinals = played in one.
    */
   app.get('/players', async () => {
+    const { label } = currentSeason();
     return db
       .select({
-        ...playerColumns,
+        ...playerColumns(label),
+        seasonPoints: seasonPointsIn(label, players.id),
         participation: sql<number>`count(${results.playerId})::int`,
         wins: sql<number>`(count(*) filter (where ${results.placement} = '1st'))::int`,
         semifinals: sql<number>`(count(*) filter (
@@ -82,7 +96,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       // Escape LIKE wildcards so "%" or "_" in a name are matched literally.
       const pattern = prefix.replace(/[\\%_]/g, (c) => `\\${c}`) + '%';
       return db
-        .select(playerColumns)
+        .select(playerColumns(currentSeason().label))
         .from(players)
         .where(sql`${players.name} ilike ${pattern}`)
         .orderBy(sql`lower(${players.name})`)
@@ -94,11 +108,9 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
     '/players/:id',
     { schema: { params: idParams } },
     async (request, reply) => {
-      const [player] = await db
-        .select(playerColumns)
-        .from(players)
-        .where(eq(players.id, request.params.id));
-      return player ?? reply.code(404).send({ error: 'not_found' });
+      return (
+        (await findPlayer(db, request.params.id)) ?? reply.code(404).send({ error: 'not_found' })
+      );
     },
   );
 
@@ -112,17 +124,21 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
           type: 'object',
           required: ['name'],
           additionalProperties: false,
-          properties: { name, baseHandicap: handicap, frameHandicap: handicap },
+          properties: { name, baseHandicap: handicap, frameHandicap: handicap, member },
         },
       },
     },
     async (request, reply) => {
-      const { name, baseHandicap = 0, frameHandicap = 0 } = request.body;
+      const { name, baseHandicap = 0, frameHandicap = 0, member = false } = request.body;
       try {
-        const [player] = await db
-          .insert(players)
-          .values({ name: name.trim(), baseHandicap, frameHandicap })
-          .returning(playerColumns);
+        const player = await db.transaction(async (tx) => {
+          const [{ id }] = (await tx
+            .insert(players)
+            .values({ name: name.trim(), baseHandicap, frameHandicap })
+            .returning({ id: players.id })) as [{ id: number }];
+          if (member) await setMembership(tx, id, currentSeason().label, true);
+          return findPlayer(tx, id);
+        });
         return reply.code(201).send(player);
       } catch (error) {
         if (isUniqueViolation(error)) return reply.code(409).send({ error: 'name_taken' });
@@ -131,7 +147,10 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
     },
   );
 
-  /** Edits a player. Changing a handicap also sets the last adjusted date to today. */
+  /**
+   * Edits a player. Changing a handicap also sets the last adjusted date to today, and `member`
+   * records or removes their membership for the current season.
+   */
   app.patch<{ Params: { id: number }; Body: Partial<PlayerBody> }>(
     '/players/:id',
     {
@@ -142,7 +161,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
           type: 'object',
           minProperties: 1,
           additionalProperties: false,
-          properties: { name, baseHandicap: handicap, frameHandicap: handicap },
+          properties: { name, baseHandicap: handicap, frameHandicap: handicap, member },
         },
       },
     },
@@ -150,22 +169,26 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       const [current] = await db.select().from(players).where(eq(players.id, request.params.id));
       if (!current) return reply.code(404).send({ error: 'not_found' });
 
-      const { name, baseHandicap, frameHandicap } = request.body;
+      const { name, baseHandicap, frameHandicap, member } = request.body;
       const handicapChanged =
         (baseHandicap !== undefined && baseHandicap !== current.baseHandicap) ||
         (frameHandicap !== undefined && frameHandicap !== current.frameHandicap);
+      const changes = {
+        ...(name !== undefined && { name: name.trim() }),
+        ...(baseHandicap !== undefined && { baseHandicap }),
+        ...(frameHandicap !== undefined && { frameHandicap }),
+        ...(handicapChanged && { lastAdjusted: todayInDenmark() }),
+      };
       try {
-        const [player] = await db
-          .update(players)
-          .set({
-            ...(name !== undefined && { name: name.trim() }),
-            ...(baseHandicap !== undefined && { baseHandicap }),
-            ...(frameHandicap !== undefined && { frameHandicap }),
-            ...(handicapChanged && { lastAdjusted: todayInDenmark() }),
-          })
-          .where(eq(players.id, current.id))
-          .returning(playerColumns);
-        return player;
+        return await db.transaction(async (tx) => {
+          if (Object.keys(changes).length > 0) {
+            await tx.update(players).set(changes).where(eq(players.id, current.id));
+          }
+          if (member !== undefined) {
+            await setMembership(tx, current.id, currentSeason().label, member);
+          }
+          return findPlayer(tx, current.id);
+        });
       } catch (error) {
         if (isUniqueViolation(error)) return reply.code(409).send({ error: 'name_taken' });
         throw error;
