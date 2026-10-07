@@ -93,6 +93,11 @@ export const poolMembers = pgTable(
       .notNull()
       .references(() => players.id),
     position: integer('position').notNull(),
+    /**
+     * The admin's order for a tie that wins, set score and head-to-head can't break.
+     * Lower ranks higher. Null when the admin hasn't had to choose.
+     */
+    adminTiebreak: integer('admin_tiebreak'),
   },
   (t) => [primaryKey({ columns: [t.poolId, t.playerId] })],
 );

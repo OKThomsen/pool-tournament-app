@@ -21,11 +21,15 @@ export interface StandingRow {
  *
  * Head-to-head with three or more tied players is a mini-league of their matches against each
  * other, applied again to any players it still leaves level. A tie it can't break (a cycle, or
- * a match not played yet) is flagged with `unresolvedTie` rather than broken arbitrarily.
+ * a match not played yet) is flagged with `unresolvedTie` until the admin settles it.
+ *
+ * @param adminOrder The admin's choice for ties nothing else breaks: players listed earlier rank
+ *   higher. Only used for a tied group when every player in it is listed.
  */
 export function poolStandings(
   players: readonly PlayerId[],
   results: readonly MatchResult[],
+  adminOrder: readonly PlayerId[] = [],
 ): StandingRow[] {
   const stats = new Map(players.map((id) => [id, emptyRow(id)]));
   for (const result of results) {
@@ -47,12 +51,14 @@ export function poolStandings(
   for (const row of stats.values()) row.setScore = row.framesFor - row.framesAgainst;
 
   const byRecord = groupBy([...stats.values()], (row) => [row.won, row.setScore]);
-  const ordered = byRecord.flatMap((group) =>
-    breakByHeadToHead(
-      group.map((row) => row.playerId),
-      results,
-    ),
-  );
+  const ordered = byRecord
+    .flatMap((group) =>
+      breakByHeadToHead(
+        group.map((row) => row.playerId),
+        results,
+      ),
+    )
+    .flatMap((group) => breakByAdminOrder(group, adminOrder));
 
   const rows: StandingRow[] = [];
   let position = 1;
@@ -79,6 +85,12 @@ function breakByHeadToHead(tied: PlayerId[], results: readonly MatchResult[]): P
   const groups = groupBy(tied, (id) => [h2hWins.get(id)!]);
   if (groups.length === 1) return [tied];
   return groups.flatMap((group) => breakByHeadToHead(group, results));
+}
+
+/** Splits a still-tied group in the admin's chosen order, if the admin has ordered all of it. */
+function breakByAdminOrder(tied: PlayerId[], adminOrder: readonly PlayerId[]): PlayerId[][] {
+  if (tied.length === 1 || !tied.every((id) => adminOrder.includes(id))) return [tied];
+  return [...tied].sort((x, y) => adminOrder.indexOf(x) - adminOrder.indexOf(y)).map((id) => [id]);
 }
 
 /** Splits items into groups with equal keys, ordered by key descending. Stable within a group. */

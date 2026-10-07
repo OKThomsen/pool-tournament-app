@@ -116,7 +116,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Pool ranking**: matches won → set score (frames for − frames against) → head-to-head. With
   three or more tied players, head-to-head is a mini-league of their matches against each other,
   applied again to whoever is still level. A tie that can't be broken (a cycle such as A>B>C>A,
-  or a deciding match not yet played) is **flagged** with `unresolvedTie`, not broken at random.
+  or a deciding match not yet played) is **flagged** with `unresolvedTie`, and the **admin
+  chooses** the order. The choice is passed to `poolStandings` as `adminOrder` and stored in
+  `pool_members.admin_tiebreak`. It only applies to players results can't separate.
 - **Schedule**: circle-method round robin. In a pool of 5, each player sits out exactly one
   round, so nobody sits out twice in a row. `playOrder` also orders matches within each round so
   that in a pool of 5 nobody plays two matches back to back. That can't be avoided in a pool of
@@ -144,3 +146,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Admins can edit player handicaps by hand. |
 | 2026-10-07 | Run locally with Docker for now; production hosting decided later. |
 | 2026-10-07 | Styling is placeholder until a later design pass. |
+| 2026-10-07 | Pool ties: wins → set score → head-to-head (mini-league for 3+); if still level, the admin chooses. |

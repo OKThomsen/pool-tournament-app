@@ -1,0 +1,1 @@
+ALTER TABLE "pool_members" ADD COLUMN "admin_tiebreak" integer;
