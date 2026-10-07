@@ -68,6 +68,13 @@ export const t = {
     addNewPlayer: 'Tilføj ny spiller',
     finish: 'Færdiggør',
     cancel: 'Cancel',
+    remove: 'Fjern',
+    noMatch: 'Ingen spillere fundet',
+    count: (n: number) => (n === 1 ? '1 spiller' : `${n} spillere`),
+    pools: (sizes: number[]) => `Puljer: ${sizes.join(' + ')}`,
+    tooFew: 'Der skal mindst være 4 spillere',
+    alreadyRunning: 'Der er allerede en turnering i gang. Afslut eller annuller den først.',
+    goToRunning: 'Gå til turneringen',
   },
   stages: {
     pools: 'Preliminary pools',

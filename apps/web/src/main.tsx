@@ -4,12 +4,12 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Layout } from './components/Layout';
 import { RequireAdmin } from './components/RequireAdmin';
+import { CreateTournamentPage } from './pages/CreateTournamentPage';
 import { FrontPage } from './pages/FrontPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
 import {
-  CreateTournamentPage,
   LivePage,
   NotFoundPage,
   OngoingTournamentPage,

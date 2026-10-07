@@ -232,3 +232,66 @@ tbody tr:nth-child(even) {
   align-items: center;
   gap: 6px;
 }
+
+select {
+  padding: 8px;
+  border: 0;
+  font: inherit;
+}
+
+.player-search {
+  position: relative;
+  max-width: 420px;
+}
+
+.player-search input {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  font: inherit;
+}
+
+.search-results {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.search-results button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.search-results button:hover,
+.search-results button:focus {
+  background: var(--color-panel);
+}
+
+.search-results .add-new {
+  font-weight: 600;
+}
+
+.muted {
+  padding: 8px 10px;
+  opacity: 0.7;
+}
+
+.entrants {
+  margin-top: 16px;
+  background: #fff;
+}
+
+.form-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}

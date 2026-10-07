@@ -60,6 +60,13 @@ When logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet o
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 
+Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
+and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
+player has exactly that name, "Tilføj ny spiller" creates them and adds them in one go. The page
+shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
+app imports straight from source via a Vite alias). If a tournament is already in progress, the
+page links to it instead.
+
 All UI text lives in `apps/web/src/strings.ts`, and the placeholder colours are CSS variables at
 the top of `apps/web/src/styles.css`.
 
