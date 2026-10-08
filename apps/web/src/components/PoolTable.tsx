@@ -43,7 +43,9 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
     <div className="table-scroll">
       <table className="pool-table" style={style}>
         <caption>
-          {t.pools.pool} {pool.name}
+          <span>
+            {t.pools.pool} {pool.name}
+          </span>
         </caption>
         <colgroup>
           <col style={{ width: `${COLUMN.setScore}em` }} />

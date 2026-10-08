@@ -78,7 +78,8 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
-"…" and shown in full on hover. In the matrix,
+"…" and shown in full on hover. On a phone a pool scrolls sideways with the names and the pool's title
+pinned, so you can always see whose row a result is in. In the matrix,
 a played cell shows the row player's score, green for a win and red for a loss. The set score
 ("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
 are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
@@ -135,7 +136,8 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
 - Logo files are in `apps/web/public/brand/`: `wordmark.png` (transparent background, for light
   backgrounds) and `roundel.png` (the 8-ball, for the dark header); `favicon.png` is the roundel.
   An SVG from the club would be sharper; swap it in when it arrives.
-- On phones the header puts the navigation on its own row, which scrolls sideways if needed.
+- On phones the header puts the navigation on its own row (scrolling sideways if needed) and
+  doesn't stick to the top, so the pools get the room. Below 480px only the 8-ball is shown.
 - Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
   3 red, 4 purple, 5 orange, 6 green, 7 maroon, 8 black, and 9–15 striped.
 

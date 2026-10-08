@@ -258,6 +258,22 @@ table,
     font-size: 0.95rem;
     padding: 6px 10px;
   }
+
+  /* Room for the pools when entering results at the table. */
+  .header {
+    position: static;
+  }
+
+  .pool-table {
+    font-size: 0.85rem;
+  }
+}
+
+/* Too narrow for the name next to the admin buttons: the 8-ball alone. */
+@media (max-width: 480px) {
+  .brand span {
+    display: none;
+  }
 }
 
 /* ---------- Layout ---------- */
@@ -276,7 +292,8 @@ table,
   box-shadow: var(--shadow);
 }
 
-.panel > :last-child {
+/* Not a dialog: its auto margins centre it on the screen. */
+.panel > :last-child:not(dialog) {
   margin-bottom: 0;
 }
 
@@ -776,7 +793,31 @@ table.clickable tbody tr:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
   background: var(--surface);
-  overflow: hidden;
+}
+
+/* The scroll box rounds the table's corners (the table itself mustn't clip, or the pinned
+   names below wouldn't stick). */
+.table-scroll:has(> .pool-table) {
+  border-radius: var(--radius-small);
+}
+
+/* When a pool scrolls sideways on a phone, the names and the pool's title stay in view. */
+.pool-table th[scope='row'],
+.pool-table thead th:nth-child(2) {
+  position: sticky;
+  z-index: 1;
+  left: 0;
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--border-strong);
+}
+
+.pool-table thead th:nth-child(2) {
+  background: var(--surface-muted);
+}
+
+.pool-table caption span {
+  position: sticky;
+  left: 12px;
 }
 
 .pool-table caption {
