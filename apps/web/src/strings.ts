@@ -156,6 +156,7 @@ const da = {
   knockout: {
     title: 'Slutspil',
     waiting: 'Venter …',
+    seed: (n: number) => `Seedet som nr. ${n}`,
     laterPlayed:
       'Det ville ændre, hvem der spiller en senere kamp, som allerede har et resultat. Ryd den kamps resultat først.',
     done: 'Finalen og bronzekampen er spillet. Næste trin: Afslut turneringen.',
@@ -163,6 +164,7 @@ const da = {
   live: {
     drawing: 'Puljerne bliver lavet …',
     noTournament: 'Ingen turnering i gang lige nu',
+    badge: 'Live',
   },
   yes: 'Ja',
   no: 'Nej',
@@ -328,6 +330,7 @@ const en: Strings = {
   knockout: {
     title: 'Knockout',
     waiting: 'Waiting …',
+    seed: (n: number) => `Seed ${n}`,
     laterPlayed:
       'That would change who plays a later match that already has a result. Clear that match’s result first.',
     done: 'The final and the third place final have been played. Next step: Conclude tournament.',
@@ -335,6 +338,7 @@ const en: Strings = {
   live: {
     drawing: 'Drawing the pools …',
     noTournament: 'No tournament in progress right now',
+    badge: 'Live',
   },
   yes: 'Yes',
   no: 'No',

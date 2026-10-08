@@ -78,7 +78,8 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
-"…" and shown in full on hover. In the matrix,
+"…" and shown in full on hover. On a phone a pool scrolls sideways with the names and the pool's title
+pinned, so you can always see whose row a result is in. In the matrix,
 a played cell shows the row player's score, green for a win and red for a loss. The set score
 ("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
 are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
@@ -106,7 +107,10 @@ placings, the bracket and the pools. Logged-in admins can click any result there
 
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
-or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
+or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
+"Live" badge. The TV can't be scrolled, so pool tables show two per row, each scaled to fit its
+column (`--width-em` from `PoolTable`), with shorter rows than the square cells on the admin
+page; four pools fit on a 1080p screen. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
 **Languages.** The UI is in Danish (default) and English. All text lives in
@@ -116,7 +120,26 @@ which points at the current language. The "EN"/"DA" pill in the header switches 
 (`components/Language.tsx`); the choice is remembered in the browser (`localStorage`), and `/live`
 uses whatever that browser chose. Add every new string to both dictionaries.
 
-The placeholder colours are CSS variables at the top of `apps/web/src/styles.css`.
+**Styling.** The look comes from the club itself: black ceiling and charcoal (header), bright blue
+felt (buttons, links, table headers), mahogany (the rail around the leaderboard), the cream
+brick wall (page background) and the logo's red (the stripe under the header). Public and admin
+pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everything is plain CSS in
+`apps/web/src/styles.css`, with no CSS framework:
+
+- The **palette** (`--felt-500`, `--wood-700`, `--cream-100` …) is at the top of `:root`.
+- Components only use the **semantic variables** after it (`--bg`, `--surface`, `--text`,
+  `--accent`, `--win-bg`, `--loss-bg` …). A theme redefines only those.
+- Win/loss colours are a green and a coral of their own, so a loss never looks like the brand red,
+  and buttons use felt blue rather than red for the same reason.
+- Fonts are self-hosted with `@fontsource` (imported in `main.tsx`): **Barlow** for text and
+  **Barlow Condensed** for headings, scores and numbers. Both cover æ, ø and å.
+- Logo files are in `apps/web/public/brand/`: `wordmark.png` (transparent background, for light
+  backgrounds) and `roundel.png` (the 8-ball, for the dark header); `favicon.png` is the roundel.
+  An SVG from the club would be sharper; swap it in when it arrives.
+- On phones the header puts the navigation on its own row (scrolling sideways if needed) and
+  doesn't stick to the top, so the pools get the room. Below 480px only the 8-ball is shown.
+- Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
+  3 red, 4 purple, 5 orange, 6 green, 7 maroon, 8 black, and 9–15 striped.
 
 ### Running everything in Docker
 
@@ -407,3 +430,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Open pages reload themselves when a new version of the app is deployed. |
 | 2026-10-07 | The UI comes in Danish (default) and English, switchable in the header. |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |
+| 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |

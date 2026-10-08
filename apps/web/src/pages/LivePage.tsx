@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import { Bracket } from '../components/Bracket';
 import { PoolTable, UpNext } from '../components/PoolTable';
+import { Standings } from '../components/Standings';
 import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { useCurrentSeason } from '../seasons';
@@ -7,15 +9,27 @@ import { t } from '../strings';
 import { useOngoingTournament, useTournament } from '../tournaments';
 
 /**
- * /live: the flatscreen in the club. Public and read-only, without the site header. Updates by
- * itself through the live update stream.
+ * /live: the flatscreen in the club. Public and read-only, without the site header, in the dark
+ * theme (less glare in a dim bar). Updates by itself through the live update stream.
  */
 export function LivePage() {
   const ongoing = useOngoingTournament();
   return (
-    <div className="live">
+    <div className="live theme-dark">
       {ongoing.data ? <LiveTournament id={ongoing.data.id} /> : ongoing.isSuccess && <Idle />}
     </div>
+  );
+}
+
+/** The logo, a "Live" badge, and what is on. */
+function LiveHeader({ children }: { children: ReactNode }) {
+  return (
+    <header className="live-header">
+      <img src="/brand/roundel.png" alt="" />
+      <h1>{t.brand}</h1>
+      <span className="live-badge">{t.live.badge}</span>
+      <p>{children}</p>
+    </header>
   );
 }
 
@@ -28,12 +42,9 @@ function LiveTournament({ id }: { id: number }) {
 
   return (
     <>
-      <header className="live-header">
-        <h1>{t.brand}</h1>
-        <p>
-          {t.tournaments.one} {formatDate(data.date)} · {data.format}
-        </p>
-      </header>
+      <LiveHeader>
+        {t.tournaments.one} {formatDate(data.date)} · {data.format}
+      </LiveHeader>
       {data.status === 'knockout' && <Bracket tournament={data} names={names} />}
       {data.status === 'draft' ? (
         <p className="live-message">{t.live.drawing}</p>
@@ -59,22 +70,14 @@ function Idle() {
   const season = useCurrentSeason();
   return (
     <>
-      <header className="live-header">
-        <h1>{t.brand}</h1>
-        <p>{t.live.noTournament}</p>
-      </header>
+      <LiveHeader>{t.live.noTournament}</LiveHeader>
       {season.data && season.data.standings.length > 0 && (
-        <section className="panel live-leaderboard">
+        <section className="panel scoreboard live-leaderboard">
           <h2>
-            {t.frontpage.leaderboard} {season.data.label}
+            {t.frontpage.leaderboard}
+            <span className="season-label">{season.data.label}</span>
           </h2>
-          <ol>
-            {season.data.standings.map((row) => (
-              <li key={row.playerId} value={row.rank}>
-                {row.name} – {row.points}
-              </li>
-            ))}
-          </ol>
+          <Standings rows={season.data.standings} />
         </section>
       )}
     </>

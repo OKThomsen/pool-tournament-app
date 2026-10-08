@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { Standings } from '../components/Standings';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
 
@@ -6,7 +7,8 @@ import { t } from '../strings';
 export function FrontPage() {
   return (
     <div className="columns">
-      <section className="panel">
+      <section className="panel hero">
+        <img className="wordmark" src="/brand/wordmark.png" alt={t.brand} />
         <h1>{t.frontpage.title}</h1>
         {/* The club's own text goes here; the wireframe only has placeholder copy. */}
         <p>{t.placeholder}</p>
@@ -19,9 +21,10 @@ export function FrontPage() {
 function Leaderboard() {
   const season = useCurrentSeason();
   return (
-    <aside className="panel leaderboard">
+    <aside className="panel scoreboard">
       <h2>
         <Link to="/saeson">{t.frontpage.leaderboard}</Link>
+        {season.data && <span className="season-label">{season.data.label}</span>}
       </h2>
       {season.isPending ? (
         <p>{t.loading}</p>
@@ -30,13 +33,7 @@ function Leaderboard() {
       ) : season.data.standings.length === 0 ? (
         <p>{t.season.empty}</p>
       ) : (
-        <ol>
-          {season.data.standings.map((row) => (
-            <li key={row.playerId} value={row.rank}>
-              {row.name} – {row.points}
-            </li>
-          ))}
-        </ol>
+        <Standings rows={season.data.standings} />
       )}
     </aside>
   );

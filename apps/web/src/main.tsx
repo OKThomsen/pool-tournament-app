@@ -16,6 +16,15 @@ import { SeasonPage } from './pages/SeasonPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { TournamentDetailPage } from './pages/TournamentDetailPage';
 import { TournamentsPage } from './pages/TournamentsPage';
+// Self-hosted fonts (no requests to Google): Barlow for text, Barlow Condensed for headings
+// and scores.
+import '@fontsource/barlow/400.css';
+import '@fontsource/barlow/500.css';
+import '@fontsource/barlow/600.css';
+import '@fontsource/barlow/700.css';
+import '@fontsource/barlow-condensed/500.css';
+import '@fontsource/barlow-condensed/600.css';
+import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
 
 const queryClient = new QueryClient();

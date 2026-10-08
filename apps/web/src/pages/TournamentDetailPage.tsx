@@ -38,7 +38,7 @@ export function TournamentDetailPage() {
       <h1>
         {t.tournaments.one} {formatDate(data.date)}
       </h1>
-      <p>
+      <p className="meta">
         {data.format} · {t.ongoing.week} {data.week} · {t.season.title} {data.season} ·{' '}
         {t.create.count(data.players.length)}
       </p>

@@ -56,7 +56,7 @@ export function LanguageSwitch() {
   return (
     <button
       type="button"
-      className="pill language"
+      className="language"
       title={t.language.switchTo}
       aria-label={t.language.switchTo}
       onClick={() => change(language === 'da' ? 'en' : 'da')}

@@ -32,13 +32,20 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
   const columns = Math.max(slots, ids.length);
   const width = COLUMN.setScore + COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
-  const style = { width: `${width}em`, '--cell': `${COLUMN.cell}em` } as CSSProperties;
+  // --width-em lets /live scale the font so the whole table fits its column.
+  const style = {
+    width: `${width}em`,
+    '--cell': `${COLUMN.cell}em`,
+    '--width-em': width,
+  } as CSSProperties;
 
   return (
     <div className="table-scroll">
       <table className="pool-table" style={style}>
         <caption>
-          {t.pools.pool} {pool.name}
+          <span>
+            {t.pools.pool} {pool.name}
+          </span>
         </caption>
         <colgroup>
           <col style={{ width: `${COLUMN.setScore}em` }} />
@@ -104,8 +111,8 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
                 {padding.map((i) => (
                   <td key={`pad-${i}`} className="empty" />
                 ))}
-                <td>{row.won}</td>
-                <td title={row.unresolvedTie ? t.pools.tied : undefined}>
+                <td className="won">{row.won}</td>
+                <td className="rank" title={row.unresolvedTie ? t.pools.tied : undefined}>
                   {row.rank}
                   {row.unresolvedTie && '='}
                 </td>
