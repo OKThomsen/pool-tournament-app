@@ -31,17 +31,19 @@ export function Bracket({ tournament, names, onPlayerClick }: BracketProps) {
       {ROUNDS.filter((round) => knockout.some((m) => m.stage === round.stage)).map((round) => (
         <section key={round.stage} className="round">
           <h3>{round.title()}</h3>
-          {knockout
-            .filter((m) => m.stage === round.stage)
-            .map((match) => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                names={names}
-                seedOf={round.stage === firstStage ? seedOf : undefined}
-                onPlayerClick={onPlayerClick}
-              />
-            ))}
+          <div className="round-matches">
+            {knockout
+              .filter((m) => m.stage === round.stage)
+              .map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  names={names}
+                  seedOf={round.stage === firstStage ? seedOf : undefined}
+                  onPlayerClick={onPlayerClick}
+                />
+              ))}
+          </div>
         </section>
       ))}
     </div>
@@ -67,7 +69,9 @@ function MatchCard({
   return (
     <div className="match-card">
       <div className="match-label">
-        {match.slot} · {t.score.raceTo(match.raceTo)}
+        {/* QF1, SF2 …; the bronze match and the final are named by their round's title. */}
+        {(match.stage === 'QF' || match.stage === 'SF') && `${match.slot} · `}
+        {t.score.raceTo(match.raceTo)}
       </div>
       {sides.map(({ player, frames, other }, i) => {
         const result = played ? (frames! > other! ? 'win' : 'loss') : '';

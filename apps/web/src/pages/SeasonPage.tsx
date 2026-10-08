@@ -15,7 +15,7 @@ export function SeasonPage() {
       <h1>
         {t.season.title} {label}
       </h1>
-      <p>
+      <p className="meta">
         {formatDate(start)} – {formatDate(end)}
       </p>
       {standings.length === 0 ? (

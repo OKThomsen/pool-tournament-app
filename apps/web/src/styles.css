@@ -1,187 +1,510 @@
-/* Placeholder styling until the design pass. Change the look through these variables. */
+/*
+ * Frank's Poolhouse look, taken from the club: the black ceiling and charcoal carpet, the bright
+ * blue felt, mahogany rails, the cream brick wall under the lamps, and the logo's red.
+ *
+ * Restyle through the variables below. The palette is first; components only use the semantic
+ * variables after it, so a theme (like the dark one on /live) only redefines those.
+ */
 :root {
-  --color-header: #343577;
-  --color-header-text: #ffffff;
-  --color-background: #f8f3e8;
-  --color-panel: #d6d6ff;
-  --color-panel-border: #343577;
-  --color-pill: #d6d6ff;
-  --color-text: #1c1c1c;
-  --color-brand: #971712;
-  --color-win: #c6efce;
-  --color-loss: #ffc7ce;
-  --radius: 12px;
-  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Palette */
+  --charcoal-950: #0f1114;
+  --charcoal-900: #14161a;
+  --charcoal-800: #1c1f24;
+  --charcoal-700: #272b32;
+  --charcoal-600: #363b44;
+  --charcoal-400: #7b828d;
+  --cream-50: #faf7f1;
+  --cream-100: #f3ede2;
+  --cream-200: #e7dccb;
+  --cream-300: #d6c7b0;
+  --felt-100: #e1f2fb;
+  --felt-400: #3fb0e6;
+  --felt-500: #1597d5;
+  --felt-600: #0d7cb3;
+  --felt-700: #0b6696;
+  --wood-200: #e8d6c4;
+  --wood-500: #8a5a3b;
+  --wood-700: #4a2a1e;
+  --red-brand: #971712;
+  --ink: #1c1c1c;
+  --green-100: #d6f1df;
+  --green-700: #1c6b3a;
+  --red-100: #fbdcd8;
+  --red-700: #a3261b;
+  --neon-amber: #ffb43a;
+
+  /* Semantic: the light theme */
+  --bg: var(--cream-100);
+  --surface: #ffffff;
+  --surface-muted: var(--cream-50);
+  --border: var(--cream-200);
+  --border-strong: var(--cream-300);
+  --text: var(--ink);
+  --text-muted: #6b645b;
+  --accent: var(--felt-600);
+  --accent-hover: var(--felt-700);
+  --accent-soft: var(--felt-100);
+  --on-accent: #ffffff;
+  --table-head-bg: var(--felt-700);
+  --table-head-text: #ffffff;
+  --header-bg: var(--charcoal-900);
+  --header-text: var(--cream-100);
+  --brand: var(--red-brand);
+  --win-bg: var(--green-100);
+  --win-text: var(--green-700);
+  --loss-bg: var(--red-100);
+  --loss-text: var(--red-700);
+  --error: var(--red-700);
+  --focus: var(--felt-400);
+  --shadow: 0 1px 2px rgb(40 30 20 / 6%), 0 4px 16px rgb(40 30 20 / 6%);
+  --shadow-raised: 0 8px 28px rgb(20 15 10 / 18%);
+
+  /* Type, shape, spacing */
+  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+  --radius: 14px;
+  --radius-small: 8px;
+  --gap: 16px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--font);
-  color: var(--color-text);
-  background: var(--color-background);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.5vw, 2.4rem);
+  text-transform: uppercase;
+}
+
+h2 {
+  margin-top: 28px;
+  font-size: 1.45rem;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+p {
+  margin: 0 0 12px;
 }
 
 a {
-  color: inherit;
+  color: var(--accent);
+  text-underline-offset: 2px;
 }
 
+a:hover {
+  color: var(--accent-hover);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Numbers line up in tables and scores. */
+table,
+.standings,
+.match-side,
+.score-button {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Header ---------- */
+
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--color-header);
-  color: var(--color-header-text);
+  gap: 8px 20px;
+  padding: 10px max(16px, calc((100vw - 1200px) / 2));
+  background: var(--header-bg);
+  color: var(--header-text);
+  /* The red swoosh from the logo, as a stripe under the header. */
+  border-bottom: 3px solid var(--brand);
 }
 
 .brand {
-  margin-right: auto;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--color-brand);
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
   text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
-.pill {
-  padding: 8px 20px;
-  border-radius: 999px;
-  background: var(--color-pill);
-  color: var(--color-text);
-  text-decoration: none;
+.brand:hover {
+  color: #fff;
 }
+
+.brand img {
+  width: 40px;
+  height: 40px;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.nav-link {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 8%);
+}
+
+.nav-link.active {
+  color: #fff;
+  box-shadow: inset 0 -3px 0 var(--felt-500);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language {
+  min-width: 2.75em;
+  padding: 6px 8px;
+  border: 1px solid var(--charcoal-600);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.language:hover {
+  border-color: var(--charcoal-400);
+}
+
+/* On phones: logo and actions on the first row, the navigation on its own row below. */
+@media (max-width: 760px) {
+  .header {
+    padding: 8px 12px 0;
+    gap: 4px 12px;
+  }
+
+  .brand {
+    font-size: 1.15rem;
+    margin-right: auto;
+  }
+
+  .brand img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    margin: 0 -12px;
+    padding: 0 6px;
+    overflow-x: auto;
+  }
+
+  .header-actions .nav-link,
+  .header-actions .button {
+    font-size: 0.95rem;
+    padding: 6px 10px;
+  }
+}
+
+/* ---------- Layout ---------- */
 
 .main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 28px 16px 48px;
 }
 
 .panel {
-  padding: 16px;
-  border: 6px solid var(--color-panel-border);
-  background: var(--color-panel);
+  padding: clamp(16px, 3vw, 28px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.panel > :last-child {
+  margin-bottom: 0;
 }
 
 .columns {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 32px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
+  .main {
+    padding: 16px 12px 40px;
+  }
+
   .columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+/* A line of facts under a title: format · week · season … */
+.meta {
+  color: var(--text-muted);
 }
 
-th,
-td {
-  padding: 6px 8px;
-  text-align: left;
+.muted {
+  color: var(--text-muted);
 }
 
-.live {
-  min-height: 100vh;
-  padding: 24px;
-  font-size: 1.5rem;
+.error {
+  margin: 0 0 12px;
+  color: var(--error);
+  font-weight: 600;
 }
+
+.notice {
+  margin: 16px 0;
+  padding: 16px;
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+/* ---------- Frontpage ---------- */
+
+.hero {
+  text-align: center;
+}
+
+.hero .wordmark {
+  display: block;
+  width: min(420px, 80%);
+  height: auto;
+  margin: 8px auto 20px;
+}
+
+.hero h1 {
+  font-size: clamp(1.4rem, 1.2rem + 1vw, 1.9rem);
+}
+
+/* The season leaderboard as a dark scoreboard. */
+/* The season leaderboard as a dark scoreboard, framed in mahogany like a table's rail. */
+.scoreboard {
+  border: 6px solid var(--wood-700);
+  background: var(--charcoal-900);
+  color: var(--cream-100);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 6%),
+    var(--shadow);
+}
+
+.scoreboard h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--felt-500);
+}
+
+.scoreboard h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.scoreboard h2 a:hover {
+  color: var(--felt-400);
+}
+
+.season-label {
+  color: var(--charcoal-400);
+  font-size: 0.85em;
+}
+
+.standings {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standings li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 4px;
+  border-bottom: 1px solid rgb(255 255 255 / 7%);
+}
+
+.standings li:last-child {
+  border-bottom: 0;
+}
+
+.standings .rank {
+  min-width: 1.6em;
+  color: var(--charcoal-400);
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-align: right;
+}
+
+.standings .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.standings .points {
+  font-family: var(--font-display);
+  font-size: 1.15em;
+  font-weight: 700;
+  color: var(--felt-400);
+}
+
+/* The top three get the colour of the lamps above the tables. */
+.standings li:nth-child(-n + 3) .rank {
+  color: var(--neon-amber);
+}
+
+/* ---------- Buttons and forms ---------- */
 
 button {
   font: inherit;
   cursor: pointer;
 }
 
-button.pill {
-  border: 0;
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.login {
-  display: grid;
-  gap: 12px;
-  max-width: 360px;
-  margin: 48px auto;
-  text-align: center;
-}
-
-.login label {
-  display: grid;
-  gap: 4px;
-  text-align: left;
-}
-
-.login input {
-  padding: 10px;
-  border: 0;
-  font: inherit;
-}
-
-.login button[type='submit'] {
-  padding: 10px;
-  border: 0;
-  background: var(--color-header);
-  color: var(--color-header-text);
-}
-
-.link {
-  border: 0;
-  background: none;
-  text-decoration: underline;
-}
-
-.error {
-  margin: 0;
-  color: var(--color-brand);
-}
-
-.confirm {
-  max-width: 360px;
-  text-align: center;
-}
-
-.confirm::backdrop {
-  background: rgb(0 0 0 / 40%);
-}
-
-.confirm-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-button.primary {
+.primary,
+.button.primary {
+  display: inline-block;
   padding: 10px 20px;
   border: 0;
-  background: var(--color-header);
-  color: var(--color-header-text);
-}
-
-/* Wide tables scroll sideways inside their panel on small screens. */
-.table-scroll {
-  overflow-x: auto;
-}
-
-tbody tr:nth-child(even) {
-  background: rgb(255 255 255 / 35%);
-}
-
-.actions {
+  border-radius: var(--radius-small);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
   white-space: nowrap;
 }
 
-.actions .link + .link {
-  margin-left: 12px;
+.primary:hover:not(:disabled),
+.button.primary:hover {
+  background: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link:hover:not(:disabled) {
+  color: var(--accent-hover);
+}
+
+input,
+select {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+  outline-offset: 0;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+label {
+  font-weight: 500;
+}
+
+.checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 16px;
 }
 
 .player-form {
@@ -195,12 +518,7 @@ tbody tr:nth-child(even) {
 .player-form label {
   display: grid;
   gap: 4px;
-}
-
-.player-form input {
-  padding: 8px;
-  border: 0;
-  font: inherit;
+  font-size: 0.9rem;
 }
 
 .player-form input[type='number'] {
@@ -211,33 +529,135 @@ tbody tr:nth-child(even) {
   flex-basis: 100%;
 }
 
-.leaderboard h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
+.login {
+  display: grid;
+  gap: 14px;
+  max-width: 380px;
+  margin: 24px auto;
+}
+
+.login h1 {
   text-align: center;
 }
 
-.leaderboard h2 a {
-  text-decoration: none;
+.login label {
+  display: grid;
+  gap: 4px;
 }
 
-.leaderboard ol {
-  margin: 0;
-  padding-left: 2em;
-  line-height: 1.6;
-}
-
-.checkbox {
-  display: flex !important;
-  align-items: center;
-  gap: 6px;
-}
-
-select {
-  padding: 8px;
+.login button[type='submit'] {
+  padding: 12px;
   border: 0;
-  font: inherit;
+  border-radius: var(--radius-small);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
 }
+
+.login button[type='submit']:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.login .link {
+  justify-self: center;
+}
+
+/* ---------- Dialogs ---------- */
+
+.modal {
+  width: min(440px, calc(100vw - 32px));
+  border: 0;
+  box-shadow: var(--shadow-raised);
+  color: var(--text);
+}
+
+.modal::backdrop {
+  background: rgb(15 17 20 / 55%);
+  backdrop-filter: blur(2px);
+}
+
+.confirm {
+  text-align: center;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  text-align: left;
+}
+
+thead th {
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+thead th:first-child {
+  border-top-left-radius: var(--radius-small);
+}
+
+thead th:last-child {
+  border-top-right-radius: var(--radius-small);
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:nth-child(even) {
+  background: var(--surface-muted);
+}
+
+/* Wide tables scroll sideways on small screens. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* A table whose rows open something. */
+table.clickable tbody tr {
+  cursor: pointer;
+}
+
+table.clickable tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+.actions {
+  white-space: nowrap;
+}
+
+.actions .link + .link {
+  margin-left: 12px;
+}
+
+.placings {
+  max-width: 40em;
+}
+
+.placings .placement-1st td {
+  font-weight: 700;
+}
+
+/* ---------- Ny Turnering ---------- */
 
 .player-search {
   position: relative;
@@ -246,92 +666,91 @@ select {
 
 .player-search input {
   width: 100%;
-  padding: 10px;
-  border: 0;
-  font: inherit;
 }
 
 .search-results {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   left: 0;
   right: 0;
-  margin: 0;
-  padding: 0;
+  margin: 4px 0 0;
+  padding: 4px;
   list-style: none;
-  background: #fff;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .search-results button {
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px;
   border: 0;
+  border-radius: 6px;
   background: none;
+  color: var(--text);
   text-align: left;
 }
 
 .search-results button:hover,
 .search-results button:focus {
-  background: var(--color-panel);
+  background: var(--accent-soft);
 }
 
 .search-results .add-new {
+  color: var(--accent);
   font-weight: 600;
 }
 
-.muted {
-  padding: 8px 10px;
-  opacity: 0.7;
+.search-results .muted {
+  padding: 10px;
 }
 
 .entrants {
-  margin-top: 16px;
-  background: #fff;
+  margin: 16px 0;
 }
 
-.form-actions {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
+/* ---------- Drawn pools (drag to swap) ---------- */
 
 .pool-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  gap: var(--gap);
   margin-bottom: 16px;
 }
 
 .pool-zone {
   min-height: 120px;
   padding: 12px;
-  background: rgb(255 255 255 / 60%);
-  outline: 2px dashed transparent;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
 }
 
 .pool-zone.over {
-  outline-color: var(--color-header);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .pool-zone h2,
 .pool-zone h3 {
   margin: 0 0 8px;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .chip {
   margin-bottom: 6px;
-  padding: 8px 12px;
-  background: #fff;
-  border: 2px solid transparent;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
   cursor: grab;
   touch-action: manipulation;
   user-select: none;
 }
 
 .chip.over {
-  border-color: var(--color-header);
+  border-color: var(--accent);
 }
 
 .chip.placeholder {
@@ -340,10 +759,11 @@ select {
 
 .chip.dragging {
   cursor: grabbing;
-  box-shadow: 0 6px 16px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-raised);
 }
 
-/* Pool tables: the winner's cell green, the loser's red (from the spec). */
+/* ---------- Pool tables: the winner's cell green, the loser's red (from the spec) ---------- */
+
 .pool-block {
   margin-bottom: 24px;
 }
@@ -351,29 +771,60 @@ select {
 .pool-table {
   /* Fixed layout: the column widths set in PoolTable are kept exactly. */
   table-layout: fixed;
-  background: #fff;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .pool-table caption {
-  padding: 6px 8px;
-  text-align: left;
+  padding: 8px 12px;
+  border-radius: var(--radius-small) var(--radius-small) 0 0;
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
+  font-family: var(--font-display);
+  font-size: 1.15em;
   font-weight: 700;
-  background: var(--color-header);
-  color: var(--color-header-text);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pool-table thead th {
+  border-radius: 0;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.8em;
 }
 
 .pool-table th,
 .pool-table td {
   height: 2.75em;
   padding: 0 6px;
-  border: 1px solid var(--color-panel);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   text-align: center;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.pool-table tr > :last-child {
+  border-right: 0;
+}
+
+.pool-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.pool-table tbody tr:nth-child(even) {
+  background: none;
+}
+
 .pool-table th[scope='row'] {
+  font-weight: 600;
   text-align: left;
 }
 
@@ -385,29 +836,49 @@ select {
 }
 
 .pool-table .result {
-  font-size: 1.15em;
-}
-
-.pool-table .opponent {
-  font-size: 0.85rem;
+  font-family: var(--font-display);
+  font-size: 1.3em;
+  font-weight: 700;
 }
 
 .pool-table .set-score {
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.85em;
 }
 
 .pool-table .self {
-  background: var(--color-panel);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--surface-muted),
+    var(--surface-muted) 6px,
+    var(--border) 6px,
+    var(--border) 7px
+  );
+}
+
+.pool-table .won {
+  font-family: var(--font-display);
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.pool-table .rank {
+  font-family: var(--font-display);
+  font-size: 1.2em;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .pool-table .win,
 .score-button.win {
-  background: var(--color-win);
+  background: var(--win-bg);
+  color: var(--win-text);
 }
 
 .pool-table .loss,
 .score-button.loss {
-  background: var(--color-loss);
+  background: var(--loss-bg);
+  color: var(--loss-text);
 }
 
 .cell-button {
@@ -415,17 +886,38 @@ select {
   height: 100%;
   border: 0;
   background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.cell-button:hover {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* An empty cell an admin can tap: a quiet "+" */
+.result:not(.win):not(.loss) .cell-button {
+  color: var(--border-strong);
 }
 
 .up-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
   margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
 }
 
-.notice {
-  padding: 12px;
-  background: #fff;
-  font-weight: 600;
+.up-next strong {
+  color: var(--accent);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
+
+/* ---------- Score dialog ---------- */
 
 .score-dialog {
   text-align: center;
@@ -436,25 +928,191 @@ select {
 }
 
 .score-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5em, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .score-button {
-  min-width: 4em;
-  padding: 14px 10px;
+  min-height: 56px;
+  padding: 12px 10px;
   border: 2px solid transparent;
-  font-size: 1.2rem;
+  border-radius: var(--radius-small);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.score-button:hover:not(:disabled) {
+  filter: brightness(0.95);
 }
 
 .score-button.current {
-  border-color: var(--color-header);
+  border-color: var(--text);
 }
 
-/* /live on the flatscreen */
+/* ---------- Qualification ---------- */
+
+.qualify {
+  margin-top: 24px;
+  padding: 20px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.qualify h2 {
+  margin-top: 0;
+}
+
+.choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice legend {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.qualifiers {
+  columns: 2 14em;
+}
+
+.tie {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: var(--radius-small);
+  background: var(--accent-soft);
+}
+
+.tie-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tie-buttons .score-button {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ---------- Knockout bracket: one column per round, stacked on narrow screens ---------- */
+
+.bracket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15em, 100%), 1fr));
+  gap: var(--gap);
+  margin-bottom: 24px;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Later rounds' matches sit level with the matches they follow from. */
+.round-matches {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+.round h3 {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.match-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.match-label {
+  padding: 4px 10px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.match-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 2.9em;
+  padding: 0 12px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+button.match-side:hover {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.match-side.win {
+  background: var(--win-bg);
+  color: var(--win-text);
+  font-weight: 700;
+}
+
+.match-side.loss {
+  background: var(--loss-bg);
+  color: var(--loss-text);
+}
+
+.match-side .seed {
+  min-width: 1.5em;
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.match-side .name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.match-side .frames {
+  font-family: var(--font-display);
+  font-size: 1.25em;
+  font-weight: 700;
+}
+
+/* ---------- /live on the flatscreen ---------- */
+
+.live {
+  min-height: 100vh;
+  padding: 24px;
+  font-size: 1.5rem;
+}
+
 .live-header {
   display: flex;
   flex-wrap: wrap;
@@ -464,7 +1122,7 @@ select {
 
 .live-header h1 {
   margin: 0;
-  color: var(--color-brand);
+  color: var(--brand);
 }
 
 .live-header p {
@@ -486,153 +1144,12 @@ select {
   font-size: 1.3rem;
 }
 
-.live-leaderboard {
-  max-width: 600px;
-  margin-top: 24px;
-}
-
-.live-leaderboard ol {
-  line-height: 1.6;
-}
-
-/* Qualification */
-.qualify {
-  margin-top: 24px;
-  padding: 16px;
-  background: #fff;
-}
-
-.qualify h2 {
-  margin-top: 0;
-}
-
-.choice {
-  display: flex;
-  gap: 16px;
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-
-.choice legend {
-  margin-bottom: 4px;
-}
-
-.qualifiers {
-  columns: 2 14em;
-}
-
-.tie {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--color-panel);
-}
-
-.tie-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Knockout bracket: one column per round, stacked on narrow screens. */
-.bracket {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(15em, 100%), 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.round {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 12px;
-}
-
-.round h3 {
-  margin: 0;
-}
-
-.match-card {
-  background: #fff;
-  border: 1px solid var(--color-panel);
-}
-
-.match-label {
-  padding: 4px 8px;
-  font-size: 0.8em;
-  background: var(--color-header);
-  color: var(--color-header-text);
-}
-
-.match-side {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 2.75em;
-  padding: 0 10px;
-  border: 0;
-  border-top: 1px solid var(--color-panel);
-  background: #fff;
-  font: inherit;
-  text-align: left;
-}
-
-.match-side.win {
-  background: var(--color-win);
-}
-
-.match-side.loss {
-  background: var(--color-loss);
-}
-
-.match-side .seed {
-  min-width: 1.5em;
-  font-size: 0.8em;
-  opacity: 0.7;
-}
-
-.match-side .name {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.match-side .frames {
-  font-weight: 700;
-}
-
 .live .bracket {
   font-size: 1.3rem;
   margin-top: 24px;
 }
 
-/* A table whose rows open something. */
-table.clickable tbody tr {
-  cursor: pointer;
-}
-
-table.clickable tbody tr:hover {
-  background: rgb(255 255 255 / 70%);
-}
-
-.placings {
-  max-width: 40em;
-  background: #fff;
-}
-
-.placings .placement-1st {
-  font-weight: 700;
-}
-
-.notice .primary {
-  margin-top: 8px;
-}
-
-.pill.language {
-  min-width: 3.2em;
-  font-weight: 600;
+.live-leaderboard {
+  max-width: 600px;
+  margin-top: 24px;
 }

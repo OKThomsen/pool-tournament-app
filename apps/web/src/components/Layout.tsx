@@ -21,39 +21,44 @@ export function Layout() {
     <>
       <header className="header">
         <Link to="/" className="brand">
-          {t.brand}
+          <img src="/brand/roundel.png" alt="" />
+          <span>{t.brand}</span>
         </Link>
-        {admin && (
-          <NavLink to="/admin/turnering/ny" className="pill">
-            {t.nav.newTournament}
+        <nav className="nav">
+          <NavLink to="/turneringer" className="nav-link">
+            {t.nav.tournaments}
           </NavLink>
-        )}
-        <NavLink to="/turneringer" className="pill">
-          {t.nav.tournaments}
-        </NavLink>
-        <NavLink to="/spillere" className="pill">
-          {t.nav.players}
-        </NavLink>
-        <NavLink to="/saeson" className="pill">
-          {t.nav.season}
-        </NavLink>
-        {admin ? (
-          <button
-            type="button"
-            className="pill"
-            disabled={logout.isPending}
-            onClick={() => setConfirmingLogout(true)}
-          >
-            {t.nav.logout}
-          </button>
-        ) : (
-          admin === null && (
-            <NavLink to="/login" className="pill">
-              {t.nav.login}
+          <NavLink to="/spillere" className="nav-link">
+            {t.nav.players}
+          </NavLink>
+          <NavLink to="/saeson" className="nav-link">
+            {t.nav.season}
+          </NavLink>
+        </nav>
+        <div className="header-actions">
+          {admin && (
+            <NavLink to="/admin/turnering/ny" className="button primary">
+              {t.nav.newTournament}
             </NavLink>
-          )
-        )}
-        <LanguageSwitch />
+          )}
+          {admin ? (
+            <button
+              type="button"
+              className="nav-link"
+              disabled={logout.isPending}
+              onClick={() => setConfirmingLogout(true)}
+            >
+              {t.nav.logout}
+            </button>
+          ) : (
+            admin === null && (
+              <NavLink to="/login" className="nav-link">
+                {t.nav.login}
+              </NavLink>
+            )
+          )}
+          <LanguageSwitch />
+        </div>
       </header>
       <ConfirmDialog
         open={confirmingLogout}

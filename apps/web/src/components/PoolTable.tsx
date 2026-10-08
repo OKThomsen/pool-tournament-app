@@ -104,8 +104,8 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
                 {padding.map((i) => (
                   <td key={`pad-${i}`} className="empty" />
                 ))}
-                <td>{row.won}</td>
-                <td title={row.unresolvedTie ? t.pools.tied : undefined}>
+                <td className="won">{row.won}</td>
+                <td className="rank" title={row.unresolvedTie ? t.pools.tied : undefined}>
                   {row.rank}
                   {row.unresolvedTie && '='}
                 </td>
