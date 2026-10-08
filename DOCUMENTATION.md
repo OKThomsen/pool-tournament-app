@@ -133,6 +133,8 @@ pages are light; the leaderboard is a dark "scoreboard". Everything is plain CSS
   backgrounds) and `roundel.png` (the 8-ball, for the dark header); `favicon.png` is the roundel.
   An SVG from the club would be sharper; swap it in when it arrives.
 - On phones the header puts the navigation on its own row, which scrolls sideways if needed.
+- Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
+  3 red, 4 purple, 5 orange, 6 green, 7 maroon, 8 black, and 9–15 striped.
 
 ### Running everything in Docker
 

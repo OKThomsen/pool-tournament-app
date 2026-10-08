@@ -1086,10 +1086,40 @@ button.match-side:hover {
   color: var(--loss-text);
 }
 
-.match-side .seed {
-  min-width: 1.5em;
-  font-size: 0.8em;
-  color: var(--text-muted);
+/* A seed drawn as a pool ball (Ball.tsx): the ball's colour in --ball, a white disc with the
+   number, and a highlight from the lamp above. 9–15 are striped. */
+.ball {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.75em;
+  height: 1.75em;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / 55%), transparent 34%), var(--ball);
+  box-shadow:
+    inset -2px -3px 5px rgb(0 0 0 / 35%),
+    0 1px 2px rgb(0 0 0 / 25%);
+}
+
+.ball.striped {
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / 55%), transparent 34%),
+    linear-gradient(#fff 0 24%, var(--ball) 24% 76%, #fff 76%);
+}
+
+.ball-number {
+  display: grid;
+  place-items: center;
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-family: var(--font-display);
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .match-side .name {
