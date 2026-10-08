@@ -32,7 +32,12 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
   const columns = Math.max(slots, ids.length);
   const width = COLUMN.setScore + COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
-  const style = { width: `${width}em`, '--cell': `${COLUMN.cell}em` } as CSSProperties;
+  // --width-em lets /live scale the font so the whole table fits its column.
+  const style = {
+    width: `${width}em`,
+    '--cell': `${COLUMN.cell}em`,
+    '--width-em': width,
+  } as CSSProperties;
 
   return (
     <div className="table-scroll">

@@ -1135,51 +1135,158 @@ button.match-side:hover {
   font-weight: 700;
 }
 
+/* ---------- Dark theme: the bar at night (used on /live) ---------- */
+
+.theme-dark {
+  --bg: var(--charcoal-950);
+  --surface: var(--charcoal-800);
+  --surface-muted: var(--charcoal-900);
+  --border: var(--charcoal-700);
+  --border-strong: var(--charcoal-600);
+  --text: var(--cream-100);
+  --text-muted: #9aa1ab;
+  --accent: var(--felt-400);
+  --accent-hover: var(--felt-500);
+  --accent-soft: rgb(21 151 213 / 16%);
+  --table-head-bg: var(--felt-700);
+  --win-bg: #173f29;
+  --win-text: #86e3a8;
+  --loss-bg: #4a1d1a;
+  --loss-text: #ff9f94;
+  --shadow: 0 2px 10px rgb(0 0 0 / 35%);
+
+  background: var(--bg);
+  color: var(--text);
+}
+
 /* ---------- /live on the flatscreen ---------- */
 
 .live {
   min-height: 100vh;
-  padding: 24px;
+  padding: 24px 32px 40px;
   font-size: 1.5rem;
 }
 
 .live-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 24px;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid var(--brand);
+}
+
+.live-header img {
+  width: 72px;
+  height: 72px;
 }
 
 .live-header h1 {
   margin: 0;
-  color: var(--brand);
+  font-size: 2.6rem;
 }
 
 .live-header p {
-  margin: 0;
+  margin: 0 0 0 auto;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+/* "LIVE" with a glowing dot, like the neon signs in the bar. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px;
+  border: 2px solid var(--neon-amber);
+  border-radius: 999px;
+  color: var(--neon-amber);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgb(255 180 58 / 60%);
+  box-shadow: 0 0 14px rgb(255 180 58 / 25%);
+}
+
+.live-badge::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--neon-amber);
+  box-shadow: 0 0 10px var(--neon-amber);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-badge::before {
+    animation: none;
+  }
 }
 
 .live-message {
   font-size: 2rem;
 }
 
+/* Two pools per row on a 1080p screen. Nobody can scroll the TV, so each table's font is scaled
+   to fit its column (--width-em is the table's width in em, from PoolTable), and the rows are
+   shorter than on the admin page, where the result cells are squares to tap. */
 .live-pools {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr));
-  gap: 24px;
-  margin-top: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(780px, 100%), 1fr));
+  gap: 20px 28px;
+}
+
+.live .pool-block {
+  container-type: inline-size;
+  margin-bottom: 0;
 }
 
 .live .pool-table {
-  font-size: 1.3rem;
+  font-size: min(1.3rem, 100cqi / var(--width-em));
+}
+
+.live .pool-table tbody td,
+.live .pool-table tbody th {
+  height: 2.4em;
+}
+
+.live .up-next {
+  font-size: 1.15em;
 }
 
 .live .bracket {
+  margin-bottom: 36px;
   font-size: 1.3rem;
-  margin-top: 24px;
 }
 
+/* Between tournaments: the leaderboard in two columns, so a full season fits on the screen. */
 .live-leaderboard {
-  max-width: 600px;
-  margin-top: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.live-leaderboard h2 {
+  font-size: 2.2rem;
+}
+
+.live-leaderboard .standings {
+  columns: 2;
+  column-gap: 56px;
+}
+
+.live-leaderboard .standings li {
+  padding: 8px 4px;
+  break-inside: avoid;
 }

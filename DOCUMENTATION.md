@@ -106,7 +106,10 @@ placings, the bracket and the pools. Logged-in admins can click any result there
 
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
-or the season leaderboard between tournaments. `LiveUpdates` (mounted once in `main.tsx`)
+or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
+"Live" badge. The TV can't be scrolled, so pool tables show two per row, each scaled to fit its
+column (`--width-em` from `PoolTable`), with shorter rows than the square cells on the admin
+page; four pools fit on a 1080p screen. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
 **Languages.** The UI is in Danish (default) and English. All text lives in
@@ -119,7 +122,7 @@ uses whatever that browser chose. Add every new string to both dictionaries.
 **Styling.** The look comes from the club itself: black ceiling and charcoal (header), bright blue
 felt (buttons, links, table headers), mahogany (the rail around the leaderboard), the cream
 brick wall (page background) and the logo's red (the stripe under the header). Public and admin
-pages are light; the leaderboard is a dark "scoreboard". Everything is plain CSS in
+pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everything is plain CSS in
 `apps/web/src/styles.css`, with no CSS framework:
 
 - The **palette** (`--felt-500`, `--wood-700`, `--cream-100` …) is at the top of `:root`.

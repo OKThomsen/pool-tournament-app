@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { useCurrentSeason, type SeasonStanding } from '../seasons';
+import { Standings } from '../components/Standings';
+import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
 
 /** Info about the club, with the current season's leaderboard on the side. */
@@ -35,20 +36,5 @@ function Leaderboard() {
         <Standings rows={season.data.standings} />
       )}
     </aside>
-  );
-}
-
-/** "rank, name, points" rows; used on the frontpage and on /live between tournaments. */
-export function Standings({ rows }: { rows: SeasonStanding[] }) {
-  return (
-    <ol className="standings">
-      {rows.map((row) => (
-        <li key={row.playerId}>
-          <span className="rank">{row.rank}</span>
-          <span className="name">{row.name}</span>
-          <span className="points">{row.points}</span>
-        </li>
-      ))}
-    </ol>
   );
 }

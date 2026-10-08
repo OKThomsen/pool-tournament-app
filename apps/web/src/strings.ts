@@ -164,6 +164,7 @@ const da = {
   live: {
     drawing: 'Puljerne bliver lavet …',
     noTournament: 'Ingen turnering i gang lige nu',
+    badge: 'Live',
   },
   yes: 'Ja',
   no: 'Nej',
@@ -337,6 +338,7 @@ const en: Strings = {
   live: {
     drawing: 'Drawing the pools …',
     noTournament: 'No tournament in progress right now',
+    badge: 'Live',
   },
   yes: 'Yes',
   no: 'No',
