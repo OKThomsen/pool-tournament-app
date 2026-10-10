@@ -1,3 +1,4 @@
+import { seasonForDate } from '@franks/core';
 import { asc, desc, eq, ne, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import {
@@ -7,11 +8,10 @@ import {
   poolMembers,
   pools,
   results,
-  seasons,
   tournamentPlayers,
   tournaments,
 } from '../db/schema.js';
-import { isMemberIn, qualified } from '../db/seasons.js';
+import { isMemberOn, qualified } from '../db/seasons.js';
 
 /** Everything about one tournament, as the admin and live views need it. */
 export async function tournamentDetail(db: Executor, id: number) {
@@ -20,13 +20,11 @@ export async function tournamentDetail(db: Executor, id: number) {
       id: tournaments.id,
       date: tournaments.date,
       week: tournaments.week,
-      season: seasons.label,
       format: tournaments.format,
       status: tournaments.status,
       knockoutSize: tournaments.knockoutSize,
     })
     .from(tournaments)
-    .innerJoin(seasons, eq(seasons.id, tournaments.seasonId))
     .where(eq(tournaments.id, id));
   if (!tournament) return null;
 
@@ -36,7 +34,8 @@ export async function tournamentDetail(db: Executor, id: number) {
       name: players.name,
       baseHandicap: players.baseHandicap,
       frameHandicap: players.frameHandicap,
-      member: isMemberIn(tournament.season, players.id),
+      // Medlem on the day of the tournament.
+      member: isMemberOn(tournament.date, players.id),
     })
     .from(tournamentPlayers)
     .innerJoin(players, eq(players.id, tournamentPlayers.playerId))
@@ -112,6 +111,7 @@ export async function tournamentDetail(db: Executor, id: number) {
 
   return {
     ...tournament,
+    season: seasonLabel(tournament.date),
     players: entrants,
     pools: poolList,
     matches: matchList,
@@ -132,14 +132,18 @@ export async function ongoingTournament(db: Executor) {
   return row ?? null;
 }
 
+/** The label of the season a date is in, or null for the off-season. */
+function seasonLabel(date: string): string | null {
+  return seasonForDate(date)?.label ?? null;
+}
+
 /** Concluded tournaments, newest first: date, format, winner and number of players. */
 export async function concludedTournaments(db: Executor) {
-  return db
+  const rows = await db
     .select({
       id: tournaments.id,
       date: tournaments.date,
       week: tournaments.week,
-      season: seasons.label,
       format: tournaments.format,
       winner: sql<string | null>`(
         select ${players.name} from ${results}
@@ -153,7 +157,7 @@ export async function concludedTournaments(db: Executor) {
       )`,
     })
     .from(tournaments)
-    .innerJoin(seasons, eq(seasons.id, tournaments.seasonId))
     .where(eq(tournaments.status, 'concluded'))
     .orderBy(desc(tournaments.date), desc(tournaments.id));
+  return rows.map((row) => ({ ...row, season: seasonLabel(row.date) }));
 }

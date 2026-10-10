@@ -5,6 +5,7 @@ export interface SeasonStanding {
   rank: number;
   playerId: number;
   name: string;
+  /** Earns the member bonus this season. */
   member: boolean;
   points: number;
   participation: number;
@@ -13,10 +14,19 @@ export interface SeasonStanding {
   quarterfinals: number;
 }
 
-export interface CurrentSeason {
+export interface Season {
+  /** `1/2026` (January–May) or `2/2026` (September–December). */
   label: string;
   start: string;
   end: string;
+}
+
+export interface CurrentSeason {
+  /** Null in the off-season (June–August). */
+  season: Season | null;
+  /** The season after today. */
+  next: Season;
+  /** Empty in the off-season. */
   standings: SeasonStanding[];
 }
 

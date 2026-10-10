@@ -12,8 +12,8 @@ export function createTestDb() {
 /** Empties every table except reference data (the points table). */
 export async function resetDb(db: Database): Promise<void> {
   await db.execute(sql`
-    truncate table sessions, admins, memberships, results, matches, knockout_seeds, pool_members, pools,
-      tournament_players, tournaments, seasons, players
+    truncate table sessions, admins, membership_periods, results, matches, knockout_seeds, pool_members, pools,
+      tournament_players, tournaments, players
     restart identity cascade
   `);
 }

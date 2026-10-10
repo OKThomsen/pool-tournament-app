@@ -42,7 +42,8 @@ export function OngoingTournamentPage() {
         {t.tournaments.one} {formatDate(data.date)}
       </h1>
       <p className="meta">
-        {data.format} · {t.ongoing.week} {data.week} · {t.season.title} {data.season} ·{' '}
+        {data.format} · {t.ongoing.week} {data.week} ·{' '}
+        {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
         {t.create.count(data.players.length)}
       </p>
       {data.status === 'draft' ? <DraftPools tournament={data} /> : <PoolPlay tournament={data} />}

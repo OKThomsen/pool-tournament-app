@@ -7,14 +7,17 @@ export interface Player {
   name: string;
   baseHandicap: number;
   frameHandicap: number;
-  /** Member this season. */
+  /** Has an active membership. Membership runs all year, the off-season included. */
   member: boolean;
+  /** YYYY-MM-DD the active membership started, or null. */
+  memberSince: string | null;
   /** YYYY-MM-DD, or null if the handicap has never been changed. */
   lastAdjusted: string | null;
 }
 
 export interface PlayerWithStats extends Player {
-  seasonPoints: number;
+  /** Null in the off-season. */
+  seasonPoints: number | null;
   participation: number;
   wins: number;
   semifinals: number;
@@ -26,6 +29,8 @@ export interface PlayerInput {
   baseHandicap: number;
   frameHandicap: number;
   member: boolean;
+  /** When the membership started (YYYY-MM-DD). Only sent with `member: true`. */
+  memberSince?: string;
 }
 
 const playersKey = ['players'];

@@ -405,6 +405,11 @@ table,
   scrollbar-width: thin;
 }
 
+/* A DD-MM-YYYY date in running text: never split at its hyphens. */
+.date {
+  white-space: nowrap;
+}
+
 .season-label {
   color: var(--charcoal-400);
   font-size: 0.85em;

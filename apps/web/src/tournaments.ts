@@ -37,7 +37,8 @@ export interface Tournament {
   id: number;
   date: string;
   week: number;
-  season: string;
+  /** Null for a tournament in the off-season. */
+  season: string | null;
   format: GameFormat;
   status: TournamentStatus;
   knockoutSize: number | null;
@@ -65,7 +66,8 @@ export interface TournamentSummary {
   id: number;
   date: string;
   week: number;
-  season: string;
+  /** Null for a tournament in the off-season. */
+  season: string | null;
   format: GameFormat;
   winner: string | null;
   participants: number;

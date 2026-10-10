@@ -1,3 +1,4 @@
+import { todayInDenmark } from '@franks/core';
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '../api';
 import { useSession } from '../auth';
@@ -12,10 +13,14 @@ import {
 } from '../players';
 import { t } from '../strings';
 
-/** Spillere: every registered player. Admins can also add, edit and delete players here. */
+/**
+ * Spillere: every registered player. Admins can also add, edit and delete players here.
+ * Sæsonpoint is left out in the off-season, when there is no current season.
+ */
 export function PlayersPage() {
   const admin = useSession();
   const players = usePlayers();
+  const inSeason = players.data?.some((player) => player.seasonPoints !== null) ?? false;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<PlayerWithStats | null>(null);
   const deletePlayer = useDeletePlayer();
@@ -49,7 +54,7 @@ export function PlayersPage() {
                 <th>{t.players.baseHandicap}</th>
                 <th>{t.players.frameHandicap}</th>
                 <th>{t.players.member}</th>
-                <th>{t.players.seasonPoints}</th>
+                {inSeason && <th>{t.players.seasonPoints}</th>}
                 <th>{t.players.participation}</th>
                 <th>{t.players.wins}</th>
                 <th>{t.players.semifinals}</th>
@@ -71,7 +76,7 @@ export function PlayersPage() {
                     <td>{player.baseHandicap}</td>
                     <td>{player.frameHandicap}</td>
                     <td>{player.member ? t.yes : t.no}</td>
-                    <td>{player.seasonPoints}</td>
+                    {inSeason && <td>{player.seasonPoints}</td>}
                     <td>{player.participation}</td>
                     <td>{player.wins}</td>
                     <td>{player.semifinals}</td>
@@ -111,6 +116,9 @@ export function PlayersPage() {
 
 function errorMessage(error: Error): string {
   if (error instanceof ApiError && error.code === 'name_taken') return t.players.nameTaken;
+  if (error instanceof ApiError && error.code === 'member_since_in_future') {
+    return t.players.memberSinceFuture;
+  }
   if (error instanceof ApiError && error.code === 'player_has_tournaments') {
     return t.players.hasTournaments;
   }
@@ -119,13 +127,18 @@ function errorMessage(error: Error): string {
 
 const emptyInput: PlayerInput = { name: '', baseHandicap: 0, frameHandicap: 0, member: false };
 
+/** The start date only goes with `member: true`; left empty, the server uses today. */
+function toRequest({ memberSince, ...input }: PlayerInput): PlayerInput {
+  return input.member && memberSince ? { ...input, memberSince } : input;
+}
+
 function AddPlayerForm() {
   const createPlayer = useCreatePlayer();
   const [input, setInput] = useState(emptyInput);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    createPlayer.mutate(input, { onSuccess: () => setInput(emptyInput) });
+    createPlayer.mutate(toRequest(input), { onSuccess: () => setInput(emptyInput) });
   };
 
   return (
@@ -150,11 +163,12 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
     baseHandicap: player.baseHandicap,
     frameHandicap: player.frameHandicap,
     member: player.member,
+    memberSince: player.memberSince ?? undefined,
   });
 
   const save = (event: FormEvent) => {
     event.preventDefault();
-    updatePlayer.mutate({ id: player.id, ...input }, { onSuccess: onDone });
+    updatePlayer.mutate({ id: player.id, ...toRequest(input) }, { onSuccess: onDone });
   };
 
   return (
@@ -186,6 +200,7 @@ function PlayerFields({
   input: PlayerInput;
   onChange: (input: PlayerInput) => void;
 }) {
+  const today = todayInDenmark();
   return (
     <>
       <label>
@@ -225,8 +240,19 @@ function PlayerFields({
           checked={input.member}
           onChange={(event) => onChange({ ...input, member: event.target.checked })}
         />
-        {t.players.memberThisSeason}
+        {t.players.member}
       </label>
+      {input.member && (
+        <label>
+          {t.players.memberSince}
+          <input
+            type="date"
+            max={today}
+            value={input.memberSince ?? today}
+            onChange={(event) => onChange({ ...input, memberSince: event.target.value })}
+          />
+        </label>
+      )}
     </>
   );
 }

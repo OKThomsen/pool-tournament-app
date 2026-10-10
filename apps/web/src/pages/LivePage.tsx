@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Bracket } from '../components/Bracket';
 import { PoolTable, UpNext } from '../components/PoolTable';
+import { NoSeason } from '../components/NoSeason';
 import { Standings } from '../components/Standings';
 import { formatDate } from '../format';
 import { poolView } from '../poolView';
@@ -71,11 +72,17 @@ function Idle() {
   return (
     <>
       <LiveHeader>{t.live.noTournament}</LiveHeader>
-      {season.data && season.data.standings.length > 0 && (
+      {season.data && !season.data.season && (
+        <section className="panel scoreboard live-leaderboard">
+          <h2>{t.frontpage.leaderboard}</h2>
+          <NoSeason next={season.data.next} />
+        </section>
+      )}
+      {season.data?.season && season.data.standings.length > 0 && (
         <section className="panel scoreboard live-leaderboard">
           <h2>
             {t.frontpage.leaderboard}
-            <span className="season-label">{season.data.label}</span>
+            <span className="season-label">{season.data.season.label}</span>
           </h2>
           <Standings rows={season.data.standings} />
         </section>

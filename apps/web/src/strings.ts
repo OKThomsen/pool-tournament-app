@@ -64,7 +64,8 @@ const da = {
     semifinals: 'Semifinaler',
     quarterfinals: 'Kvartfinaler',
     member: 'Medlem',
-    memberThisSeason: 'Medlem denne sæson',
+    memberSince: 'Medlem siden',
+    memberSinceFuture: 'Medlem siden kan ikke ligge i fremtiden.',
     none: 'Ingen spillere endnu.',
     edit: 'Rediger',
     delete: 'Slet',
@@ -75,6 +76,8 @@ const da = {
   season: {
     title: 'Sæson',
     empty: 'Ingen har spillet i denne sæson endnu.',
+    offSeason: 'Uden for sæson',
+    none: 'Ingen aktuel sæson. Næste sæson starter',
   },
   login: {
     title: 'Log ind',
@@ -238,7 +241,8 @@ const en: Strings = {
     semifinals: 'Semifinals',
     quarterfinals: 'Quarterfinals',
     member: 'Member',
-    memberThisSeason: 'Member this season',
+    memberSince: 'Member since',
+    memberSinceFuture: 'Member since can’t be in the future.',
     none: 'No players yet.',
     edit: 'Edit',
     delete: 'Delete',
@@ -249,6 +253,8 @@ const en: Strings = {
   season: {
     title: 'Season',
     empty: 'Nobody has played this season yet.',
+    offSeason: 'Off-season',
+    none: 'No current season. The next season starts on',
   },
   login: {
     title: 'Log in',

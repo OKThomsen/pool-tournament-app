@@ -1,10 +1,11 @@
 import { MEMBER_BONUS } from '@franks/core';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app.js';
-import { currentSeason, setMembership } from '../db/seasons.js';
+import { memberships } from '../db/schema.js';
+import { setMembership } from '../db/seasons.js';
 import { loginAsAdmin } from '../test/auth.js';
 import { createTestDb, resetDb } from '../test/database.js';
-import { addPlayers, addTournament } from '../test/fixtures.js';
+import { addPlayers, addTournament, setToday } from '../test/fixtures.js';
 
 const { db, pool } = createTestDb();
 const app = await buildApp({ db, logger: false });
@@ -12,7 +13,12 @@ let cookies: { session: string };
 
 beforeEach(async () => {
   await resetDb(db);
+  setToday('2026-10-10');
   cookies = await loginAsAdmin(db);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 afterAll(async () => {
@@ -20,7 +26,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-const lastSeason = { label: '01/2000', start: '2000-01-01' };
+const lastSeason = '2026-05-01';
 
 describe('GET /api/players', () => {
   it('lists players by name with all-time statistics', async () => {
@@ -33,7 +39,7 @@ describe('GET /api/players', () => {
     });
     await addTournament(db, {
       knockoutSize: 4,
-      season: lastSeason,
+      date: lastSeason,
       placements: [
         [mads!.id, '3rd'],
         [ann!.id, 'participation'],
@@ -57,15 +63,25 @@ describe('GET /api/players', () => {
         [ann!.id, '2nd'],
       ],
     });
-    await addTournament(db, { season: lastSeason, placements: [[mads!.id, '1st']] });
-    await setMembership(db, ann!.id, lastSeason.label, true);
-    await setMembership(db, mads!.id, currentSeason().label, true);
+    await addTournament(db, { date: lastSeason, placements: [[mads!.id, '1st']] });
+    await db.insert(memberships).values([
+      // Ann was a member last season, which doesn't count now.
+      { playerId: ann!.id, start: '2026-01-01', end: '2026-05-31' },
+      { playerId: mads!.id, start: '2026-01-01' },
+    ]);
 
     const players = (await app.inject({ url: '/api/players' })).json();
     expect(players).toMatchObject([
-      // Ann was a member last season, which doesn't count now.
-      { name: 'ann', member: false, seasonPoints: 7 },
-      { name: 'Mads', member: true, seasonPoints: 10 + MEMBER_BONUS },
+      { name: 'ann', member: false, memberSince: null, seasonPoints: 7 },
+      { name: 'Mads', member: true, memberSince: '2026-01-01', seasonPoints: 10 + MEMBER_BONUS },
+    ]);
+  });
+
+  it('has no season points in the off-season', async () => {
+    setToday('2026-06-15');
+    await addPlayers(db, 'Mads');
+    expect((await app.inject({ url: '/api/players' })).json()).toMatchObject([
+      { name: 'Mads', seasonPoints: null },
     ]);
   });
 
@@ -109,7 +125,7 @@ describe('POST /api/players', () => {
   it("reports membership correctly when the player's id differs from the season's", async () => {
     // Regression: an unqualified "id" in the membership subquery once matched the season's id.
     const [, , kent] = await addPlayers(db, 'A', 'B', 'Kent');
-    await setMembership(db, kent!.id, currentSeason().label, true);
+    await setMembership(db, kent!.id, true);
     const byName = async () =>
       Object.fromEntries(
         (await app.inject({ url: '/api/players' }))
@@ -120,7 +136,7 @@ describe('POST /api/players', () => {
     expect((await app.inject({ url: `/api/players/${kent!.id}` })).json().member).toBe(true);
   });
 
-  it('can make the new player a member for this season', async () => {
+  it('can make the new player a member', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/players',
@@ -174,18 +190,56 @@ describe('PATCH /api/players/:id', () => {
     expect(response.json()).toMatchObject({ name: 'Kent B', lastAdjusted: null });
   });
 
-  it("records and removes this season's membership", async () => {
-    const [player] = await addPlayers(db, 'Kent');
-    const patch = (member: boolean) =>
-      app.inject({
-        method: 'PATCH',
-        url: `/api/players/${player!.id}`,
-        cookies,
-        payload: { member },
+  describe('membership', () => {
+    const periods = async () =>
+      (await db.select().from(memberships).orderBy(memberships.start)).map((m) => [m.start, m.end]);
+    const patch = (id: number, payload: object) =>
+      app.inject({ method: 'PATCH', url: `/api/players/${id}`, cookies, payload });
+
+    it('starts today and ends today', async () => {
+      const [player] = await addPlayers(db, 'Kent');
+      expect((await patch(player!.id, { member: true })).json()).toMatchObject({
+        member: true,
+        memberSince: '2026-10-10',
+        lastAdjusted: null,
       });
-    expect((await patch(true)).json()).toMatchObject({ member: true, lastAdjusted: null });
-    expect((await patch(true)).json().member).toBe(true);
-    expect((await patch(false)).json().member).toBe(false);
+      expect((await patch(player!.id, { member: true })).json().member).toBe(true);
+      setToday('2026-10-30');
+      expect((await patch(player!.id, { member: false })).json()).toMatchObject({
+        member: false,
+        memberSince: null,
+      });
+      expect(await periods()).toEqual([['2026-10-10', '2026-10-30']]);
+    });
+
+    it('can be backdated, and moved', async () => {
+      const [player] = await addPlayers(db, 'Kent');
+      await patch(player!.id, { member: true, memberSince: '2026-09-03' });
+      await patch(player!.id, { member: true, memberSince: '2026-08-01' });
+      expect(await periods()).toEqual([['2026-08-01', null]]);
+    });
+
+    it('keeps history, and joins a rejoin onto a membership that just ended', async () => {
+      const [player] = await addPlayers(db, 'Kent');
+      await db.insert(memberships).values([
+        { playerId: player!.id, start: '2025-01-01', end: '2025-03-01' },
+        { playerId: player!.id, start: '2026-01-01', end: '2026-10-09' },
+      ]);
+      await patch(player!.id, { member: true });
+      expect(await periods()).toEqual([
+        ['2025-01-01', '2025-03-01'],
+        ['2026-01-01', null],
+      ]);
+    });
+
+    it('refuses a start date in the future or without member: true', async () => {
+      const [player] = await addPlayers(db, 'Kent');
+      const future = await patch(player!.id, { member: true, memberSince: '2026-10-11' });
+      expect(future.statusCode).toBe(400);
+      expect(future.json().error).toBe('member_since_in_future');
+      const alone = await patch(player!.id, { memberSince: '2026-10-01' });
+      expect(alone.json().error).toBe('member_since_without_member');
+    });
   });
 
   it('sets the last adjusted date when a handicap changes', async () => {

@@ -5,11 +5,12 @@ import { requireAdmin } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
 import { isUniqueViolation } from '../db/errors.js';
 import { players, results, tournamentPlayers, tournaments } from '../db/schema.js';
-import { currentSeason, isMemberIn, seasonPointsIn, setMembership } from '../db/seasons.js';
+import { currentSeason, memberSince, seasonPointsIn, setMembership } from '../db/seasons.js';
 
 const handicap = { type: 'integer', minimum: -20, maximum: 20 } as const;
 const name = { type: 'string', minLength: 1, maxLength: 60, pattern: '\\S' } as const;
 const member = { type: 'boolean' } as const;
+const memberSinceDate = { type: 'string', format: 'date' } as const;
 const idParams = {
   type: 'object',
   required: ['id'],
@@ -20,41 +21,50 @@ interface PlayerBody {
   name: string;
   baseHandicap?: number;
   frameHandicap?: number;
-  /** Member this season. */
+  /** Member now. Membership runs all year; see setMembership. */
   member?: boolean;
+  /** When the membership started, if not today. Only with `member: true`. */
+  memberSince?: string;
 }
 
-/** A player's own fields, plus whether they're a member this season. */
-function playerColumns(seasonLabel: string) {
+/** A player's own fields, plus whether they have an active membership and since when. */
+function playerColumns() {
   return {
     id: players.id,
     name: players.name,
     baseHandicap: players.baseHandicap,
     frameHandicap: players.frameHandicap,
     lastAdjusted: players.lastAdjusted,
-    member: isMemberIn(seasonLabel, players.id),
+    member: sql<boolean>`${memberSince(players.id)} is not null`,
+    memberSince: memberSince(players.id),
   };
 }
 
+/** Why `memberSince` can't be used, or null: it needs `member: true` and can't be in the future. */
+function checkMemberSince(member: boolean | undefined, since: string | undefined) {
+  if (since === undefined) return null;
+  if (member !== true) return 'member_since_without_member';
+  if (since > todayInDenmark()) return 'member_since_in_future';
+  return null;
+}
+
 async function findPlayer(db: Executor, id: number) {
-  const [player] = await db
-    .select(playerColumns(currentSeason().label))
-    .from(players)
-    .where(eq(players.id, id));
+  const [player] = await db.select(playerColumns()).from(players).where(eq(players.id, id));
   return player;
 }
 
 export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
   /**
-   * Every player with this season's points and all-time statistics from concluded tournaments.
-   * Wins = tournaments won, semifinals = reached the semifinals, quarterfinals = played in one.
+   * Every player with this season's points (null in the off-season) and all-time statistics from
+   * concluded tournaments. Wins = tournaments won, semifinals = reached the semifinals,
+   * quarterfinals = played in one.
    */
   app.get('/players', async () => {
-    const { label } = currentSeason();
+    const season = currentSeason();
     return db
       .select({
-        ...playerColumns(label),
-        seasonPoints: seasonPointsIn(label, players.id),
+        ...playerColumns(),
+        seasonPoints: season ? seasonPointsIn(season, players.id) : sql<null>`null`,
         participation: sql<number>`count(${results.playerId})::int`,
         wins: sql<number>`(count(*) filter (where ${results.placement} = '1st'))::int`,
         semifinals: sql<number>`(count(*) filter (
@@ -91,7 +101,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       // Escape LIKE wildcards so "%" or "_" in a name are matched literally.
       const pattern = prefix.replace(/[\\%_]/g, (c) => `\\${c}`) + '%';
       return db
-        .select(playerColumns(currentSeason().label))
+        .select(playerColumns())
         .from(players)
         .where(sql`${players.name} ilike ${pattern}`)
         .orderBy(sql`lower(${players.name})`)
@@ -119,19 +129,33 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
           type: 'object',
           required: ['name'],
           additionalProperties: false,
-          properties: { name, baseHandicap: handicap, frameHandicap: handicap, member },
+          properties: {
+            name,
+            baseHandicap: handicap,
+            frameHandicap: handicap,
+            member,
+            memberSince: memberSinceDate,
+          },
         },
       },
     },
     async (request, reply) => {
-      const { name, baseHandicap = 0, frameHandicap = 0, member = false } = request.body;
+      const {
+        name,
+        baseHandicap = 0,
+        frameHandicap = 0,
+        member = false,
+        memberSince,
+      } = request.body;
+      const invalid = checkMemberSince(member, memberSince);
+      if (invalid) return reply.code(400).send({ error: invalid });
       try {
         const player = await db.transaction(async (tx) => {
           const [{ id }] = (await tx
             .insert(players)
             .values({ name: name.trim(), baseHandicap, frameHandicap })
             .returning({ id: players.id })) as [{ id: number }];
-          if (member) await setMembership(tx, id, currentSeason().label, true);
+          if (member) await setMembership(tx, id, true, memberSince);
           return findPlayer(tx, id);
         });
         return reply.code(201).send(player);
@@ -143,8 +167,8 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
   );
 
   /**
-   * Edits a player. Changing a handicap also sets the last adjusted date to today, and `member`
-   * records or removes their membership for the current season.
+   * Edits a player. Changing a handicap also sets the last adjusted date to today. `member`
+   * starts or ends their membership, and `memberSince` sets when it started.
    */
   app.patch<{ Params: { id: number }; Body: Partial<PlayerBody> }>(
     '/players/:id',
@@ -156,7 +180,13 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
           type: 'object',
           minProperties: 1,
           additionalProperties: false,
-          properties: { name, baseHandicap: handicap, frameHandicap: handicap, member },
+          properties: {
+            name,
+            baseHandicap: handicap,
+            frameHandicap: handicap,
+            member,
+            memberSince: memberSinceDate,
+          },
         },
       },
     },
@@ -164,7 +194,9 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       const [current] = await db.select().from(players).where(eq(players.id, request.params.id));
       if (!current) return reply.code(404).send({ error: 'not_found' });
 
-      const { name, baseHandicap, frameHandicap, member } = request.body;
+      const { name, baseHandicap, frameHandicap, member, memberSince } = request.body;
+      const invalid = checkMemberSince(member, memberSince);
+      if (invalid) return reply.code(400).send({ error: invalid });
       const handicapChanged =
         (baseHandicap !== undefined && baseHandicap !== current.baseHandicap) ||
         (frameHandicap !== undefined && frameHandicap !== current.frameHandicap);
@@ -180,7 +212,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
             await tx.update(players).set(changes).where(eq(players.id, current.id));
           }
           if (member !== undefined) {
-            await setMembership(tx, current.id, currentSeason().label, member);
+            await setMembership(tx, current.id, member, memberSince);
           }
           return findPlayer(tx, current.id);
         });

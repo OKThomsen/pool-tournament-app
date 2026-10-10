@@ -5,7 +5,6 @@ import {
   playOrder,
   poolSizes,
   roundRobinRounds,
-  seasonForDate,
   weekNumber,
 } from '@franks/core';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -22,7 +21,6 @@ import {
   tournamentPlayers,
   tournaments,
 } from '../db/schema.js';
-import { seasonId } from '../db/seasons.js';
 import type { Events } from '../events.js';
 import {
   concludedTournaments,
@@ -115,14 +113,12 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       if (found.length !== playerIds.length)
         return reply.code(400).send({ error: 'unknown_player' });
 
-      const season = seasonForDate(date);
       try {
         const id = await db.transaction(async (tx) => {
           const [tournament] = await tx
             .insert(tournaments)
             .values({
               date,
-              seasonId: await seasonId(tx, season.label),
               week: weekNumber(date),
               format,
             })
