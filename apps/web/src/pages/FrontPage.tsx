@@ -21,7 +21,7 @@ export function FrontPage() {
 function Leaderboard() {
   const season = useCurrentSeason();
   return (
-    <aside className="panel scoreboard">
+    <aside className="panel scoreboard frontpage-leaderboard">
       <h2>
         <Link to="/saeson">{t.frontpage.leaderboard}</Link>
         {season.data && <span className="season-label">{season.data.label}</span>}

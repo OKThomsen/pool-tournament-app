@@ -385,6 +385,26 @@ table,
   color: var(--felt-400);
 }
 
+/* On the frontpage the leaderboard fits the screen below the header; the list scrolls inside it. */
+.frontpage-leaderboard {
+  display: flex;
+  flex-direction: column;
+  /* Header, the main area's padding and a little air. */
+  max-height: calc(100dvh - 144px);
+}
+
+.frontpage-leaderboard h2 {
+  flex: none;
+}
+
+.frontpage-leaderboard .standings {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-color: var(--charcoal-400) transparent;
+  scrollbar-width: thin;
+}
+
 .season-label {
   color: var(--charcoal-400);
   font-size: 0.85em;
