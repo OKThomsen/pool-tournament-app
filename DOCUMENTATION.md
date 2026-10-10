@@ -193,27 +193,32 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/players` | public | Every player, by name, with `member` and `seasonPoints` for the current season and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
+| `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
 | `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
 | `GET /api/players/:id` | public | One player. |
-| `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member? }` → 201. |
-| `PATCH /api/players/:id` | admin | Change name, handicaps and/or `member`. A handicap change sets `lastAdjusted` to today (Danish time). `member` records or removes the membership for the current season. |
+| `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member?, memberSince? }` → 201. |
+| `PATCH /api/players/:id` | admin | Change name, handicaps and/or membership. A handicap change sets `lastAdjusted` to today (Danish time). `member: true` starts a membership (`memberSince`, default today; on an active one it moves the start), `member: false` ends it today. `memberSince` can't be in the future (400 `member_since_in_future`) or come without `member: true` (400 `member_since_without_member`). |
 | `DELETE /api/players/:id` | admin | 204. Refused with 409 `player_has_tournaments` if the player has been in a tournament, so history stays intact. |
 
 Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so the search never
 shows two identical names. Handicaps are whole numbers from −20 to 20.
 
-**Membership and season points.** A membership lasts one season (3 months) and is renewed per
-season. It's stored per season in `memberships`, so past seasons keep their bonus, and shown on
-the player as a simple yes/no for the current season. It resets when a new season starts until
-the player renews. Season points = points from the season's concluded tournaments +
-`MEMBER_BONUS` (10) if the player is a member that season.
+**Membership and season points.** Membership runs all year, the off-season included (members
+get cheaper entry, free table rent and so on), so it's stored as dated periods in
+`membership_periods`: `start` and `end` (null while active; at most one active per player).
+`setMembership` (`apps/server/src/db/seasons.ts`) starts and ends them, and joins a rejoin onto a
+membership that ended the day before or later, so an accidental untick leaves no gap. Season
+points = points from the season's concluded tournaments + `MEMBER_BONUS` (10) if the player
+earns it: a membership that started by the end of the season's first month (31 January or 30
+September) and lasts to the season's last day. During a running season an active membership
+counts, and the bonus disappears if it ends early. Being a member in the off-season gives no
+points.
 
 ### Seasons API
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/seasons/current` | public | `{ label, start, end, standings }` for the season today is in. `standings` lists everyone who played in the season or is a member, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member`, `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
+| `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone who played in the season or earns the member bonus, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
 
 ### Tournaments API
 
@@ -223,8 +228,8 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | Route | Who | What |
 |---|---|---|
 | `GET /api/tournaments/ongoing` | public | `{ tournament: { id, date, status } \| null }`: the tournament in progress. |
-| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season, format, status, knockout size, `players` (with handicaps and Medlem for the tournament's season), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
-| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`). The season and week come from the date. 409 `tournament_in_progress` if another one isn't concluded. |
+| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season (null in the off-season), format, status, knockout size, `players` (with handicaps and Medlem on the tournament's date), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`). The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
 | `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
@@ -312,9 +317,8 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | Table | Purpose |
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
-| `seasons` | One row per season label (`01/YYYY` … `04/YYYY`), created the first time a season is used. |
-| `memberships` | Player + season: the player renewed their membership for that season (+10 season points). |
-| `tournaments` | Date, season, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
+| `membership_periods` | When a player was a member: start, end (null while active). |
+| `tournaments` | Date, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
@@ -348,7 +352,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
-| `seasons.ts` | `seasonForDate`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in. |
+| `seasons.ts` | `seasonForDate`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
 
 ### Rules as implemented
 
@@ -399,10 +403,13 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
-- **Seasons** are calendar quarters **as a placeholder** (the real season dates are coming from the
-  customer; see `TODO.md`): `01/YYYY` January–March,
-  `02/YYYY` April–June, `03/YYYY` July–September, `04/YYYY` October–December. "Today" is
-  always the date in Denmark.
+- **Seasons**: two a year. `1/YYYY` runs 1 January–31 May and `2/YYYY` 1 September–31
+  December. June–August is the off-season (people are on holiday): no current season, no
+  season points, and the leaderboards say when the next season starts. A tournament's season
+  follows from its date. "Today" is always the date in Denmark.
+- **Member bonus** (10 points): only for a membership that covers the whole season. Joining any
+  time in the season's first month counts; joining later, or leaving before the last day,
+  doesn't.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
   losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1.
 
@@ -431,4 +438,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-07 | Open pages reload themselves when a new version of the app is deployed. |
 | 2026-10-07 | The UI comes in Danish (default) and English, switchable in the header. |
 | 2026-10-07 | One tournament in progress at a time. A tournament's week is the ISO week of its date. |
+| 2026-10-10 | Seasons: 1 Jan–31 May (1/YYYY) and 1 Sep–31 Dec (2/YYYY); June–August is off-season. Off-season tournaments are allowed but give no points. |
+| 2026-10-10 | Membership runs all year as dated periods. The bonus needs a membership from the season's first month to its last day. |
 | 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  check,
   date,
   index,
   integer,
@@ -37,37 +38,36 @@ export const players = pgTable(
   (t) => [uniqueIndex('players_name_lower_idx').on(sql`lower(${t.name})`)],
 );
 
-/** Calendar quarters, labelled 01/YYYY to 04/YYYY (see seasonForDate in @franks/core). */
-export const seasons = pgTable('seasons', {
-  id: serial('id').primaryKey(),
-  label: text('label').notNull().unique(),
-});
-
 /**
- * A player renewed their membership for a season, worth the member bonus in that season. The
- * player's "Medlem" yes/no is whether they have a membership for the current season.
+ * A stretch of time a player was a member, from `start` to `end` (both included). `end` is null
+ * while the membership is active; a player has at most one active membership. Membership runs
+ * all year, but only earns the season's member bonus if it covers the season (earnsMemberBonus
+ * in @franks/core).
  */
 export const memberships = pgTable(
-  'memberships',
+  'membership_periods',
   {
+    id: serial('id').primaryKey(),
     playerId: integer('player_id')
       .notNull()
       .references(() => players.id, { onDelete: 'cascade' }),
-    seasonId: integer('season_id')
-      .notNull()
-      .references(() => seasons.id),
+    start: date('start').notNull(),
+    end: date('end'),
   },
-  (t) => [primaryKey({ columns: [t.playerId, t.seasonId] })],
+  (t) => [
+    uniqueIndex('membership_periods_one_active_idx')
+      .on(t.playerId)
+      .where(sql`"end" is null`),
+    check('membership_periods_end_after_start', sql`"end" is null or "end" >= "start"`),
+  ],
 );
 
+/** A tournament's season follows from its date (seasonForDate in @franks/core). */
 export const tournaments = pgTable(
   'tournaments',
   {
     id: serial('id').primaryKey(),
     date: date('date').notNull(),
-    seasonId: integer('season_id')
-      .notNull()
-      .references(() => seasons.id),
     week: integer('week').notNull(),
     format: gameFormat('format').notNull(),
     /** 4 (semifinals) or 8 (quarterfinals); chosen when the pools are complete. */
@@ -104,7 +104,7 @@ export const pools = pgTable(
     tournamentId: integer('tournament_id')
       .notNull()
       .references(() => tournaments.id, { onDelete: 'cascade' }),
-    /** A, B, C … */
+    /** A, B, C â€¦ */
     name: text('name').notNull(),
   },
   (t) => [unique().on(t.tournamentId, t.name)],
@@ -157,7 +157,7 @@ export const matches = pgTable(
       .references(() => tournaments.id, { onDelete: 'cascade' }),
     stage: matchStage('stage').notNull(),
     poolId: integer('pool_id').references(() => pools.id, { onDelete: 'cascade' }),
-    /** Knockout slot: QF1–QF4, SF1, SF2, THIRD, FINAL. Null for pool matches. */
+    /** Knockout slot: QF1â€“QF4, SF1, SF2, THIRD, FINAL. Null for pool matches. */
     slot: text('slot'),
     playerAId: integer('player_a_id').references(() => players.id),
     playerBId: integer('player_b_id').references(() => players.id),

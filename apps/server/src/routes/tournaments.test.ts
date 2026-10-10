@@ -40,7 +40,7 @@ describe('POST /api/tournaments', () => {
     expect(tournament).toMatchObject({
       date: '2026-10-07',
       week: 41,
-      season: '04/2026',
+      season: '2/2026',
       format: '8-ball',
       status: 'draft',
     });
