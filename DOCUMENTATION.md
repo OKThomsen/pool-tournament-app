@@ -54,11 +54,15 @@ and Logout instead of Log ind. Logout asks for confirmation first, using the reu
 `api()` in `apps/web/src/api.ts`.
 
 Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
-in separate columns, Medlem and Sæsonpoint for the current season, and all-time statistics.
-When logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet on each row
-(deleting asks for confirmation). The forms have a "Medlem denne sæson" checkbox.
+in separate columns, Medlem (an active membership), Sæsonpoint for the current season (the
+column is left out in the off-season), and all-time statistics. When logged in, the page also
+has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting asks for confirmation).
+The forms have a Medlem checkbox and, when it's ticked, "Medlem siden" (today by default), so a
+membership paid earlier can be entered late without losing the season bonus.
 
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings.
+In the off-season it, the frontpage leaderboard and `/live` say there's no current season and
+when the next one starts (`components/NoSeason.tsx`).
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 

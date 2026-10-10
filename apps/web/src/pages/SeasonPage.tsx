@@ -1,3 +1,4 @@
+import { NoSeason } from '../components/NoSeason';
 import { formatDate } from '../format';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
@@ -9,7 +10,17 @@ export function SeasonPage() {
   if (season.isPending) return <p>{t.loading}</p>;
   if (season.isError) return <p className="error">{t.loadFailed}</p>;
 
-  const { label, start, end, standings } = season.data;
+  if (!season.data.season) {
+    return (
+      <section className="panel">
+        <h1>{t.season.title}</h1>
+        <NoSeason next={season.data.next} />
+      </section>
+    );
+  }
+
+  const { label, start, end } = season.data.season;
+  const { standings } = season.data;
   return (
     <section className="panel">
       <h1>
