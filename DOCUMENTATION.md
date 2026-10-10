@@ -60,6 +60,7 @@ When logged in, the page also has a "Tilføj ny spiller" form and Rediger/Slet o
 
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
+It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
 and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
