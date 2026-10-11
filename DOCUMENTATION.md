@@ -98,13 +98,18 @@ resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order t
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
 When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
-quarterfinals or semifinals (the workbook's suggestion preselected) and the race length, and it
+quarterfinals or semifinals (the workbook's suggestion preselected) and the first round's race
+length, and it
 shows who qualifies, worked out with `qualifyFromPools` like the server. A tie that decides who
 goes through must be settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
 Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
-visible but read-only.
+visible but read-only. Above the bracket, "Kampenes længde" (`RacePanel`) lists each round whose
+players are (partly) known and that has no result yet, with its race length: the semifinals after
+the quarterfinals, then the third-place final and the final separately. A round without one is
+marked "Skal vælges", starts from the previous round's length, and its matches say "Afventer
+længde" and can't be tapped (on `/play` too) until the admin saves it.
 
 When the final and the third-place final are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
@@ -276,7 +281,7 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match, with `raceTo` for the first round only (later rounds get theirs from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
-| `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" | "SF" | "THIRD" | "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
+| `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |

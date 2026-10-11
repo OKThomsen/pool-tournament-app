@@ -14,6 +14,7 @@ import { Bracket } from './Bracket';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PoolTable, UpNext } from './PoolTable';
 import { QualifyPanel } from './QualifyPanel';
+import { RacePanel } from './RacePanel';
 import { ScoreDialog, type Scoring } from './ScoreDialog';
 
 interface TournamentPlayProps {
@@ -68,6 +69,7 @@ export function TournamentPlay({ tournament, manage, onUnauthorized }: Tournamen
       {tournament.status === 'knockout' && (
         <>
           <h2>{t.knockout.title}</h2>
+          {manage && <RacePanel tournament={tournament} />}
           <Bracket tournament={tournament} names={names} onPlayerClick={score} />
           {manage && knockoutDone && <Conclude tournament={tournament} />}
         </>

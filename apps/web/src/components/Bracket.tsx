@@ -72,7 +72,7 @@ function MatchCard({
       <div className="match-label">
         {/* QF1, SF2 …; the bronze match and the final are named by their round's title. */}
         {(match.stage === 'QF' || match.stage === 'SF') && `${match.slot} · `}
-        {t.score.raceTo(match.raceTo)}
+        {match.raceTo === null ? t.knockout.raceNotSet : t.score.raceTo(match.raceTo)}
       </div>
       {sides.map(({ player, frames, other }, i) => {
         const result = played ? (frames! > other! ? 'win' : 'loss') : '';
@@ -85,10 +85,12 @@ function MatchCard({
             <span className="frames">{played ? frames : ''}</span>
           </>
         );
+        // Scorable once both players are known and the round has its race length.
         return onPlayerClick &&
           player !== null &&
           match.playerAId !== null &&
-          match.playerBId !== null ? (
+          match.playerBId !== null &&
+          match.raceTo !== null ? (
           <button
             key={i}
             type="button"

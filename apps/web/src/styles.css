@@ -1043,6 +1043,51 @@ table.clickable tbody tr:hover {
   border-color: var(--text);
 }
 
+/* ---------- Race length per knockout round ---------- */
+
+.race-panel {
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.race-panel h3 {
+  margin: 0 0 4px;
+}
+
+.race-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.race-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.race-row input {
+  width: 4.5em;
+}
+
+.race-round {
+  min-width: 8em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.race-missing {
+  color: var(--error);
+  font-weight: 600;
+}
+
 /* ---------- Qualification ---------- */
 
 .qualify {
