@@ -10,6 +10,7 @@ import { Events } from './events.js';
 import { authRoutes } from './routes/auth.js';
 import { eventRoutes } from './routes/events.js';
 import { healthRoutes } from './routes/health.js';
+import { playRoutes } from './routes/play.js';
 import { playerRoutes } from './routes/players.js';
 import { seasonRoutes } from './routes/seasons.js';
 import { tournamentRoutes } from './routes/tournaments.js';
@@ -49,6 +50,7 @@ export async function buildApp({
   await app.register(sessionPlugin, { db });
   await app.register(healthRoutes, { prefix: '/api', db });
   await app.register(authRoutes, { prefix: '/api', db, secureCookies });
+  await app.register(playRoutes, { prefix: '/api', db, secureCookies });
   await app.register(playerRoutes, { prefix: '/api', db });
   await app.register(seasonRoutes, { prefix: '/api', db });
   await app.register(tournamentRoutes, { prefix: '/api', db, events });

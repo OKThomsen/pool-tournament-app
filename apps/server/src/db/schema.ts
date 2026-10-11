@@ -73,6 +73,11 @@ export const tournaments = pgTable(
     /** 4 (semifinals) or 8 (quarterfinals); chosen when the pools are complete. */
     knockoutSize: integer('knockout_size'),
     status: tournamentStatus('status').notNull().default('draft'),
+    /**
+     * The 6-digit code players enter on /play to score matches. Only admins see it. Null once
+     * the tournament is concluded.
+     */
+    joinCode: text('join_code'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     concludedAt: timestamp('concluded_at', { withTimezone: true }),
   },
@@ -213,5 +218,18 @@ export const sessions = pgTable('sessions', {
   adminId: integer('admin_id')
     .notNull()
     .references(() => admins.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
+/**
+ * A player who entered a tournament's join code on /play and may score its matches. Ends when an
+ * admin makes a new code, or the tournament is concluded or cancelled.
+ */
+export const playerSessions = pgTable('player_sessions', {
+  /** SHA-256 of the session token; the token itself only lives in the cookie. */
+  id: text('id').primaryKey(),
+  tournamentId: integer('tournament_id')
+    .notNull()
+    .references(() => tournaments.id, { onDelete: 'cascade' }),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 });

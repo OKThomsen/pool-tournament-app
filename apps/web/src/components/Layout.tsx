@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useLogout, useSession } from '../auth';
 import { t } from '../strings';
+import { useOngoingTournament } from '../tournaments';
 import { ConfirmDialog } from './ConfirmDialog';
 import { LanguageSwitch } from './Language';
 
 /** Header and navigation from the wireframes, with admin links when logged in. */
 export function Layout() {
   const admin = useSession();
+  // Players find /play in the menu while a tournament is on (admins score on their own page).
+  const ongoing = useOngoingTournament();
   const logout = useLogout();
   const navigate = useNavigate();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
@@ -34,6 +37,11 @@ export function Layout() {
           <NavLink to="/saeson" className="nav-link">
             {t.nav.season}
           </NavLink>
+          {ongoing.data && !admin && (
+            <NavLink to="/play" className="nav-link">
+              {t.nav.play}
+            </NavLink>
+          )}
         </nav>
         <div className="header-actions">
           {admin && (

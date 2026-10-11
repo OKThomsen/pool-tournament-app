@@ -43,7 +43,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
 `/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
-for the flatscreen in the club) and `/saeson`.
+for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
 `null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
@@ -72,6 +72,10 @@ player has exactly that name, "Tilføj ny spiller" creates them and adds them in
 shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
 app imports straight from source via a Vite alias). If a tournament is already in progress, the
 page links to it instead.
+
+At the top of the admin's tournament page (below) is the **join code** for `/play`
+(`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a new one (after a confirmation)
+and signs out everyone using the old one, in case the code has spread beyond the players.
 
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
@@ -104,6 +108,14 @@ visible but read-only.
 
 When the final and the third-place final are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
+
+`/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
+progress, the header links to it ("Indtast resultater", not shown to admins). It asks for the
+join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
+as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
+the same `ScoreDialog`, but there is no drawing, qualifying or concluding. "Forlad" leaves. When
+the admin makes a new code, or the tournament is concluded or cancelled, the page goes back to the
+code form and says why (the live update makes it check its session again).
 
 Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
 Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
@@ -193,6 +205,27 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
   with `{ preHandler: requireAdmin }` (`apps/server/src/auth/plugin.ts`).
 - There is deliberately no route that creates admins; see "Admin accounts".
 
+### Play API (players scoring their own matches)
+
+Every tournament gets a random 6-digit **join code** when it's created. Only admins see it (on
+the tournament page; it's kept out of the public detail and off `/live`, since people outside
+the tournament are in the bar too). Players enter it on `/play` and can then enter, correct and
+clear results in that tournament's pools and knockout, and nothing else. This runs on trust
+("scouts honor"): players are anonymous, and anyone with the code can score any match.
+
+| Route | Who | What |
+|---|---|---|
+| `POST /api/play/join` | public | `{ code }` (6 digits) → `{ tournamentId }` and a `player` cookie. 404 `unknown_code` unless it's the code of the tournament in progress. At most 50 attempts per IP per 15 minutes (everyone in the club shares the wifi's IP). |
+| `GET /api/play/me` | player | `{ tournamentId }`, or 401 when this browser hasn't joined or its session ended. |
+| `POST /api/play/leave` | anyone | Ends the player session and clears the cookie. 204. |
+
+- Player sessions (`player_sessions`, token hashes only, like admin sessions) last at most 24
+  hours and end when the tournament is concluded or cancelled, or when an admin makes a new
+  code. The `player` cookie is separate from the admin's `session` cookie.
+- `request.player` is set by `sessionPlugin` next to `request.admin`. The result routes use
+  `requireScorer` (`apps/server/src/auth/plugin.ts`): an admin, or a player who joined this
+  tournament. Corrections in a concluded tournament stay with the admins.
+
 ### Players API
 
 | Route | Who | What |
@@ -233,17 +266,18 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 |---|---|---|
 | `GET /api/tournaments/ongoing` | public | `{ tournament: { id, date, status } \| null }`: the tournament in progress. |
 | `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season (null in the off-season), format, status, knockout size, `players` (with handicaps and Medlem on the tournament's date), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
-| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`). The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
+| `GET /api/tournaments/:id/code` | admin | `{ code }`: the join code for `/play` (null once concluded). |
+| `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
 | `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
-| `PUT /api/tournaments/:id/matches/:matchId/result` | admin | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
-| `DELETE /api/tournaments/:id/matches/:matchId/result` | admin | Clears a result entered by mistake. |
+| `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
+| `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match with `raceTo`, and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
-
-| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. |
-| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again. 409 `tournament_in_progress` if another tournament is in progress. |
+| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
+| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
 
 A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
@@ -275,7 +309,7 @@ per pool, `tiebreak`.
 frontend). `LiveUpdates` remembers the first version it sees and reloads the page when a later
 connection reports a different one, so pages left open (the flatscreen on `/live`) pick up an
 update as soon as the server restarts with it. Every change to a tournament (created,
-pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
+pools saved, started, result entered or cleared, new join code, cancelled) sends `event: tournament` with
 `data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
 seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
 memory, which is fine for one server process.
@@ -322,7 +356,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `membership_periods` | When a player was a member: start, end (null while active). |
-| `tournaments` | Date, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded). |
+| `tournaments` | Date, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded), join code for `/play`. |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
@@ -330,6 +364,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
+| `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 
 ## Architecture
 
@@ -445,3 +480,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-10 | Seasons: 1 Jan–31 May (1/YYYY) and 1 Sep–31 Dec (2/YYYY); June–August is off-season. Off-season tournaments are allowed but give no points. |
 | 2026-10-10 | Membership runs all year as dated periods. The bonus needs a membership from the season's first month to its last day. |
 | 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |
+| 2026-10-11 | Players can score matches themselves on `/play` with a 6-digit code that only admins see (not on `/live`). Anonymous, on trust; pool and knockout results, including corrections. |

@@ -338,6 +338,31 @@ table,
   font-weight: 600;
 }
 
+/* The join code for /play: on the admin's tournament page, and the field on /play. */
+.join-code p {
+  margin: 0 0 8px;
+}
+
+.join-code-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+}
+
+.join-code-input {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.play-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 /* ---------- Frontpage ---------- */
 
 .hero {
