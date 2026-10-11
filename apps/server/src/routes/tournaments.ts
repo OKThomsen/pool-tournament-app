@@ -335,9 +335,11 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   ) {
     const found = await scorableMatch(id, matchId);
     if ('error' in found) return reply.code(found.error).send({ error: found.code });
+    const { raceTo } = found.match;
+    if (raceTo === null) return reply.code(409).send({ error: 'race_not_set' });
     if (next) {
       try {
-        assertValidScore(next.framesA, next.framesB, found.match.raceTo);
+        assertValidScore(next.framesA, next.framesB, raceTo);
       } catch {
         return reply.code(400).send({ error: 'invalid_score' });
       }
@@ -486,6 +488,50 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       if (!result.ok) {
         return reply.code(result.status).send({ error: result.error, ties: result.ties });
       }
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * The race length for one knockout round (QF, SF, THIRD or FINAL): chosen per round, as the
+   * knockout goes on. Can be changed until the round's first result is in.
+   */
+  app.put<{
+    Params: { id: number };
+    Body: { stage: 'QF' | 'SF' | 'THIRD' | 'FINAL'; raceTo: number };
+  }>(
+    '/tournaments/:id/knockout/race',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['stage', 'raceTo'],
+          additionalProperties: false,
+          properties: {
+            stage: { type: 'string', enum: ['QF', 'SF', 'THIRD', 'FINAL'] },
+            raceTo: { type: 'integer', minimum: 1, maximum: 15 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { stage, raceTo } = request.body;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      if (detail.status !== 'knockout') return reply.code(409).send({ error: 'not_in_knockout' });
+      const round = detail.matches.filter((m) => m.stage === stage);
+      if (round.length === 0) return reply.code(400).send({ error: 'no_such_round' });
+      if (round.some((m) => m.framesA !== null)) {
+        return reply.code(409).send({ error: 'round_started' });
+      }
+      await db
+        .update(matches)
+        .set({ raceTo, updatedAt: new Date() })
+        .where(and(eq(matches.tournamentId, id), eq(matches.stage, stage)));
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },

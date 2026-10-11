@@ -64,6 +64,13 @@
       "when": 1791720549294,
       "tag": "0008_player_scoring",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791726863639,
+      "tag": "0009_knockout_race_per_round",
+      "breakpoints": true
     }
   ]
 }

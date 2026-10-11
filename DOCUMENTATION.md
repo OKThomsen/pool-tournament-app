@@ -275,7 +275,8 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
-| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match with `raceTo`, and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
+| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match, with `raceTo` for the first round only (later rounds get theirs from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
+| `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" | "SF" | "THIRD" | "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
@@ -434,10 +435,13 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
   Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
-- **Race length**: stored per match (`matches.race_to`, default 2). Pool matches are race to 2.
-  For the knockout the admin picks a race length (usually 2, longer when there's time) and can
-  change it for a single match. `assertValidScore(a, b, raceTo)` only accepts a finished race:
-  the winner has exactly `raceTo` frames and the loser fewer.
+- **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2. In the
+  knockout the admin chooses it **per round**: the first round (quarterfinals or semifinals)
+  with "complete qualifier brackets"; the semifinals once their players are known; and the
+  third-place final and the final separately once the semifinals are played. Until then the
+  round's `race_to` is null and its matches can't be scored (409 `race_not_set`). A round's
+  race length can be changed until its first result is in. `assertValidScore(a, b, raceTo)`
+  only accepts a finished race: the winner has exactly `raceTo` frames and the loser fewer.
 - **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
@@ -481,3 +485,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-10 | Membership runs all year as dated periods. The bonus needs a membership from the season's first month to its last day. |
 | 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |
 | 2026-10-11 | Players can score matches themselves on `/play` with a 6-digit code that only admins see (not on `/live`). Anonymous, on trust; pool and knockout results, including corrections. |
+| 2026-10-11 | Knockout race length is chosen per round as the knockout goes on: first round at qualifying, then semifinals, then the third-place final and the final separately. |
