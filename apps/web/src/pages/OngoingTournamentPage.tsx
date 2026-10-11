@@ -1,24 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
-import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PoolEditor } from '../components/PoolEditor';
-import { PoolTable, UpNext } from '../components/PoolTable';
-import { QualifyPanel } from '../components/QualifyPanel';
-import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
+import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
-import { isPlayed, poolView } from '../poolView';
 import { t } from '../strings';
 import {
   useCancelTournament,
-  useClearResult,
-  useConcludeTournament,
   useSavePools,
-  useSetResult,
   useStartTournament,
   useTournament,
-  type Match,
   type Tournament,
 } from '../tournaments';
 
@@ -46,7 +38,11 @@ export function OngoingTournamentPage() {
         {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
         {t.create.count(data.players.length)}
       </p>
-      {data.status === 'draft' ? <DraftPools tournament={data} /> : <PoolPlay tournament={data} />}
+      {data.status === 'draft' ? (
+        <DraftPools tournament={data} />
+      ) : (
+        <TournamentPlay tournament={data} manage />
+      )}
     </section>
   );
 }
@@ -115,110 +111,5 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
         onCancel={() => setConfirm(null)}
       />
     </>
-  );
-}
-
-/**
- * After "finalize brackets": enter pool results; when every pool is done, "complete qualifier
- * brackets"; then enter knockout results in the bracket.
- */
-function PoolPlay({ tournament }: { tournament: Tournament }) {
-  const setResult = useSetResult(tournament.id);
-  const clearResult = useClearResult(tournament.id);
-  const [scoring, setScoring] = useState<Scoring | null>(null);
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
-  const views = tournament.pools.map((pool) => poolView(tournament, pool));
-  const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
-  const busy = setResult.isPending || clearResult.isPending;
-  const close = () => setScoring(null);
-  const inPools = tournament.status === 'pools';
-  const score = (match: Match, player: number) => setScoring({ match, player });
-
-  const error = setResult.error ?? clearResult.error;
-  const knockoutDone = ['FINAL', 'THIRD'].every((slot) => {
-    const match = tournament.matches.find((m) => m.slot === slot);
-    return match && isPlayed(match);
-  });
-
-  return (
-    <>
-      {error && (
-        <p className="error" role="alert">
-          {error instanceof ApiError && error.code === 'later_match_played'
-            ? t.knockout.laterPlayed
-            : t.saveFailed}
-        </p>
-      )}
-      {tournament.status === 'knockout' && (
-        <>
-          <h2>{t.knockout.title}</h2>
-          <Bracket tournament={tournament} names={names} onPlayerClick={score} />
-          {knockoutDone && <Conclude tournament={tournament} />}
-        </>
-      )}
-      <h2>{t.stages.pools}</h2>
-      {views.map((view) => (
-        <div key={view.pool.id} className="pool-block">
-          <PoolTable
-            view={view}
-            names={names}
-            slots={slots}
-            onCellClick={inPools ? score : undefined}
-          />
-          {inPools && <UpNext view={view} names={names} />}
-        </div>
-      ))}
-      {inPools && views.every((view) => view.complete) && (
-        <QualifyPanel tournament={tournament} views={views} names={names} />
-      )}
-      <ScoreDialog
-        scoring={scoring}
-        names={names}
-        busy={busy}
-        onScore={(framesA, framesB) =>
-          setResult.mutate({ matchId: scoring!.match.id, framesA, framesB }, { onSuccess: close })
-        }
-        onClear={() => clearResult.mutate(scoring!.match.id, { onSuccess: close })}
-        onClose={close}
-      />
-    </>
-  );
-}
-
-/** "conclude tournament": saves placements and points, then shows the finished tournament. */
-function Conclude({ tournament }: { tournament: Tournament }) {
-  const conclude = useConcludeTournament(tournament.id);
-  const navigate = useNavigate();
-  const [confirming, setConfirming] = useState(false);
-  return (
-    <div className="notice">
-      <p>{t.knockout.done}</p>
-      {conclude.error && (
-        <p className="error" role="alert">
-          {t.saveFailed}
-        </p>
-      )}
-      <button
-        type="button"
-        className="primary"
-        disabled={conclude.isPending}
-        onClick={() => setConfirming(true)}
-      >
-        {t.ongoing.concludeTournament}
-      </button>
-      <ConfirmDialog
-        open={confirming}
-        message={t.ongoing.confirmConclude}
-        confirmLabel={t.ongoing.concludeTournament}
-        cancelLabel={t.cancel}
-        onConfirm={() => {
-          setConfirming(false);
-          conclude.mutate(undefined, {
-            onSuccess: () => navigate(`/turneringer/${tournament.id}`),
-          });
-        }}
-        onCancel={() => setConfirming(false)}
-      />
-    </div>
   );
 }
