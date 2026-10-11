@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
 import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
@@ -38,6 +39,7 @@ export function OngoingTournamentPage() {
         {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
         {t.create.count(data.players.length)}
       </p>
+      <JoinCode tournamentId={data.id} />
       {data.status === 'draft' ? (
         <DraftPools tournament={data} />
       ) : (

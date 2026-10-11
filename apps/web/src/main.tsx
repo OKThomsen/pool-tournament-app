@@ -11,6 +11,7 @@ import { FrontPage } from './pages/FrontPage';
 import { LivePage } from './pages/LivePage';
 import { LoginPage } from './pages/LoginPage';
 import { OngoingTournamentPage } from './pages/OngoingTournamentPage';
+import { PlayPage } from './pages/PlayPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -44,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="spillere" element={<PlayersPage />} />
               <Route path="saeson" element={<SeasonPage />} />
               <Route path="login" element={<LoginPage />} />
+              <Route path="play" element={<PlayPage />} />
               <Route path="admin" element={<RequireAdmin />}>
                 <Route path="turnering/ny" element={<CreateTournamentPage />} />
                 <Route path="turnering/:id" element={<OngoingTournamentPage />} />

@@ -258,6 +258,8 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         return reply.code(409).send({ error: 'tournament_concluded' });
       }
       const code = await db.transaction((tx) => replaceJoinCode(tx, id, tournament.joinCode));
+      // Open /play pages recheck their session and ask for the new code.
+      events.tournamentChanged(id);
       return { code };
     },
   );

@@ -43,7 +43,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
 `/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
-for the flatscreen in the club) and `/saeson`.
+for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
 `null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
@@ -72,6 +72,10 @@ player has exactly that name, "Tilføj ny spiller" creates them and adds them in
 shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
 app imports straight from source via a Vite alias). If a tournament is already in progress, the
 page links to it instead.
+
+At the top of the admin's tournament page (below) is the **join code** for `/play`
+(`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a new one (after a confirmation)
+and signs out everyone using the old one, in case the code has spread beyond the players.
 
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
@@ -104,6 +108,14 @@ visible but read-only.
 
 When the final and the third-place final are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
+
+`/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
+progress, the header links to it ("Indtast resultater", not shown to admins). It asks for the
+join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
+as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
+the same `ScoreDialog`, but there is no drawing, qualifying or concluding. "Forlad" leaves. When
+the admin makes a new code, or the tournament is concluded or cancelled, the page goes back to the
+code form and says why (the live update makes it check its session again).
 
 Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
 Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
@@ -297,7 +309,7 @@ per pool, `tiebreak`.
 frontend). `LiveUpdates` remembers the first version it sees and reloads the page when a later
 connection reports a different one, so pages left open (the flatscreen on `/live`) pick up an
 update as soon as the server restarts with it. Every change to a tournament (created,
-pools saved, started, result entered or cleared, cancelled) sends `event: tournament` with
+pools saved, started, result entered or cleared, new join code, cancelled) sends `event: tournament` with
 `data: {"tournamentId": n}`; pages then refetch what they show. A comment line is sent every 25
 seconds so proxies keep the stream open. The event bus (`apps/server/src/events.ts`) lives in
 memory, which is fine for one server process.
