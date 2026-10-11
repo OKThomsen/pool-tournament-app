@@ -368,4 +368,34 @@ describe('concluding', () => {
     expect(response.json()).toMatchObject({ status: 'knockout', results: [] });
     expect((await app.inject({ url: '/api/tournaments' })).json()).toEqual([]);
   });
+
+  it('lets players score the knockout, and retires the join code on concluding', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const codeUrl = `/api/tournaments/${k.id}/code`;
+    const code = (await app.inject({ url: codeUrl, cookies })).json().code;
+    const joined = await app.inject({ method: 'POST', url: '/api/play/join', payload: { code } });
+    const player = { player: joined.cookies.find((c) => c.name === 'player')!.value };
+    const playerScore = (match: Match) =>
+      app.inject({
+        method: 'PUT',
+        url: `/api/tournaments/${k.id}/matches/${match.id}/result`,
+        cookies: player,
+        payload: { framesA: 2, framesB: 1 },
+      });
+
+    expect((await playerScore(bySlot(k, 'SF1'))).statusCode).toBe(200);
+    let done = k;
+    for (const slot of ['SF2', 'THIRD', 'FINAL']) {
+      done = (await score(done, bySlot(done, slot), 2, 0)).json();
+    }
+    await conclude(done);
+    expect((await app.inject({ url: codeUrl, cookies })).json().code).toBeNull();
+    // A concluded tournament can only be corrected by an admin.
+    expect((await playerScore(bySlot(done, 'FINAL'))).statusCode).toBe(401);
+
+    await app.inject({ method: 'POST', url: `/api/tournaments/${k.id}/reopen`, cookies });
+    const reopenedCode = (await app.inject({ url: codeUrl, cookies })).json().code;
+    expect(reopenedCode).toMatch(/^[0-9]{6}$/);
+  });
 });

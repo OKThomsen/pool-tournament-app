@@ -9,11 +9,13 @@ import {
 } from '@franks/core';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
-import { requireAdmin } from '../auth/plugin.js';
+import { newJoinCode, replaceJoinCode } from '../auth/playerSessions.js';
+import { requireAdmin, requireScorer } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
 import { isUniqueViolation } from '../db/errors.js';
 import {
   matches,
+  playerSessions,
   players,
   poolMembers,
   pools,
@@ -121,6 +123,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
               date,
               week: weekNumber(date),
               format,
+              joinCode: newJoinCode(),
             })
             .returning({ id: tournaments.id });
           await tx
@@ -226,6 +229,39 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     },
   );
 
+  /**
+   * The join code players enter on /play to score matches. Admin-only, and kept out of the
+   * public tournament detail, since /live shows the tournament to everyone in the club.
+   */
+  app.get<{ Params: { id: number } }>(
+    '/tournaments/:id/code',
+    { preHandler: requireAdmin, schema: { params: idParams } },
+    async (request, reply) => {
+      const [tournament] = await db
+        .select({ code: tournaments.joinCode })
+        .from(tournaments)
+        .where(eq(tournaments.id, request.params.id));
+      if (!tournament) return reply.code(404).send({ error: 'not_found' });
+      return { code: tournament.code };
+    },
+  );
+
+  /** "Ny kode": a new join code. Everyone who joined with the old one is signed out. */
+  app.post<{ Params: { id: number } }>(
+    '/tournaments/:id/code',
+    { preHandler: requireAdmin, schema: { params: idParams } },
+    async (request, reply) => {
+      const { id } = request.params;
+      const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
+      if (!tournament) return reply.code(404).send({ error: 'not_found' });
+      if (tournament.status === 'concluded') {
+        return reply.code(409).send({ error: 'tournament_concluded' });
+      }
+      const code = await db.transaction((tx) => replaceJoinCode(tx, id, tournament.joinCode));
+      return { code };
+    },
+  );
+
   /** Cancels a tournament that hasn't been concluded. Concluded ones are history. */
   app.delete<{ Params: { id: number } }>(
     '/tournaments/:id',
@@ -244,7 +280,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * Finds a match the admin may score right now: it belongs to the tournament, both players are
+   * Finds a match that may be scored right now: it belongs to the tournament, both players are
    * known, and its stage is being played (pool matches while the pools are on).
    */
   type Scorable =
@@ -332,11 +368,14 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     return tournamentDetail(db, id);
   }
 
-  /** Enters or corrects a result. Frames are the match's player A and B, in that order. */
+  /**
+   * Enters or corrects a result. Frames are the match's player A and B, in that order. Players
+   * who joined with the code may do this too.
+   */
   app.put<{ Params: { id: number; matchId: number }; Body: { framesA: number; framesB: number } }>(
     '/tournaments/:id/matches/:matchId/result',
     {
-      preHandler: requireAdmin,
+      preHandler: requireScorer,
       schema: {
         params: matchParams,
         body: {
@@ -353,10 +392,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     (request, reply) => applyResult(request.params.id, request.params.matchId, request.body, reply),
   );
 
-  /** Clears a result entered by mistake, so the match counts as not played. */
+  /** Clears a result entered by mistake, so the match counts as not played. Players too. */
   app.delete<{ Params: { id: number; matchId: number } }>(
     '/tournaments/:id/matches/:matchId/result',
-    { preHandler: requireAdmin, schema: { params: matchParams } },
+    { preHandler: requireScorer, schema: { params: matchParams } },
     (request, reply) => applyResult(request.params.id, request.params.matchId, null, reply),
   );
 
@@ -474,8 +513,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         await writeResults(tx, detail);
         await tx
           .update(tournaments)
-          .set({ status: 'concluded', concludedAt: new Date() })
+          // The join code retires with the tournament, and so do the players' sessions.
+          .set({ status: 'concluded', concludedAt: new Date(), joinCode: null })
           .where(eq(tournaments.id, id));
+        await tx.delete(playerSessions).where(eq(playerSessions.tournamentId, id));
       });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
@@ -485,7 +526,8 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   /**
    * Reopens a concluded tournament for corrections too big to make in place (like a different
    * quarterfinal winner after the semifinal was played). Its results are removed until it is
-   * concluded again. Only possible when no other tournament is in progress.
+   * concluded again, and it gets a new join code. Only possible when no other tournament is in
+   * progress.
    */
   app.post<{ Params: { id: number } }>(
     '/tournaments/:id/reopen',
@@ -501,7 +543,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         await db.transaction(async (tx) => {
           await tx
             .update(tournaments)
-            .set({ status: 'knockout', concludedAt: null })
+            .set({ status: 'knockout', concludedAt: null, joinCode: newJoinCode() })
             .where(eq(tournaments.id, id));
           await tx.delete(results).where(eq(results.tournamentId, id));
         });
