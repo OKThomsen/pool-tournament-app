@@ -118,7 +118,9 @@ confirmation) saves the results and opens the tournament's public page.
 progress, the header links to it ("Indtast resultater", not shown to admins). It asks for the
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
-the same `ScoreDialog`, but there is no drawing, qualifying or concluding. "Forlad" leaves. When
+the same `ScoreDialog`, but there is no drawing, qualifying or concluding. At the top, one button
+per pool ("Pulje A", "Pulje B" …, `poolLinks`) jumps straight to that pool, so a player in pool D
+doesn't have to scroll past the others (or past the bracket in the knockout). "Forlad" leaves. When
 the admin makes a new code, or the tournament is concluded or cancelled, the page goes back to the
 code form and says why (the live update makes it check its session again).
 

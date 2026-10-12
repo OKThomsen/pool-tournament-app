@@ -833,6 +833,48 @@ table.clickable tbody tr:hover {
 
 .pool-block {
   margin-bottom: 24px;
+  /* Room for the sticky header when a pool link scrolls here. */
+  scroll-margin-top: 80px;
+}
+
+/* /play: one button per pool, to jump straight to it. */
+.pool-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.pool-links button {
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.pool-links button:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* The header doesn't stick on phones, so a pool can go right to the top. The pool buttons
+   share the row equally, so up to four pools fit side by side. */
+@media (max-width: 760px) {
+  .pool-block {
+    scroll-margin-top: 8px;
+  }
+
+  .pool-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  }
+
+  .pool-links button {
+    padding: 8px 4px;
+  }
 }
 
 .pool-table {

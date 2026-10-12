@@ -138,6 +138,7 @@ const da = {
     sittingOut: 'Sidder over',
     complete: 'Alle kampe i puljen er spillet.',
     allComplete: 'Alle puljekampe er spillet. Næste trin: Afslut puljespillet.',
+    jumpTo: 'Gå til pulje',
   },
   score: {
     raceTo: (n: number) => `Først til ${n}`,
@@ -342,6 +343,7 @@ const en: Strings = {
     sittingOut: 'Sitting out',
     complete: 'Every match in this pool has been played.',
     allComplete: 'Every pool match has been played. Next step: Complete qualifier brackets.',
+    jumpTo: 'Go to pool',
   },
   score: {
     raceTo: (n: number) => `Race to ${n}`,
