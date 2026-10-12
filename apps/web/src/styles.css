@@ -860,10 +860,20 @@ table.clickable tbody tr:hover {
   color: var(--on-accent);
 }
 
-/* The header doesn't stick on phones, so a pool can go right to the top. */
+/* The header doesn't stick on phones, so a pool can go right to the top. The pool buttons
+   share the row equally, so up to four pools fit side by side. */
 @media (max-width: 760px) {
   .pool-block {
     scroll-margin-top: 8px;
+  }
+
+  .pool-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  }
+
+  .pool-links button {
+    padding: 8px 4px;
   }
 }
 
