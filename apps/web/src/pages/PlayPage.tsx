@@ -129,7 +129,7 @@ function PlayTournament({
       {(data.status === 'pools' || data.status === 'knockout') && (
         <>
           <p className="muted">{t.play.help}</p>
-          <TournamentPlay tournament={data} manage={false} onUnauthorized={recheck} />
+          <TournamentPlay tournament={data} manage={false} onUnauthorized={recheck} poolLinks />
         </>
       )}
     </section>

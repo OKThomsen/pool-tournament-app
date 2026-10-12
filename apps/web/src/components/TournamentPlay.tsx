@@ -26,6 +26,8 @@ interface TournamentPlayProps {
   manage: boolean;
   /** Called when the API refuses a result with 401 (a player's code was replaced). */
   onUnauthorized?: () => void;
+  /** Buttons at the top that jump straight to each pool (on /play, where the page gets long). */
+  poolLinks?: boolean;
 }
 
 /**
@@ -33,7 +35,12 @@ interface TournamentPlayProps {
  * brackets"; then enter knockout results in the bracket. Used by the admin's tournament page and
  * by players on /play.
  */
-export function TournamentPlay({ tournament, manage, onUnauthorized }: TournamentPlayProps) {
+export function TournamentPlay({
+  tournament,
+  manage,
+  onUnauthorized,
+  poolLinks,
+}: TournamentPlayProps) {
   const setResult = useSetResult(tournament.id);
   const clearResult = useClearResult(tournament.id);
   const [scoring, setScoring] = useState<Scoring | null>(null);
@@ -59,6 +66,7 @@ export function TournamentPlay({ tournament, manage, onUnauthorized }: Tournamen
 
   return (
     <>
+      {poolLinks && <PoolLinks tournament={tournament} />}
       {error && (
         <p className="error" role="alert">
           {error instanceof ApiError && error.code === 'later_match_played'
@@ -76,7 +84,7 @@ export function TournamentPlay({ tournament, manage, onUnauthorized }: Tournamen
       )}
       <h2>{t.stages.pools}</h2>
       {views.map((view) => (
-        <div key={view.pool.id} className="pool-block">
+        <div key={view.pool.id} id={poolAnchor(view.pool.id)} className="pool-block">
           <PoolTable
             view={view}
             names={names}
@@ -103,6 +111,25 @@ export function TournamentPlay({ tournament, manage, onUnauthorized }: Tournamen
         onClose={close}
       />
     </>
+  );
+}
+
+const poolAnchor = (poolId: number) => `pool-${poolId}`;
+
+/** One button per pool; a tap scrolls straight to that pool. */
+function PoolLinks({ tournament }: { tournament: Tournament }) {
+  return (
+    <nav className="pool-links" aria-label={t.pools.jumpTo}>
+      {tournament.pools.map((pool) => (
+        <button
+          key={pool.id}
+          type="button"
+          onClick={() => document.getElementById(poolAnchor(pool.id))?.scrollIntoView()}
+        >
+          {t.pools.pool} {pool.name}
+        </button>
+      ))}
+    </nav>
   );
 }
 
