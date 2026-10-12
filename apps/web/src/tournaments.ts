@@ -27,7 +27,8 @@ export interface Match {
   slot: string | null;
   playerAId: number | null;
   playerBId: number | null;
-  raceTo: number;
+  /** Frames to win. Null for a knockout round whose race length the admin hasn't chosen yet. */
+  raceTo: number | null;
   framesA: number | null;
   framesB: number | null;
   scheduleOrder: number | null;
@@ -185,5 +186,12 @@ export function useConcludeTournament(id: number) {
 export function useReopenTournament(id: number) {
   return useTournamentMutation(() =>
     api<Tournament>(`/tournaments/${id}/reopen`, { method: 'POST' }),
+  );
+}
+
+/** The race length for one knockout round, chosen as the knockout goes on. */
+export function useSetRace(id: number) {
+  return useTournamentMutation((input: { stage: Match['stage']; raceTo: number }) =>
+    api<Tournament>(`/tournaments/${id}/knockout/race`, { method: 'PUT', body: input }),
   );
 }

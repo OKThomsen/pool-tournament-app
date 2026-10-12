@@ -169,6 +169,7 @@ describe('scoring as a player', () => {
       { method: 'PUT', url: `${base}/pools`, payload: { pools: t.pools.map((p) => p.playerIds) } },
       { method: 'POST', url: `${base}/start` },
       { method: 'POST', url: `${base}/knockout`, payload: { size: 4, raceTo: 2 } },
+      { method: 'PUT', url: `${base}/knockout/race`, payload: { stage: 'SF', raceTo: 3 } },
       {
         method: 'PUT',
         url: `${base}/pools/${t.pools[0]!.id}/tiebreak`,

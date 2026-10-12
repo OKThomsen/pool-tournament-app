@@ -51,6 +51,8 @@ function ScoreChoices({
   onClose,
 }: ScoreDialogProps & { scoring: Scoring }) {
   const { match, player } = scoring;
+  // The bracket only offers matches whose round has a race length.
+  const raceTo = match.raceTo!;
   const isA = match.playerAId === player;
   const opponent = isA ? match.playerBId! : match.playerAId!;
   // The current result from the clicked player's side, if there is one.
@@ -62,9 +64,9 @@ function ScoreChoices({
       <h2>
         {names.get(player)} – {names.get(opponent)}
       </h2>
-      <p className="muted">{t.score.raceTo(match.raceTo)}</p>
+      <p className="muted">{t.score.raceTo(raceTo)}</p>
       <div className="score-buttons">
-        {possibleScores(match.raceTo).map(([mine, theirs]) => (
+        {possibleScores(raceTo).map(([mine, theirs]) => (
           <button
             key={`${mine}-${theirs}`}
             type="button"

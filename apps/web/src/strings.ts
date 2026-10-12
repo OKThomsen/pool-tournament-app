@@ -148,6 +148,7 @@ const da = {
     quarterfinals: 'Kvartfinaler (8)',
     semifinals: 'Semifinaler (4)',
     raceTo: 'Først til',
+    laterRounds: 'De senere runder får deres længde undervejs.',
     cannot: 'Der er ikke spillere nok til det valgte slutspil.',
     qualifiers: (n: number) => `Disse ${n} går videre:`,
     tie: (players: string) => `Står lige: ${players}`,
@@ -164,6 +165,11 @@ const da = {
     laterPlayed:
       'Det ville ændre, hvem der spiller en senere kamp, som allerede har et resultat. Ryd den kamps resultat først.',
     done: 'Finalen og bronzekampen er spillet. Næste trin: Afslut turneringen.',
+    raceNotSet: 'Afventer længde',
+    raceTitle: 'Kampenes længde',
+    raceHelp:
+      'Vælg først til hvor mange frames, før rundens kampe kan spilles. Den kan ændres, indtil rundens første resultat er indtastet.',
+    raceMissing: 'Skal vælges',
   },
   joinCode: {
     label: 'Kode til /play',
@@ -346,6 +352,7 @@ const en: Strings = {
     quarterfinals: 'Quarterfinals (8)',
     semifinals: 'Semifinals (4)',
     raceTo: 'Race to',
+    laterRounds: 'Later rounds get their race length as the knockout goes on.',
     cannot: 'There aren’t enough players for that knockout.',
     qualifiers: (n: number) => `These ${n} go through:`,
     tie: (players: string) => `Tied: ${players}`,
@@ -362,6 +369,11 @@ const en: Strings = {
     laterPlayed:
       'That would change who plays a later match that already has a result. Clear that match’s result first.',
     done: 'The final and the third place final have been played. Next step: Conclude tournament.',
+    raceNotSet: 'Race not set',
+    raceTitle: 'Race length',
+    raceHelp:
+      'Choose the race length before the round can be played. It can be changed until the round has its first result.',
+    raceMissing: 'Not chosen yet',
   },
   joinCode: {
     label: 'Code for /play',

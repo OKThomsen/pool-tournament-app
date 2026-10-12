@@ -48,6 +48,7 @@ export type StartKnockoutResult =
  * random), creates the knockout matches and moves the tournament to the knockout.
  *
  * @param adminOrder The admin's order for players tied across pools at the qualification cut-off.
+ * @param raceTo The first round's race length.
  */
 export async function startKnockout(
   db: Executor,
@@ -77,6 +78,7 @@ export async function startKnockout(
   }
 
   const seeds = seedQualifiers(qualification.qualifiers);
+  const firstStage = size === 8 ? 'QF' : 'SF';
   const bracket = knockoutBracket(seeds, {}, poolOf(detail));
   await db.insert(knockoutSeeds).values(
     seeds.map((playerId, index) => ({
@@ -94,7 +96,8 @@ export async function startKnockout(
         slot,
         playerAId: match.playerA === null ? null : Number(match.playerA),
         playerBId: match.playerB === null ? null : Number(match.playerB),
-        raceTo,
+        // Later rounds get their race length when their players are known.
+        raceTo: KNOCKOUT_STAGE[slot] === firstStage ? raceTo : null,
       };
     }),
   );
@@ -139,7 +142,7 @@ export async function syncBracket(db: Executor, detail: TournamentDetail): Promi
       scores[row.slot as KnockoutMatchId] = {
         framesA: row.framesA,
         framesB: row.framesB,
-        raceTo: row.raceTo,
+        raceTo: row.raceTo ?? undefined,
       };
     }
   }
@@ -162,7 +165,7 @@ export function currentBracket(detail: TournamentDetail) {
       scores[m.slot as KnockoutMatchId] = {
         framesA: m.framesA,
         framesB: m.framesB,
-        raceTo: m.raceTo,
+        raceTo: m.raceTo ?? undefined,
       };
     }
   }

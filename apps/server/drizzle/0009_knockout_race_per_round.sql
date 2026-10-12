@@ -1,0 +1,1 @@
+ALTER TABLE "matches" ALTER COLUMN "race_to" DROP NOT NULL;

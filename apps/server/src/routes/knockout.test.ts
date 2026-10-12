@@ -15,7 +15,7 @@ interface Match {
   poolId: number | null;
   playerAId: number | null;
   playerBId: number | null;
-  raceTo: number;
+  raceTo: number | null;
   framesA: number | null;
 }
 interface Tournament {
@@ -51,7 +51,21 @@ async function startedTournament(): Promise<Tournament> {
   ).json();
 }
 
+function setRace(t: Tournament, stage: string, raceTo: number) {
+  return app.inject({
+    method: 'PUT',
+    url: `/api/tournaments/${t.id}/knockout/race`,
+    cookies,
+    payload: { stage, raceTo },
+  });
+}
+
+/**
+ * Enters a result as the admin. For tests that don't care about race lengths, a round without
+ * one first gets the race the score implies.
+ */
 async function score(t: Tournament, match: Match, framesA: number, framesB: number) {
+  if (match.raceTo === null) await setRace(t, match.stage, Math.max(framesA, framesB));
   return app.inject({
     method: 'PUT',
     url: `/api/tournaments/${t.id}/matches/${match.id}/result`,
@@ -114,7 +128,8 @@ describe('POST /api/tournaments/:id/knockout', () => {
       'THIRD',
       'FINAL',
     ]);
-    expect(knockout.every((m) => m.raceTo === 3)).toBe(true);
+    // The first round's race length is chosen now; later rounds' once their players are known.
+    expect(knockout.map((m) => m.raceTo)).toEqual([3, 3, 3, 3, null, null, null, null]);
     const poolOf = (id: number) => k.pools.find((p) => p.playerIds.includes(id))!.name;
     for (const qf of knockout.filter((m) => m.stage === 'QF')) {
       expect(poolOf(qf.playerAId!)).not.toBe(poolOf(qf.playerBId!));
@@ -175,6 +190,67 @@ describe('POST /api/tournaments/:id/knockout', () => {
     expect(k.seeds).toContain(first);
     expect(k.seeds).toContain(d);
     expect(k.seeds).not.toContain(b);
+  });
+});
+
+describe('race length per round', () => {
+  /** A knockout with semifinals only, race to 2, and both semifinals' players known. */
+  async function semifinals(): Promise<Tournament> {
+    const t = await playPools(await startedTournament());
+    return (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+  }
+
+  it('is chosen for each later round once its players are known', async () => {
+    let k: Tournament = (
+      await startKnockout(await playPools(await startedTournament()), { size: 8, raceTo: 2 })
+    ).json();
+    for (const slot of ['QF1', 'QF2', 'QF3', 'QF4'])
+      k = (await score(k, bySlot(k, slot), 2, 0)).json();
+    const sf1 = bySlot(k, 'SF1');
+    const refused = await app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${k.id}/matches/${sf1.id}/result`,
+      cookies,
+      payload: { framesA: 2, framesB: 0 },
+    });
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error).toBe('race_not_set');
+
+    k = (await setRace(k, 'SF', 3)).json();
+    expect(k.matches.filter((m) => m.stage === 'SF').map((m) => m.raceTo)).toEqual([3, 3]);
+    expect((await score(k, bySlot(k, 'SF1'), 2, 0)).json().error).toBe('invalid_score');
+    expect((await score(k, bySlot(k, 'SF1'), 3, 1)).statusCode).toBe(200);
+  });
+
+  it('is chosen separately for the third-place final and the final', async () => {
+    let k = await semifinals();
+    k = (await score(k, bySlot(k, 'SF1'), 2, 0)).json();
+    k = (await score(k, bySlot(k, 'SF2'), 2, 0)).json();
+    expect([bySlot(k, 'THIRD').raceTo, bySlot(k, 'FINAL').raceTo]).toEqual([null, null]);
+    await setRace(k, 'THIRD', 2);
+    k = (await setRace(k, 'FINAL', 4)).json();
+    expect([bySlot(k, 'THIRD').raceTo, bySlot(k, 'FINAL').raceTo]).toEqual([2, 4]);
+  });
+
+  it('can be changed until the round has a result', async () => {
+    let k = await semifinals();
+    expect((await setRace(k, 'SF', 3)).statusCode).toBe(200);
+    k = (await setRace(k, 'SF', 2)).json();
+    k = (await score(k, bySlot(k, 'SF1'), 2, 1)).json();
+    const refused = await setRace(k, 'SF', 3);
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error).toBe('round_started');
+  });
+
+  it('only exists for the rounds in the knockout, and only for admins', async () => {
+    const k = await semifinals();
+    expect((await setRace(k, 'QF', 2)).json().error).toBe('no_such_round');
+    const anonymous = await app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${k.id}/knockout/race`,
+      payload: { stage: 'SF', raceTo: 3 },
+    });
+    expect(anonymous.statusCode).toBe(401);
   });
 });
 

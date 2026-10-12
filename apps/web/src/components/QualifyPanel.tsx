@@ -91,6 +91,7 @@ export function QualifyPanel({
           />
         </label>
       </div>
+      <p className="muted">{t.qualify.laterRounds}</p>
 
       {preview === null ? (
         <p className="error">{t.qualify.cannot}</p>
