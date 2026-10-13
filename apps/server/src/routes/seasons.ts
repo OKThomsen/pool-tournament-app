@@ -6,8 +6,9 @@ import { players, results, tournaments } from '../db/schema.js';
 import { currentSeason, earnsBonusIn, inSeason, qualified, seasonPointsIn } from '../db/seasons.js';
 
 /**
- * The season's standings: everyone who played in it or earns the member bonus, by points.
- * Players level on points share a rank.
+ * The season's standings: everyone with at least 1 point this season (from playing in it or the
+ * member bonus), by points. Players level on points share a rank. Players with 0 points are left
+ * out here but are still listed on Spillere.
  */
 async function standings(db: Database, season: Season) {
   const played = sql`${qualified(results.tournamentId)} in (
@@ -36,7 +37,7 @@ async function standings(db: Database, season: Season) {
     .leftJoin(results, and(eq(results.playerId, players.id), played))
     .leftJoin(tournaments, eq(tournaments.id, results.tournamentId))
     .groupBy(players.id)
-    .having(sql`count(${results.playerId}) > 0 or ${member}`)
+    .having(sql`${points} > 0`)
     .orderBy(sql`${points} desc`, sql`lower(${players.name})`);
 
   let rank = 0;

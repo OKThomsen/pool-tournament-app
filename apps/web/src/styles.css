@@ -207,6 +207,34 @@ table,
   box-shadow: inset 0 -3px 0 var(--felt-500);
 }
 
+/* "Live" in the menu: while a tournament is in progress it glows amber with a pulsing dot, like
+   the badge on /live. */
+.nav-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-live.on-air {
+  color: var(--neon-amber);
+  text-shadow: 0 0 10px rgb(255 180 58 / 60%);
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--neon-amber);
+  box-shadow: 0 0 10px var(--neon-amber);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -692,6 +720,36 @@ tbody tr {
 
 tbody tr:nth-child(even) {
   background: var(--surface-muted);
+}
+
+/* A header that sorts its table (TableView): looks like the header text, plus an arrow. */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sort-arrow {
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+
+th[aria-sort] .sort-arrow {
+  opacity: 1;
+}
+
+.table-search {
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 12px;
 }
 
 /* Wide tables scroll sideways on small screens. */

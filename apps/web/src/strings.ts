@@ -12,6 +12,7 @@ const da = {
     tournaments: 'Turneringer',
     players: 'Spillere',
     season: 'Sæson',
+    live: 'Live',
     play: 'Indtast resultater',
     newTournament: 'Ny Turnering',
     login: 'Log ind',
@@ -23,6 +24,7 @@ const da = {
   },
   tournaments: {
     title: 'Turneringer',
+    search: 'Søg efter vinder eller dato',
     one: 'Turnering',
     date: 'Dato',
     winner: 'Vinder',
@@ -56,6 +58,7 @@ const da = {
   },
   players: {
     title: 'Spillere',
+    search: 'Søg efter spiller',
     name: 'Navn',
     baseHandicap: 'Handicap',
     frameHandicap: 'Frame-handicap',
@@ -204,6 +207,7 @@ const da = {
   save: 'Gem',
   cancel: 'Annuller',
   loading: 'Indlæser…',
+  noMatches: 'Ingen fundet.',
   loadFailed: 'Kunne ikke hente data. Prøv igen.',
   saveFailed: 'Kunne ikke gemme. Prøv igen.',
   notFound: 'Siden findes ikke',
@@ -219,6 +223,7 @@ const en: Strings = {
     tournaments: 'Tournaments',
     players: 'Players',
     season: 'Season',
+    live: 'Live',
     play: 'Enter results',
     newTournament: 'New tournament',
     login: 'Log in',
@@ -230,6 +235,7 @@ const en: Strings = {
   },
   tournaments: {
     title: 'Tournaments',
+    search: 'Search by winner or date',
     one: 'Tournament',
     date: 'Date',
     winner: 'Winner',
@@ -263,6 +269,7 @@ const en: Strings = {
   },
   players: {
     title: 'Players',
+    search: 'Search for a player',
     name: 'Name',
     baseHandicap: 'Handicap',
     frameHandicap: 'Frame handicap',
@@ -411,6 +418,7 @@ const en: Strings = {
   save: 'Save',
   cancel: 'Cancel',
   loading: 'Loading…',
+  noMatches: 'Nothing found.',
   loadFailed: 'Couldn’t load the data. Try again.',
   saveFailed: 'Couldn’t save. Try again.',
   notFound: 'Page not found',
