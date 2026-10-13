@@ -31,11 +31,9 @@ export function playerErrorMessage(error: Error): string {
 export function PlayerFields({
   input,
   onChange,
-  autoFocus,
 }: {
   input: PlayerInput;
   onChange: (input: PlayerInput) => void;
-  autoFocus?: boolean;
 }) {
   const today = todayInDenmark();
   return (
@@ -45,7 +43,6 @@ export function PlayerFields({
         <input
           required
           maxLength={60}
-          autoFocus={autoFocus}
           value={input.name}
           onChange={(event) => onChange({ ...input, name: event.target.value })}
         />

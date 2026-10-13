@@ -68,7 +68,9 @@ It is never taller than the screen; the list scrolls inside it (`.frontpage-lead
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
 and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
-player has exactly that name, "Tilføj ny spiller" creates them and adds them in one go. The page
+player has exactly that name, "Tilføj ny spiller" opens a dialog with the typed name and the same
+fields as on Spillere (handicap, frame handicap, Medlem and Medlem siden, from
+`components/PlayerFields.tsx`), which creates the player and adds them in one go. The page
 shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
 app imports straight from source via a Vite alias). If a tournament is already in progress, the
 page links to it instead.
