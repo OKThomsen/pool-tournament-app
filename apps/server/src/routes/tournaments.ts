@@ -465,14 +465,15 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * "complete qualifier brackets": `{ size: 4 | 8, adminOrder? }`. Every round starts without
+   * "complete qualifier brackets": `{ size: 2 | 4 | 8, adminOrder? }` (2: the final only, for
+   * a single pool). Every round starts without
    * a race length; the admin sets it per round with the race route below. 409
    * `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first:
    * ties inside a pool go through the tiebreak route, ties between pools in `adminOrder`.
    */
   app.post<{
     Params: { id: number };
-    Body: { size: 4 | 8; adminOrder?: number[] };
+    Body: { size: 2 | 4 | 8; adminOrder?: number[] };
   }>(
     '/tournaments/:id/knockout',
     {
@@ -484,7 +485,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           required: ['size'],
           additionalProperties: false,
           properties: {
-            size: { type: 'integer', enum: [4, 8] },
+            size: { type: 'integer', enum: [2, 4, 8] },
             adminOrder: playerIdList,
           },
         },
@@ -552,7 +553,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   app.get('/tournaments', async () => concludedTournaments(db));
 
   /**
-   * "conclude tournament": once the final and the third-place final are played, writes every
+   * "conclude tournament": once the final and the third-place final (if any) are played, writes every
    * player's placement, points, matches won and handicap snapshot, and closes the tournament.
    */
   app.post<{ Params: { id: number } }>(
@@ -563,9 +564,9 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (detail.status !== 'knockout') return reply.code(409).send({ error: 'not_in_knockout' });
-      const finished = ['FINAL', 'THIRD'].every((slot) =>
-        detail.matches.some((m) => m.slot === slot && m.framesA !== null),
-      );
+      const finished = detail.matches
+        .filter((m) => m.slot === 'FINAL' || m.slot === 'THIRD')
+        .every((m) => m.framesA !== null);
       if (!finished) return reply.code(409).send({ error: 'knockout_unfinished' });
 
       await db.transaction(async (tx) => {
