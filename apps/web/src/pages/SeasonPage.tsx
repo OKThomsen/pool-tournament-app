@@ -1,7 +1,16 @@
+import { useNavigate, useParams } from 'react-router';
+import { ApiError } from '../api';
 import { NoSeason } from '../components/NoSeason';
 import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
 import { formatDate } from '../format';
-import { useCurrentSeason, type SeasonStanding } from '../seasons';
+import {
+  seasonId,
+  useCurrentSeason,
+  useSeason,
+  useSeasons,
+  type Season,
+  type SeasonStanding,
+} from '../seasons';
 import { t } from '../strings';
 
 const COLUMNS: Column<SeasonStanding>[] = [
@@ -18,72 +27,118 @@ const COLUMNS: Column<SeasonStanding>[] = [
 const matches = (row: SeasonStanding, query: string) => matchesWordStart(row.name, query);
 
 /**
- * Sæson: the current season's standings. Every column sorts, and # keeps the season rank
- * whatever the order; the search finds players.
+ * Sæson: the current season's standings at /saeson, and an earlier season's at /saeson/1-2026.
+ * The picker lists the current season and every season with a concluded tournament.
  */
 export function SeasonPage() {
-  const season = useCurrentSeason();
-  const view = useTableView('view:saeson', season.data?.standings ?? [], COLUMNS, matches);
+  const { id } = useParams();
+  const current = useCurrentSeason();
+  const picked = useSeason(id);
+  const shown = id ? picked : current;
 
-  if (season.isPending) return <p>{t.loading}</p>;
-  if (season.isError) return <p className="error">{t.loadFailed}</p>;
+  if (shown.isPending) return <p>{t.loading}</p>;
+  if (shown.error instanceof ApiError && shown.error.status === 404) return <p>{t.notFound}</p>;
+  if (shown.isError) return <p className="error">{t.loadFailed}</p>;
 
-  if (!season.data.season) {
-    return (
-      <section className="panel">
-        <h1>{t.season.title}</h1>
-        <NoSeason next={season.data.next} />
-      </section>
-    );
-  }
-
-  const { label, start, end } = season.data.season;
+  const season = shown.data.season;
+  const currentLabel = current.data?.season?.label;
   return (
     <section className="panel">
-      <h1>
-        {t.season.title} {label}
-      </h1>
-      <p className="meta">
-        {formatDate(start)} – {formatDate(end)}
-      </p>
-      {season.data.standings.length === 0 ? (
-        <p>{t.season.empty}</p>
+      <div className="season-heading">
+        <h1>{season ? `${t.season.title} ${season.label}` : t.season.title}</h1>
+        <SeasonPicker selected={season?.label} currentLabel={currentLabel} />
+      </div>
+      {!season ? (
+        current.data && <NoSeason next={current.data.next} />
       ) : (
         <>
-          <TableSearch value={view.query} onChange={view.setQuery} placeholder={t.players.search} />
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  {view.header('rank', '#')}
-                  {view.header('name', t.players.name)}
-                  {view.header('points', t.players.seasonPoints)}
-                  {view.header('member', t.players.member)}
-                  {view.header('participation', t.players.participation)}
-                  {view.header('wins', t.players.wins)}
-                  {view.header('semifinals', t.players.semifinals)}
-                  {view.header('quarterfinals', t.players.quarterfinals)}
-                </tr>
-              </thead>
-              <tbody>
-                {view.rows.map((row) => (
-                  <tr key={row.playerId}>
-                    <td>{row.rank}</td>
-                    <td>{row.name}</td>
-                    <td>{row.points}</td>
-                    <td>{row.member ? t.yes : t.no}</td>
-                    <td>{row.participation}</td>
-                    <td>{row.wins}</td>
-                    <td>{row.semifinals}</td>
-                    <td>{row.quarterfinals}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
+          <p className="meta">
+            {formatDate(season.start)} – {formatDate(season.end)}
+            {season.label !== currentLabel && ` · ${t.season.finished}`}
+          </p>
+          <SeasonTable standings={shown.data.standings} />
         </>
       )}
     </section>
+  );
+}
+
+/** Jumps to another season; the current one lives at /saeson. */
+function SeasonPicker({
+  selected,
+  currentLabel,
+}: {
+  selected: string | undefined;
+  currentLabel: string | undefined;
+}) {
+  const seasons = useSeasons();
+  const navigate = useNavigate();
+  const options: Season[] = seasons.data ?? [];
+  // Nothing to choose between.
+  if (options.length === 0 || (options.length === 1 && options[0]!.label === selected)) {
+    return null;
+  }
+
+  return (
+    <select
+      className="season-picker"
+      aria-label={t.season.pick}
+      value={selected ?? ''}
+      onChange={(event) => {
+        const label = event.target.value;
+        navigate(label === currentLabel ? '/saeson' : `/saeson/${seasonId(label)}`);
+      }}
+    >
+      {/* In the off-season nothing is selected until a past season is picked. */}
+      {!selected && <option value="">{t.season.pick}</option>}
+      {options.map((season) => (
+        <option key={season.label} value={season.label}>
+          {season.label}
+          {season.label === currentLabel && ` (${t.season.current})`}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
+  const view = useTableView('view:saeson', standings, COLUMNS, matches);
+  if (standings.length === 0) return <p>{t.season.empty}</p>;
+
+  return (
+    <>
+      <TableSearch value={view.query} onChange={view.setQuery} placeholder={t.players.search} />
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              {view.header('rank', '#')}
+              {view.header('name', t.players.name)}
+              {view.header('points', t.players.seasonPoints)}
+              {view.header('member', t.players.member)}
+              {view.header('participation', t.players.participation)}
+              {view.header('wins', t.players.wins)}
+              {view.header('semifinals', t.players.semifinals)}
+              {view.header('quarterfinals', t.players.quarterfinals)}
+            </tr>
+          </thead>
+          <tbody>
+            {view.rows.map((row) => (
+              <tr key={row.playerId}>
+                <td>{row.rank}</td>
+                <td>{row.name}</td>
+                <td>{row.points}</td>
+                <td>{row.member ? t.yes : t.no}</td>
+                <td>{row.participation}</td>
+                <td>{row.wins}</td>
+                <td>{row.semifinals}</td>
+                <td>{row.quarterfinals}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
+    </>
   );
 }

@@ -82,6 +82,9 @@ const da = {
     empty: 'Ingen har spillet i denne sæson endnu.',
     offSeason: 'Uden for sæson',
     none: 'Ingen aktuel sæson. Næste sæson starter',
+    pick: 'Vælg sæson',
+    current: 'nuværende',
+    finished: 'Afsluttet',
   },
   login: {
     title: 'Log ind',
@@ -293,6 +296,9 @@ const en: Strings = {
     empty: 'Nobody has played this season yet.',
     offSeason: 'Off-season',
     none: 'No current season. The next season starts on',
+    pick: 'Choose season',
+    current: 'current',
+    finished: 'Finished',
   },
   login: {
     title: 'Log in',

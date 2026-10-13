@@ -44,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="turneringer/:id" element={<TournamentDetailPage />} />
               <Route path="spillere" element={<PlayersPage />} />
               <Route path="saeson" element={<SeasonPage />} />
+              <Route path="saeson/:id" element={<SeasonPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="play" element={<PlayPage />} />
               <Route path="admin" element={<RequireAdmin />}>

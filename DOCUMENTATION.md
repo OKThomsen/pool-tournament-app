@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -69,7 +69,9 @@ as shown ("10-2026" lists October 2026). The sort and the search are remembered 
 (`localStorage`, keys `view:spillere`, `view:saeson`, `view:turneringer`).
 
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings;
-its # column keeps the season rank whatever the table is sorted by.
+its # column keeps the season rank whatever the table is sorted by. A picker beside the title
+lists the current season and every earlier season with a concluded tournament; an earlier season
+opens at `/saeson/1-2026` (the label with a dash) and is marked "Afsluttet".
 In the off-season it, the frontpage leaderboard and `/live` say there's no current season and
 when the next one starts (`components/NoSeason.tsx`).
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
@@ -530,3 +532,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | With a single pool the admin can choose the final only: pool #1 v #2, 3rd/4th from the pool ranking (wins → set score → head-to-head → admin), 5th–6th participation. It doesn't count as reaching the semifinals. |
 | 2026-10-13 | Spillere, Sæson and Turneringer sort by every column and have a search (start of any word in a name, ignoring case; Turneringer also the date). The view is remembered in the browser; # on Sæson stays the season rank. |
 | 2026-10-13 | The season leaderboards (frontpage, Sæson, /live) only list players with at least 1 season point; everyone stays on Spillere. |
+| 2026-10-13 | Sæson has a picker for earlier seasons (every season with a concluded tournament). The frontpage leaderboard stays on the current season (open question 8). |
