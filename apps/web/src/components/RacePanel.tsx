@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { isPlayed } from '../poolView';
 import { t } from '../strings';
 import { useSetRace, type Match, type Tournament } from '../tournaments';
+import { RaceToInput } from './RaceToInput';
 
 type Stage = Exclude<Match['stage'], 'pool'>;
 
@@ -86,17 +87,7 @@ function RaceRow({
       }}
     >
       <span className="race-round">{title}</span>
-      <label>
-        {t.qualify.raceTo}
-        <input
-          type="number"
-          min={1}
-          max={15}
-          required
-          value={value}
-          onChange={(e) => setValue(Math.min(15, Math.max(1, Number(e.target.value) || 1)))}
-        />
-      </label>
+      <RaceToInput value={value} onChange={setValue} />
       <button
         type="submit"
         className={missing ? 'primary' : ''}

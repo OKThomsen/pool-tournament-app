@@ -11,6 +11,7 @@ import type { PoolView } from '../poolView';
 import { t } from '../strings';
 import { useSetPoolTiebreak, useStartKnockout, type Tournament } from '../tournaments';
 import { ConfirmDialog } from './ConfirmDialog';
+import { RaceToInput } from './RaceToInput';
 
 /**
  * "complete qualifier brackets": choose quarterfinals or semifinals and the race length, see who
@@ -79,17 +80,7 @@ export function QualifyPanel({
             </label>
           ))}
         </fieldset>
-        <label>
-          {t.qualify.raceTo}
-          <input
-            type="number"
-            min={1}
-            max={15}
-            required
-            value={raceTo}
-            onChange={(e) => setRaceTo(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </label>
+        <RaceToInput value={raceTo} onChange={setRaceTo} />
       </div>
       <p className="muted">{t.qualify.laterRounds}</p>
 
