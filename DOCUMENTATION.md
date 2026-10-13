@@ -133,7 +133,7 @@ When the final and the third-place final (if there is one) are played, "conclude
 confirmation) saves the results and opens the tournament's public page.
 
 `/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
-progress, the header links to it ("Indtast resultater", not shown to admins). It asks for the
+progress, the header links to it ("Spil", "Play" in English; not shown to admins). It asks for the
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
 the same `ScoreDialog`, but there is no drawing, qualifying or concluding. At the top, one button
