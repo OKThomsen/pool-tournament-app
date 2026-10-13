@@ -3,6 +3,7 @@ import {
   earnsMemberBonus,
   joinDeadline,
   nextSeason,
+  seasonByLabel,
   seasonForDate,
   todayInDenmark,
   weekNumber,
@@ -81,5 +82,25 @@ describe('weekNumber', () => {
 
   it('rejects a non-date', () => {
     expect(() => weekNumber('nonsense')).toThrow(RangeError);
+  });
+});
+
+describe('seasonByLabel', () => {
+  it('finds a season by its label', () => {
+    expect(seasonByLabel('1/2026')).toEqual({
+      label: '1/2026',
+      start: '2026-01-01',
+      end: '2026-05-31',
+    });
+    expect(seasonByLabel('2/2025')).toEqual({
+      label: '2/2025',
+      start: '2025-09-01',
+      end: '2025-12-31',
+    });
+  });
+
+  it('is null for anything else', () => {
+    for (const label of ['3/2026', '1-2026', '1/26', '', '1/2026x'])
+      expect(seasonByLabel(label)).toBeNull();
   });
 });

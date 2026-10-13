@@ -148,3 +148,42 @@ describe('players with 0 points', () => {
     expect(players.map((p: { name: string }) => p.name)).toContain('Zero');
   });
 });
+
+describe('past seasons', () => {
+  it('lists the current season and every season with a tournament, newest first', async () => {
+    const [mads] = await addPlayers(db, 'Mads');
+    await addTournament(db, { date: '2026-03-10', placements: [[mads!.id, '1st']] });
+    await addTournament(db, { date: '2025-10-10', placements: [[mads!.id, '2nd']] });
+    // The off-season belongs to no season.
+    await addTournament(db, { date: '2026-07-01', placements: [[mads!.id, '1st']] });
+    const seasons = (await app.inject({ url: '/api/seasons' })).json();
+    expect(seasons.map((s: { label: string }) => s.label)).toEqual(['2/2026', '1/2026', '2/2025']);
+  });
+
+  it("returns an old season's standings", async () => {
+    const [mads, ann] = await addPlayers(db, 'Mads', 'Ann');
+    await addTournament(db, {
+      date: '2026-03-10',
+      placements: [
+        [mads!.id, '1st'],
+        [ann!.id, '2nd'],
+      ],
+    });
+    // This season's tournament doesn't count in the spring.
+    await addTournament(db, { placements: [[ann!.id, '1st']] });
+    const response = await app.inject({ url: '/api/seasons/1-2026' });
+    expect(response.statusCode).toBe(200);
+    const { season, standings } = response.json();
+    expect(season.label).toBe('1/2026');
+    expect(standings.map((r: { name: string; points: number }) => [r.name, r.points])).toEqual([
+      ['Mads', 10],
+      ['Ann', 7],
+    ]);
+  });
+
+  it('404s for something that is not a season', async () => {
+    for (const id of ['3-2026', 'nope', '2026']) {
+      expect((await app.inject({ url: `/api/seasons/${id}` })).statusCode).toBe(404);
+    }
+  });
+});

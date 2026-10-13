@@ -1,4 +1,10 @@
-import { nextSeason, todayInDenmark, type Season } from '@franks/core';
+import {
+  nextSeason,
+  seasonByLabel,
+  seasonForDate,
+  todayInDenmark,
+  type Season,
+} from '@franks/core';
 import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import type { Database } from '../db/client.js';
@@ -59,5 +65,28 @@ export const seasonRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       next: nextSeason(todayInDenmark()),
       standings: season ? await standings(db, season) : [],
     };
+  });
+
+  /**
+   * Every season with a concluded tournament, plus the current one, newest first: the choices
+   * on Sæson.
+   */
+  app.get('/seasons', async () => {
+    const dates = await db
+      .selectDistinct({ date: tournaments.date })
+      .from(tournaments)
+      .where(eq(tournaments.status, 'concluded'));
+    const byLabel = new Map<string, Season>();
+    for (const season of [currentSeason(), ...dates.map((row) => seasonForDate(row.date))]) {
+      if (season) byLabel.set(season.label, season);
+    }
+    return [...byLabel.values()].sort((a, b) => b.start.localeCompare(a.start));
+  });
+
+  /** One season's standings, by its label with a dash: `1-2026` for 1/2026. */
+  app.get<{ Params: { id: string } }>('/seasons/:id', async (request, reply) => {
+    const season = seasonByLabel(request.params.id.replace('-', '/'));
+    if (!season) return reply.code(404).send({ error: 'not_found' });
+    return { season, standings: await standings(db, season) };
   });
 };

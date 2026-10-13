@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, and `/live` (full screen, no header,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -51,7 +51,8 @@ Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logge
 API checks the session on every admin request. When logged in, the header shows Ny Turnering
 and Logout instead of Log ind. Logout asks for confirmation first, using the reusable
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
-`api()` in `apps/web/src/api.ts`.
+`api()` in `apps/web/src/api.ts`. Queries are not retried when the server refuses them (a 4xx such
+as 404), so a wrong address says "Siden findes ikke" at once; other failures are retried.
 
 Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
 in separate columns, Medlem (an active membership), Sæsonpoint for the current season (the
@@ -69,7 +70,9 @@ as shown ("10-2026" lists October 2026). The sort and the search are remembered 
 (`localStorage`, keys `view:spillere`, `view:saeson`, `view:turneringer`).
 
 Sæson (`/saeson`, `apps/web/src/pages/SeasonPage.tsx`) shows the current season's standings;
-its # column keeps the season rank whatever the table is sorted by.
+its # column keeps the season rank whatever the table is sorted by. A picker beside the title
+lists the current season and every earlier season with a concluded tournament; an earlier season
+opens at `/saeson/1-2026` (the label with a dash) and is marked "Afsluttet".
 In the off-season it, the frontpage leaderboard and `/live` say there's no current season and
 when the next one starts (`components/NoSeason.tsx`).
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
@@ -286,6 +289,8 @@ points.
 | Route | Who | What |
 |---|---|---|
 | `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone with at least 1 season point (from playing in the season or the member bonus; players with 0 points are left out here but still listed on Spillere), by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
+| `GET /api/seasons` | public | Every season with a concluded tournament, plus the current one, newest first: `[{ label, start, end }]`. |
+| `GET /api/seasons/:id` | public | One season by its label with a dash (`1-2026` for 1/2026): `{ season, standings }`, the standings as above. 404 `not_found` for anything that isn't a season. |
 
 ### Tournaments API
 
@@ -422,7 +427,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
-| `seasons.ts` | `seasonForDate`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
+| `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
 
 ### Rules as implemented
 
@@ -528,3 +533,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | With a single pool the admin can choose the final only: pool #1 v #2, 3rd/4th from the pool ranking (wins → set score → head-to-head → admin), 5th–6th participation. It doesn't count as reaching the semifinals. |
 | 2026-10-13 | Spillere, Sæson and Turneringer sort by every column and have a search (start of any word in a name, ignoring case; Turneringer also the date). The view is remembered in the browser; # on Sæson stays the season rank. |
 | 2026-10-13 | The season leaderboards (frontpage, Sæson, /live) only list players with at least 1 season point; everyone stays on Spillere. |
+| 2026-10-13 | Sæson has a picker for earlier seasons (every season with a concluded tournament). The frontpage leaderboard stays on the current season (open question 8). |

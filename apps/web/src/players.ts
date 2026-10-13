@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from './api';
-import { currentSeasonKey } from './seasons';
+import { seasonsKey } from './seasons';
 
 export interface Player {
   id: number;
@@ -39,7 +39,7 @@ const playersKey = ['players'];
 function refresh(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: playersKey }),
-    queryClient.invalidateQueries({ queryKey: currentSeasonKey }),
+    queryClient.invalidateQueries({ queryKey: seasonsKey }),
   ]);
 }
 

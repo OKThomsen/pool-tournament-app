@@ -746,6 +746,19 @@ th[aria-sort] .sort-arrow {
   opacity: 1;
 }
 
+/* Sæson: the title with the season picker beside it. */
+.season-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.season-heading h1 {
+  margin-bottom: 0;
+}
+
 .table-search {
   width: 100%;
   max-width: 420px;

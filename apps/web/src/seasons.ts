@@ -30,11 +30,33 @@ export interface CurrentSeason {
   standings: SeasonStanding[];
 }
 
+/** Every season query: membership changes can move points in any season. */
+export const seasonsKey = ['seasons'];
 export const currentSeasonKey = ['seasons', 'current'];
 
 export function useCurrentSeason() {
   return useQuery({
     queryKey: currentSeasonKey,
     queryFn: () => api<CurrentSeason>('/seasons/current'),
+  });
+}
+
+/** The URL form of a season label: `1/2026` → `1-2026`. */
+export const seasonId = (label: string) => label.replace('/', '-');
+
+/** Seasons with a concluded tournament, plus the current one, newest first. */
+export function useSeasons() {
+  return useQuery({
+    queryKey: ['seasons', 'list'],
+    queryFn: () => api<Season[]>('/seasons'),
+  });
+}
+
+/** One season and its standings, by id (`1-2026`). */
+export function useSeason(id: string | undefined) {
+  return useQuery({
+    queryKey: ['seasons', 'one', id],
+    queryFn: () => api<{ season: Season; standings: SeasonStanding[] }>(`/seasons/${id}`),
+    enabled: id !== undefined,
   });
 }
