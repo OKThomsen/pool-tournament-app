@@ -176,15 +176,20 @@ describe('POST /api/tournaments/:id/start', () => {
     expect(matches.every((m: { raceTo: number }) => m.raceTo === 3)).toBe(true);
   });
 
-  it('only accepts a race to 2 or 3', async () => {
+  it('only accepts a race to 2–5', async () => {
     const { id } = (await create()).json();
-    const response = await app.inject({
-      method: 'POST',
-      url: `/api/tournaments/${id}/start`,
-      cookies,
-      payload: { raceTo: 5 },
-    });
-    expect(response.statusCode).toBe(400);
+    const start = (raceTo: number) =>
+      app.inject({
+        method: 'POST',
+        url: `/api/tournaments/${id}/start`,
+        cookies,
+        payload: { raceTo },
+      });
+    expect((await start(1)).statusCode).toBe(400);
+    expect((await start(6)).statusCode).toBe(400);
+    const started = await start(5);
+    expect(started.statusCode).toBe(200);
+    expect(started.json().matches[0].raceTo).toBe(5);
   });
 
   it('can only start once', async () => {
