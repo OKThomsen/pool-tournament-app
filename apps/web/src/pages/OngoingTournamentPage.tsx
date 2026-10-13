@@ -8,10 +8,12 @@ import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { t } from '../strings';
 import {
+  POOL_RACE_LENGTHS,
   useCancelTournament,
   useSavePools,
   useStartTournament,
   useTournament,
+  type PoolRaceTo,
   type Tournament,
 } from '../tournaments';
 
@@ -57,6 +59,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const cancel = useCancelTournament(tournament.id);
   const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
+  const [raceTo, setRaceTo] = useState<PoolRaceTo>(2);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
 
   // Follow the server's copy when it changes (for example after saving).
@@ -77,6 +80,21 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
           {t.saveFailed}
         </p>
       )}
+      <fieldset className="choice">
+        <legend>{t.pools.raceTo}</legend>
+        {POOL_RACE_LENGTHS.map((option) => (
+          <label key={option} className="checkbox">
+            <input
+              type="radio"
+              name="pool-race"
+              checked={raceTo === option}
+              disabled={busy}
+              onChange={() => setRaceTo(option)}
+            />
+            {t.score.raceTo(option)}
+          </label>
+        ))}
+      </fieldset>
       <div className="form-actions">
         <button
           type="button"
@@ -92,12 +110,12 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
       </div>
       <ConfirmDialog
         open={confirm === 'start'}
-        message={t.ongoing.confirmStart}
+        message={t.ongoing.confirmStart(raceTo)}
         confirmLabel={t.ongoing.finalizeBrackets}
         cancelLabel={t.cancel}
         onConfirm={() => {
           setConfirm(null);
-          start.mutate(undefined);
+          start.mutate(raceTo);
         }}
         onCancel={() => setConfirm(null)}
       />

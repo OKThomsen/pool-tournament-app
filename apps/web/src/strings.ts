@@ -122,7 +122,8 @@ const da = {
     upNext: 'Næste kampe',
     week: 'Uge',
     cancelTournament: 'Annuller turnering',
-    confirmStart: 'Er puljerne klar? Bagefter kan de ikke ændres.',
+    confirmStart: (raceTo: number) =>
+      `Er puljerne klar? Puljekampene spilles først til ${raceTo}. Bagefter kan det ikke ændres.`,
     confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
     confirmConclude:
       'Afslut turneringen? Placeringer og point gemmes, og den kommer på listen over turneringer.',
@@ -139,6 +140,7 @@ const da = {
     complete: 'Alle kampe i puljen er spillet.',
     allComplete: 'Alle puljekampe er spillet. Næste trin: Afslut puljespillet.',
     jumpTo: 'Gå til pulje',
+    raceTo: 'Puljekampenes længde',
   },
   score: {
     raceTo: (n: number) => `Først til ${n}`,
@@ -327,7 +329,8 @@ const en: Strings = {
     upNext: 'Up next',
     week: 'Week',
     cancelTournament: 'Cancel tournament',
-    confirmStart: 'Are the pools ready? They can’t be changed afterwards.',
+    confirmStart: (raceTo: number) =>
+      `Are the pools ready? Pool matches are a race to ${raceTo}. This can’t be changed afterwards.`,
     confirmCancel: 'Are you sure you want to cancel the tournament? It will be deleted.',
     confirmConclude:
       'Conclude the tournament? Placings and points are saved and it goes on the list of tournaments.',
@@ -344,6 +347,7 @@ const en: Strings = {
     complete: 'Every match in this pool has been played.',
     allComplete: 'Every pool match has been played. Next step: Complete qualifier brackets.',
     jumpTo: 'Go to pool',
+    raceTo: 'Pool match length',
   },
   score: {
     raceTo: (n: number) => `Race to ${n}`,

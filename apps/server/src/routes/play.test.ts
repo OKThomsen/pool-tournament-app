@@ -44,7 +44,12 @@ async function draft(): Promise<Tournament> {
 async function started(): Promise<Tournament> {
   const { id } = await draft();
   return (
-    await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies })
+    await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 2 },
+    })
   ).json();
 }
 
@@ -167,7 +172,7 @@ describe('scoring as a player', () => {
     const base = `/api/tournaments/${t.id}`;
     const attempts = [
       { method: 'PUT', url: `${base}/pools`, payload: { pools: t.pools.map((p) => p.playerIds) } },
-      { method: 'POST', url: `${base}/start` },
+      { method: 'POST', url: `${base}/start`, payload: { raceTo: 2 } },
       { method: 'POST', url: `${base}/knockout`, payload: { size: 4, raceTo: 2 } },
       { method: 'PUT', url: `${base}/knockout/race`, payload: { stage: 'SF', raceTo: 3 } },
       {

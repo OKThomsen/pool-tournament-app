@@ -47,7 +47,12 @@ async function startedTournament(): Promise<Tournament> {
   });
   const { id } = created.json();
   return (
-    await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies })
+    await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 2 },
+    })
   ).json();
 }
 

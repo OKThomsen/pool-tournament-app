@@ -80,8 +80,10 @@ and signs out everyone using the old one, in case the code has spread beyond the
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
 another pool to move them (pools keep at least 2 players). Every change is saved at once. On
-touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
-a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
+touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
+chooses the pool matches' length ("Først til 2" or "Først til 3", 2 preselected). "finalize
+brackets" (after a confirmation that repeats the length) creates the pool matches; "Annuller
+turnering" deletes the tournament.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
@@ -277,7 +279,7 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
 | `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
-| `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
+| `POST /api/tournaments/:id/start` | admin | "finalize brackets": `{ raceTo: 2 \| 3 }`, draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`) with that race length and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
@@ -442,7 +444,8 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
   Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
-- **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2. In the
+- **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2 or 3, chosen
+  by the admin with "finalize brackets" and the same for every pool match. In the
   knockout the admin chooses it **per round**: the first round (quarterfinals or semifinals)
   with "complete qualifier brackets"; the semifinals once their players are known; and the
   third-place final and the final separately once the semifinals are played. Until then the
@@ -493,3 +496,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |
 | 2026-10-11 | Players can score matches themselves on `/play` with a 6-digit code that only admins see (not on `/live`). Anonymous, on trust; pool and knockout results, including corrections. |
 | 2026-10-11 | Knockout race length is chosen per round as the knockout goes on: first round at qualifying, then semifinals, then the third-place final and the final separately. |
+| 2026-10-13 | The admin chooses race to 2 or 3 for the pool matches before locking the pools. |

@@ -191,14 +191,26 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * "finalize brackets": locks the pools, creates every pool match in play order and starts
-   * the tournament.
+   * "finalize brackets": `{ raceTo: 2 | 3 }`. Locks the pools, creates every pool match in play
+   * order with that race length and starts the tournament.
    */
-  app.post<{ Params: { id: number } }>(
+  app.post<{ Params: { id: number }; Body: { raceTo: 2 | 3 } }>(
     '/tournaments/:id/start',
-    { preHandler: requireAdmin, schema: { params: idParams } },
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['raceTo'],
+          additionalProperties: false,
+          properties: { raceTo: { type: 'integer', enum: [2, 3] } },
+        },
+      },
+    },
     async (request, reply) => {
       const { id } = request.params;
+      const { raceTo } = request.body;
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (detail.status !== 'draft') return reply.code(409).send({ error: 'not_draft' });
@@ -214,6 +226,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
                 poolId: pool.id,
                 playerAId: Number(pairing.playerA),
                 playerBId: Number(pairing.playerB),
+                raceTo,
                 scheduleOrder: index,
               })),
             );

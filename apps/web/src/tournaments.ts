@@ -121,9 +121,13 @@ export function useSavePools(id: number) {
   );
 }
 
+/** The race lengths the admin can choose for the pool matches. */
+export const POOL_RACE_LENGTHS = [2, 3] as const;
+export type PoolRaceTo = (typeof POOL_RACE_LENGTHS)[number];
+
 export function useStartTournament(id: number) {
-  return useTournamentMutation(() =>
-    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST' }),
+  return useTournamentMutation((raceTo: PoolRaceTo) =>
+    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST', body: { raceTo } }),
   );
 }
 

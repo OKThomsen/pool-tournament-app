@@ -127,7 +127,12 @@ describe('PUT /api/tournaments/:id/pools', () => {
 
   it('only works before the tournament starts', async () => {
     const { id } = (await create()).json();
-    await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies });
+    await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 2 },
+    });
     const response = await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)]);
     expect(response.statusCode).toBe(409);
   });
@@ -140,6 +145,7 @@ describe('POST /api/tournaments/:id/start', () => {
       method: 'POST',
       url: `/api/tournaments/${id}/start`,
       cookies,
+      payload: { raceTo: 2 },
     });
     const tournament = response.json();
     expect(tournament.status).toBe('pools');
@@ -158,10 +164,38 @@ describe('POST /api/tournaments/:id/start', () => {
     expect(poolAMatches[0]).toMatchObject({ raceTo: 2, framesA: null, framesB: null });
   });
 
+  it('creates the pool matches with the chosen race length', async () => {
+    const { id } = (await create()).json();
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 3 },
+    });
+    const { matches } = response.json();
+    expect(matches.every((m: { raceTo: number }) => m.raceTo === 3)).toBe(true);
+  });
+
+  it('only accepts a race to 2 or 3', async () => {
+    const { id } = (await create()).json();
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 5 },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
   it('can only start once', async () => {
     const { id } = (await create()).json();
     const start = () =>
-      app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies });
+      app.inject({
+        method: 'POST',
+        url: `/api/tournaments/${id}/start`,
+        cookies,
+        payload: { raceTo: 2 },
+      });
     await start();
     expect((await start()).statusCode).toBe(409);
   });
@@ -198,7 +232,12 @@ describe('match results', () => {
   async function started() {
     const { id } = (await create()).json();
     const tournament = (
-      await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies })
+      await app.inject({
+        method: 'POST',
+        url: `/api/tournaments/${id}/start`,
+        cookies,
+        payload: { raceTo: 2 },
+      })
     ).json();
     return { id, match: tournament.matches[0] as { id: number } };
   }
@@ -255,7 +294,12 @@ describe('live updates', () => {
     const unsubscribe = events.subscribe((event) => seen.push(event));
     const { id } = (await create()).json();
     const tournament = (
-      await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies })
+      await app.inject({
+        method: 'POST',
+        url: `/api/tournaments/${id}/start`,
+        cookies,
+        payload: { raceTo: 2 },
+      })
     ).json();
     await app.inject({
       method: 'PUT',
