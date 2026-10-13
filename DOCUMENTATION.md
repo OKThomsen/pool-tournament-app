@@ -286,6 +286,8 @@ points.
 | Route | Who | What |
 |---|---|---|
 | `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone with at least 1 season point (from playing in the season or the member bonus; players with 0 points are left out here but still listed on Spillere), by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
+| `GET /api/seasons` | public | Every season with a concluded tournament, plus the current one, newest first: `[{ label, start, end }]`. |
+| `GET /api/seasons/:id` | public | One season by its label with a dash (`1-2026` for 1/2026): `{ season, standings }`, the standings as above. 404 `not_found` for anything that isn't a season. |
 
 ### Tournaments API
 
