@@ -37,6 +37,11 @@ export function Layout() {
           <NavLink to="/saeson" className="nav-link">
             {t.nav.season}
           </NavLink>
+          {/* Glows like the badge on /live while a tournament is in progress. */}
+          <NavLink to="/live" className={`nav-link nav-live${ongoing.data ? ' on-air' : ''}`}>
+            {ongoing.data && <span className="live-dot" aria-hidden="true" />}
+            {t.nav.live}
+          </NavLink>
           {ongoing.data && !admin && (
             <NavLink to="/play" className="nav-link">
               {t.nav.play}

@@ -144,6 +144,9 @@ Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.
 placings, the bracket and the pools. Logged-in admins can click any result there to correct it
 (placings and points update at once), or "Genåbn turnering" for bigger changes.
 
+The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
+pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
+
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
 or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
