@@ -173,7 +173,7 @@ describe('scoring as a player', () => {
     const attempts = [
       { method: 'PUT', url: `${base}/pools`, payload: { pools: t.pools.map((p) => p.playerIds) } },
       { method: 'POST', url: `${base}/start`, payload: { raceTo: 2 } },
-      { method: 'POST', url: `${base}/knockout`, payload: { size: 4, raceTo: 2 } },
+      { method: 'POST', url: `${base}/knockout`, payload: { size: 4 } },
       { method: 'PUT', url: `${base}/knockout/race`, payload: { stage: 'SF', raceTo: 3 } },
       {
         method: 'PUT',

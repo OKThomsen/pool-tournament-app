@@ -465,13 +465,14 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * "complete qualifier brackets": `{ size: 4 | 8, raceTo, adminOrder? }`. 409
+   * "complete qualifier brackets": `{ size: 4 | 8, adminOrder? }`. Every round starts without
+   * a race length; the admin sets it per round with the race route below. 409
    * `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first:
    * ties inside a pool go through the tiebreak route, ties between pools in `adminOrder`.
    */
   app.post<{
     Params: { id: number };
-    Body: { size: 4 | 8; raceTo: number; adminOrder?: number[] };
+    Body: { size: 4 | 8; adminOrder?: number[] };
   }>(
     '/tournaments/:id/knockout',
     {
@@ -480,11 +481,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         params: idParams,
         body: {
           type: 'object',
-          required: ['size', 'raceTo'],
+          required: ['size'],
           additionalProperties: false,
           properties: {
             size: { type: 'integer', enum: [4, 8] },
-            raceTo: { type: 'integer', minimum: 1, maximum: 15 },
             adminOrder: playerIdList,
           },
         },
@@ -494,10 +494,8 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       const { id } = request.params;
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
-      const { size, raceTo, adminOrder = [] } = request.body;
-      const result = await db.transaction((tx) =>
-        startKnockout(tx, detail, size, raceTo, adminOrder),
-      );
+      const { size, adminOrder = [] } = request.body;
+      const result = await db.transaction((tx) => startKnockout(tx, detail, size, adminOrder));
       if (!result.ok) {
         return reply.code(result.status).send({ error: result.error, ties: result.ties });
       }
