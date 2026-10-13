@@ -1,8 +1,12 @@
-import { todayInDenmark } from '@franks/core';
 import { useState, type FormEvent } from 'react';
-import { ApiError } from '../api';
 import { useSession } from '../auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import {
+  emptyPlayerInput,
+  PlayerFields,
+  playerErrorMessage,
+  toPlayerRequest,
+} from '../components/PlayerFields';
 import {
   useCreatePlayer,
   useDeletePlayer,
@@ -36,7 +40,7 @@ export function PlayersPage() {
       {admin && <AddPlayerForm />}
       {deletePlayer.error && (
         <p className="error" role="alert">
-          {errorMessage(deletePlayer.error)}
+          {playerErrorMessage(deletePlayer.error)}
         </p>
       )}
       {players.isPending ? (
@@ -114,31 +118,13 @@ export function PlayersPage() {
   );
 }
 
-function errorMessage(error: Error): string {
-  if (error instanceof ApiError && error.code === 'name_taken') return t.players.nameTaken;
-  if (error instanceof ApiError && error.code === 'member_since_in_future') {
-    return t.players.memberSinceFuture;
-  }
-  if (error instanceof ApiError && error.code === 'player_has_tournaments') {
-    return t.players.hasTournaments;
-  }
-  return t.saveFailed;
-}
-
-const emptyInput: PlayerInput = { name: '', baseHandicap: 0, frameHandicap: 0, member: false };
-
-/** The start date only goes with `member: true`; left empty, the server uses today. */
-function toRequest({ memberSince, ...input }: PlayerInput): PlayerInput {
-  return input.member && memberSince ? { ...input, memberSince } : input;
-}
-
 function AddPlayerForm() {
   const createPlayer = useCreatePlayer();
-  const [input, setInput] = useState(emptyInput);
+  const [input, setInput] = useState(emptyPlayerInput);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    createPlayer.mutate(toRequest(input), { onSuccess: () => setInput(emptyInput) });
+    createPlayer.mutate(toPlayerRequest(input), { onSuccess: () => setInput(emptyPlayerInput) });
   };
 
   return (
@@ -149,7 +135,7 @@ function AddPlayerForm() {
       </button>
       {createPlayer.error && (
         <p className="error" role="alert">
-          {errorMessage(createPlayer.error)}
+          {playerErrorMessage(createPlayer.error)}
         </p>
       )}
     </form>
@@ -168,7 +154,7 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
 
   const save = (event: FormEvent) => {
     event.preventDefault();
-    updatePlayer.mutate({ id: player.id, ...toRequest(input) }, { onSuccess: onDone });
+    updatePlayer.mutate({ id: player.id, ...toPlayerRequest(input) }, { onSuccess: onDone });
   };
 
   return (
@@ -184,75 +170,11 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
           </button>
           {updatePlayer.error && (
             <p className="error" role="alert">
-              {errorMessage(updatePlayer.error)}
+              {playerErrorMessage(updatePlayer.error)}
             </p>
           )}
         </form>
       </td>
     </tr>
-  );
-}
-
-function PlayerFields({
-  input,
-  onChange,
-}: {
-  input: PlayerInput;
-  onChange: (input: PlayerInput) => void;
-}) {
-  const today = todayInDenmark();
-  return (
-    <>
-      <label>
-        {t.players.name}
-        <input
-          required
-          maxLength={60}
-          value={input.name}
-          onChange={(event) => onChange({ ...input, name: event.target.value })}
-        />
-      </label>
-      <label>
-        {t.players.baseHandicap}
-        <input
-          type="number"
-          required
-          min={-20}
-          max={20}
-          value={input.baseHandicap}
-          onChange={(event) => onChange({ ...input, baseHandicap: Number(event.target.value) })}
-        />
-      </label>
-      <label>
-        {t.players.frameHandicap}
-        <input
-          type="number"
-          required
-          min={-20}
-          max={20}
-          value={input.frameHandicap}
-          onChange={(event) => onChange({ ...input, frameHandicap: Number(event.target.value) })}
-        />
-      </label>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={input.member}
-          onChange={(event) => onChange({ ...input, member: event.target.checked })}
-        />
-        {t.players.member}
-      </label>
-      {input.member && (
-        <label>
-          {t.players.memberSince}
-          <input
-            type="date"
-            max={today}
-            value={input.memberSince ?? today}
-            onChange={(event) => onChange({ ...input, memberSince: event.target.value })}
-          />
-        </label>
-      )}
-    </>
   );
 }
