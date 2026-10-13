@@ -1339,9 +1339,13 @@ button.match-side:hover {
 
 /* ---------- /live on the flatscreen ---------- */
 
+/* Exactly one screen: the header, then the stage (LiveStage) in the rest. */
 .live {
-  min-height: 100vh;
-  padding: 24px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  padding: 24px 32px;
   font-size: 1.5rem;
 }
 
@@ -1417,22 +1421,44 @@ button.match-side:hover {
   font-size: 2rem;
 }
 
-/* Two pools per row on a 1080p screen. Nobody can scroll the TV, so each table's font is scaled
-   to fit its column (--width-em is the table's width in em, from PoolTable), and the rows are
-   shorter than on the admin page, where the result cells are squares to tap. */
+/* The bracket and the pools are laid out at their natural size (.live-fit), and LiveStage scales
+   each one to fit the stage and centres it. Nobody can scroll the TV. */
+.live-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.live-fit {
+  position: absolute;
+  width: max-content;
+  transform-origin: 0 0;
+}
+
+/* Two pools per row; a third sits under the first. */
 .live-pools {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(780px, 100%), 1fr));
+  grid-template-columns: repeat(2, max-content);
   gap: 20px 28px;
 }
 
+.live-pools:has(> :only-child) {
+  grid-template-columns: max-content;
+}
+
+/* A pool and its "up next" are as wide as the table: a long "up next" wraps instead. */
 .live .pool-block {
-  container-type: inline-size;
+  display: grid;
   margin-bottom: 0;
 }
 
+.live .pool-block .table-scroll {
+  overflow: visible;
+}
+
 .live .pool-table {
-  font-size: min(1.3rem, 100cqi / var(--width-em));
+  font-size: 1.3rem;
 }
 
 .live .pool-table tbody td,
@@ -1441,11 +1467,17 @@ button.match-side:hover {
 }
 
 .live .up-next {
+  width: 0;
+  min-width: 100%;
   font-size: 1.15em;
 }
 
+/* One column per round, each as wide as a match card needs. */
 .live .bracket {
-  margin-bottom: 36px;
+  grid-auto-columns: 16em;
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  margin-bottom: 0;
   font-size: 1.3rem;
 }
 

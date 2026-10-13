@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Bracket } from '../components/Bracket';
+import { LiveStage } from '../components/LiveStage';
 import { PoolTable, UpNext } from '../components/PoolTable';
 import { NoSeason } from '../components/NoSeason';
 import { Standings } from '../components/Standings';
@@ -46,21 +47,28 @@ function LiveTournament({ id }: { id: number }) {
       <LiveHeader>
         {t.tournaments.one} {formatDate(data.date)} · {data.format}
       </LiveHeader>
-      {data.status === 'knockout' && <Bracket tournament={data} names={names} />}
       {data.status === 'draft' ? (
         <p className="live-message">{t.live.drawing}</p>
       ) : (
-        <div className="live-pools">
-          {data.pools.map((pool) => {
-            const view = poolView(data, pool);
-            return (
-              <section key={pool.id} className="pool-block">
-                <PoolTable view={view} names={names} slots={slots} />
-                {data.status === 'pools' && <UpNext view={view} names={names} />}
-              </section>
-            );
-          })}
-        </div>
+        <LiveStage
+          bracket={
+            data.status === 'knockout' ? <Bracket tournament={data} names={names} /> : undefined
+          }
+          pools={
+            // Two pools per row; a third sits under the first.
+            <div className="live-pools">
+              {data.pools.map((pool) => {
+                const view = poolView(data, pool);
+                return (
+                  <section key={pool.id} className="pool-block">
+                    <PoolTable view={view} names={names} slots={slots} />
+                    {data.status === 'pools' && <UpNext view={view} names={names} />}
+                  </section>
+                );
+              })}
+            </div>
+          }
+        />
       )}
     </>
   );

@@ -136,9 +136,14 @@ placings, the bracket and the pools. Logged-in admins can click any result there
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
 or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
-"Live" badge. The TV can't be scrolled, so pool tables show two per row, each scaled to fit its
-column (`--width-em` from `PoolTable`), with shorter rows than the square cells on the admin
-page; four pools fit on a 1080p screen. `LiveUpdates` (mounted once in `main.tsx`)
+"Live" badge. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
+below the header, `LiveStage` (`components/LiveStage.tsx`) lays the bracket and the pools out at
+their natural size and scales each to fit the screen, centred. Pools show two per row (a third
+sits under the first), each with its "Up next" as wide as the table, and shorter rows than the
+square cells on the admin page; on a big screen they grow to fill it. During the knockout the
+bracket is on top, taking at most half the height and growing at most 1.5 times as much as the
+pools (`BRACKET_SHARE`, `BRACKET_GROWTH`), and the pools shrink to fit below it. The layout is
+re-measured when results come in or the window changes size. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
 **Languages.** The UI is in Danish (default) and English. All text lives in
