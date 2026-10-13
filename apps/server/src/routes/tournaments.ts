@@ -191,10 +191,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * "finalize brackets": `{ raceTo: 2 | 3 }`. Locks the pools, creates every pool match in play
+   * "finalize brackets": `{ raceTo }`, 2 to 5. Locks the pools, creates every pool match in play
    * order with that race length and starts the tournament.
    */
-  app.post<{ Params: { id: number }; Body: { raceTo: 2 | 3 } }>(
+  app.post<{ Params: { id: number }; Body: { raceTo: number } }>(
     '/tournaments/:id/start',
     {
       preHandler: requireAdmin,
@@ -204,7 +204,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           type: 'object',
           required: ['raceTo'],
           additionalProperties: false,
-          properties: { raceTo: { type: 'integer', enum: [2, 3] } },
+          properties: { raceTo: { type: 'integer', minimum: 2, maximum: 5 } },
         },
       },
     },

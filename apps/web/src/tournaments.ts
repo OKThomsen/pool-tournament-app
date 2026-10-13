@@ -121,7 +121,7 @@ export function useSavePools(id: number) {
   );
 }
 
-/** The race lengths the admin can choose for the pool matches (the server's limits). */
+/** The race lengths the admin can choose for the pool matches (the server's limits, 2–5). */
 export const POOL_RACE_MIN = 2;
 export const POOL_RACE_MAX = 5;
 
