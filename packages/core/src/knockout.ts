@@ -18,8 +18,9 @@ export const KNOCKOUT_STAGE: Record<KnockoutMatchId, KnockoutStage> = {
   FINAL: 'FINAL',
 };
 
-/** The slots a knockout of 4 or 8 players uses, in playing order. */
-export function knockoutSlots(size: 4 | 8): KnockoutMatchId[] {
+/** The slots a knockout of 2, 4 or 8 players uses, in playing order. */
+export function knockoutSlots(size: 2 | 4 | 8): KnockoutMatchId[] {
+  if (size === 2) return ['FINAL'];
   const later: KnockoutMatchId[] = ['SF1', 'SF2', 'THIRD', 'FINAL'];
   return size === 8 ? ['QF1', 'QF2', 'QF3', 'QF4', ...later] : later;
 }
@@ -63,7 +64,7 @@ const QF_TOP_SEEDS = [1, 4, 2, 3];
 export type PoolOf = (player: PlayerId) => string;
 
 export interface FirstRound {
-  /** Pairings in slot order: QF1–QF4, or SF1–SF2 for a semifinal-only knockout. */
+  /** Pairings in slot order: QF1–QF4, SF1–SF2 for a semifinal-only knockout, or the final. */
   pairings: [PlayerId, PlayerId][];
   /** Pairings of two players from the same pool. Zero unless it can't be avoided. */
   samePoolMatches: number;
@@ -79,6 +80,7 @@ export interface FirstRound {
  */
 export function firstRound(seeds: readonly PlayerId[], poolOf?: PoolOf): FirstRound {
   const seed = (n: number) => seeds[n - 1]!;
+  if (seeds.length === 2) return { pairings: [[seed(1), seed(2)]], samePoolMatches: 0 };
   if (seeds.length === 4) {
     return {
       pairings: [
@@ -89,7 +91,7 @@ export function firstRound(seeds: readonly PlayerId[], poolOf?: PoolOf): FirstRo
     };
   }
   if (seeds.length !== 8) {
-    throw new RangeError(`A knockout needs 4 or 8 seeds, got ${seeds.length}`);
+    throw new RangeError(`A knockout needs 2, 4 or 8 seeds, got ${seeds.length}`);
   }
 
   const samePool = (a: number, b: number) => (poolOf ? poolOf(seed(a)) === poolOf(seed(b)) : false);
@@ -110,7 +112,8 @@ export function firstRound(seeds: readonly PlayerId[], poolOf?: PoolOf): FirstRo
 /**
  * Works out the whole knockout from the seeds (best first) and the scores entered so far.
  * Pass `poolOf` to keep players from the same pool apart in the quarterfinals.
- * Semifinal winners meet in the final; semifinal losers meet in the third-place final.
+ * Semifinal winners meet in the final; semifinal losers meet in the third-place final. With two
+ * seeds there is only the final.
  */
 export function knockoutBracket(
   seeds: readonly PlayerId[],
@@ -124,6 +127,10 @@ export function knockoutBracket(
     return match;
   };
   const { pairings } = firstRound(seeds, poolOf);
+  if (seeds.length === 2) {
+    add('FINAL', ...pairings[0]!);
+    return bracket;
+  }
 
   let sf1: BracketMatch;
   let sf2: BracketMatch;

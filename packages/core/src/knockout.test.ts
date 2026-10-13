@@ -180,6 +180,25 @@ describe('placements and points', () => {
     });
   });
 
+  it('takes 3rd and 4th from the pool ranking in a final-only knockout', () => {
+    const final = knockoutBracket(['P1', 'P2'], { FINAL: { framesA: 0, framesB: 2 } });
+    expect(final.map((m) => [m.id, m.playerA, m.playerB])).toEqual([['FINAL', 'P1', 'P2']]);
+    const result = placements(['P1', 'P2', 'P3', 'P4', 'P5'], final, [
+      'P1',
+      'P2',
+      'P3',
+      'P4',
+      'P5',
+    ]);
+    expect(Object.fromEntries(result)).toEqual({
+      P2: '1st',
+      P1: '2nd',
+      P3: '3rd',
+      P4: '4th',
+      P5: 'participation',
+    });
+  });
+
   it('needs the final and third-place final first', () => {
     expect(() => placements(everyone, knockoutBracket(seeds8, {}))).toThrow();
   });
@@ -195,6 +214,7 @@ describe('bracket structure', () => {
   it('lists the slots for each knockout size', () => {
     expect(knockoutSlots(8)).toEqual(['QF1', 'QF2', 'QF3', 'QF4', 'SF1', 'SF2', 'THIRD', 'FINAL']);
     expect(knockoutSlots(4)).toEqual(['SF1', 'SF2', 'THIRD', 'FINAL']);
+    expect(knockoutSlots(2)).toEqual(['FINAL']);
   });
 
   it('feeds every match except the last two into a later one', () => {

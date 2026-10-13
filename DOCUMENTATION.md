@@ -404,7 +404,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
 | `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`: default pool sizes, random draw, admin changes. |
-| `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
+| `qualification.ts` | `qualifyFromPools`, `qualifyForFinal`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
@@ -463,6 +463,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+- **Final only** (`qualifyForFinal`, knockout size 2): an option when there is a single pool
+  (4–6 players). The pool's #1 and #2 (by the pool ranking) play the final; there are no
+  semifinals and no third-place final. A tie the admin must settle first is one that decides who
+  plays the final, who is 3rd or who is 4th.
 - **Seasons**: two a year. `1/YYYY` runs 1 January–31 May and `2/YYYY` 1 September–31
   December. June–August is the off-season (people are on holiday): no current season, no
   season points, and the leaderboards say when the next season starts. A tournament's season
@@ -471,7 +475,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   time in the season's first month counts; joining later, or leaving before the last day,
   doesn't.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
-  losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1.
+  losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1. With the final
+  only, 3rd and 4th are the next two in the pool ranking (wins → set score → head-to-head →
+  admin), and 5th–6th get participation.
 
 ## Decisions log
 

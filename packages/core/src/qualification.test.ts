@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { groupA, groupB, groupC } from './fixtures.test-data.js';
 import {
+  qualifyForFinal,
   qualifyFromPools,
   suggestedKnockoutSize,
   UnsupportedQualificationError,
@@ -93,5 +94,29 @@ describe('qualifyFromPools', () => {
   it('preselects quarterfinals from 14 players, like the workbook', () => {
     expect(suggestedKnockoutSize(13)).toBe(4);
     expect(suggestedKnockoutSize(14)).toBe(8);
+  });
+});
+
+describe('qualifyForFinal', () => {
+  it('sends the top two of the pool to the final', () => {
+    const result = qualifyForFinal(pools[0]!);
+    expect(ids(result.qualifiers)).toEqual(['Kasper', 'Christian']);
+    expect(result.unresolved).toEqual([]);
+  });
+
+  it('asks the admin to settle ties that decide the final, 3rd or 4th', () => {
+    const tiedForSecond = [row('A', 1), row('B', 2, true), row('C', 2, true), row('D', 4)];
+    expect(qualifyForFinal(tiedForSecond).unresolved).toEqual([['B', 'C']]);
+    const tiedForThird = [row('A', 1), row('B', 2), row('C', 3, true), row('D', 3, true)];
+    expect(qualifyForFinal(tiedForThird).unresolved).toEqual([['C', 'D']]);
+  });
+
+  it('ignores ties that decide nothing', () => {
+    const tiedForFirst = [row('A', 1, true), row('B', 1, true), row('C', 3), row('D', 4)];
+    expect(qualifyForFinal(tiedForFirst).unresolved).toEqual([]);
+    const tiedForFifth = [1, 2, 3, 4]
+      .map((r) => row('P' + r, r))
+      .concat(row('E', 5, true), row('F', 5, true));
+    expect(qualifyForFinal(tiedForFifth).unresolved).toEqual([]);
   });
 });
