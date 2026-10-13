@@ -48,13 +48,11 @@ export type StartKnockoutResult =
  * random), creates the knockout matches and moves the tournament to the knockout.
  *
  * @param adminOrder The admin's order for players tied across pools at the qualification cut-off.
- * @param raceTo The first round's race length.
  */
 export async function startKnockout(
   db: Executor,
   detail: TournamentDetail,
   size: KnockoutSize,
-  raceTo: number,
   adminOrder: number[],
 ): Promise<StartKnockoutResult> {
   if (detail.status !== 'pools') return { ok: false, status: 409, error: 'not_in_pools' };
@@ -78,7 +76,6 @@ export async function startKnockout(
   }
 
   const seeds = seedQualifiers(qualification.qualifiers);
-  const firstStage = size === 8 ? 'QF' : 'SF';
   const bracket = knockoutBracket(seeds, {}, poolOf(detail));
   await db.insert(knockoutSeeds).values(
     seeds.map((playerId, index) => ({
@@ -96,8 +93,8 @@ export async function startKnockout(
         slot,
         playerAId: match.playerA === null ? null : Number(match.playerA),
         playerBId: match.playerB === null ? null : Number(match.playerB),
-        // Later rounds get their race length when their players are known.
-        raceTo: KNOCKOUT_STAGE[slot] === firstStage ? raceTo : null,
+        // The admin sets each round's race length before it can be played.
+        raceTo: null,
       };
     }),
   );

@@ -1,13 +1,17 @@
+import { DEFAULT_RACE_TO } from '@franks/core';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
+import { RaceToInput } from '../components/RaceToInput';
 import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { t } from '../strings';
 import {
+  POOL_RACE_MAX,
+  POOL_RACE_MIN,
   useCancelTournament,
   useSavePools,
   useStartTournament,
@@ -57,6 +61,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const cancel = useCancelTournament(tournament.id);
   const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
+  const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
 
   // Follow the server's copy when it changes (for example after saving).
@@ -77,6 +82,15 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
           {t.saveFailed}
         </p>
       )}
+      <div className="player-form">
+        <RaceToInput
+          value={raceTo}
+          onChange={setRaceTo}
+          min={POOL_RACE_MIN}
+          max={POOL_RACE_MAX}
+          disabled={busy}
+        />
+      </div>
       <div className="form-actions">
         <button
           type="button"
@@ -92,12 +106,12 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
       </div>
       <ConfirmDialog
         open={confirm === 'start'}
-        message={t.ongoing.confirmStart}
+        message={t.ongoing.confirmStart(raceTo)}
         confirmLabel={t.ongoing.finalizeBrackets}
         cancelLabel={t.cancel}
         onConfirm={() => {
           setConfirm(null);
-          start.mutate(undefined);
+          start.mutate(raceTo);
         }}
         onCancel={() => setConfirm(null)}
       />

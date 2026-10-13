@@ -47,7 +47,12 @@ async function startedTournament(): Promise<Tournament> {
   });
   const { id } = created.json();
   return (
-    await app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies })
+    await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${id}/start`,
+      cookies,
+      payload: { raceTo: 2 },
+    })
   ).json();
 }
 
@@ -104,14 +109,14 @@ const bySlot = (t: Tournament, slot: string) => t.matches.find((m) => m.slot ===
 describe('POST /api/tournaments/:id/knockout', () => {
   it('waits until every pool match is played', async () => {
     const t = await startedTournament();
-    const response = await startKnockout(t, { size: 8, raceTo: 2 });
+    const response = await startKnockout(t, { size: 8 });
     expect(response.statusCode).toBe(409);
     expect(response.json().error).toBe('pools_incomplete');
   });
 
   it('creates quarterfinals with players from different pools', async () => {
     const t = await playPools(await startedTournament());
-    const response = await startKnockout(t, { size: 8, raceTo: 3 });
+    const response = await startKnockout(t, { size: 8 });
     expect(response.statusCode).toBe(200);
     const k: Tournament = response.json();
     expect(k.status).toBe('knockout');
@@ -128,8 +133,8 @@ describe('POST /api/tournaments/:id/knockout', () => {
       'THIRD',
       'FINAL',
     ]);
-    // The first round's race length is chosen now; later rounds' once their players are known.
-    expect(knockout.map((m) => m.raceTo)).toEqual([3, 3, 3, 3, null, null, null, null]);
+    // Every round's race length is chosen afterwards, the first round's included.
+    expect(knockout.every((m) => m.raceTo === null)).toBe(true);
     const poolOf = (id: number) => k.pools.find((p) => p.playerIds.includes(id))!.name;
     for (const qf of knockout.filter((m) => m.stage === 'QF')) {
       expect(poolOf(qf.playerAId!)).not.toBe(poolOf(qf.playerBId!));
@@ -140,7 +145,7 @@ describe('POST /api/tournaments/:id/knockout', () => {
 
   it('seeds a semifinal-only knockout 1v4 and 2v3', async () => {
     const t = await playPools(await startedTournament());
-    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
     const [s1, s2, s3, s4] = k.seeds;
     expect(bySlot(k, 'SF1')).toMatchObject({ playerAId: s1, playerBId: s4 });
     expect(bySlot(k, 'SF2')).toMatchObject({ playerAId: s2, playerBId: s3 });
@@ -149,8 +154,8 @@ describe('POST /api/tournaments/:id/knockout', () => {
 
   it('can only start once', async () => {
     const t = await playPools(await startedTournament());
-    await startKnockout(t, { size: 4, raceTo: 2 });
-    expect((await startKnockout(t, { size: 4, raceTo: 2 })).statusCode).toBe(409);
+    await startKnockout(t, { size: 4 });
+    expect((await startKnockout(t, { size: 4 })).statusCode).toBe(409);
   });
 
   it('asks the admin to settle a pool tie at the cut-off, then uses their order', async () => {
@@ -173,7 +178,7 @@ describe('POST /api/tournaments/:id/knockout', () => {
       return aWins ? [2, 1] : [1, 2];
     });
 
-    const refused = await startKnockout(played, { size: 4, raceTo: 2 });
+    const refused = await startKnockout(played, { size: 4 });
     expect(refused.statusCode).toBe(409);
     expect(refused.json().error).toBe('unresolved_ties');
     expect(refused.json().ties[0].sort()).toEqual([b, c, d].sort());
@@ -185,7 +190,7 @@ describe('POST /api/tournaments/:id/knockout', () => {
       payload: { playerIds: [d, b, c] },
     });
     expect(tiebreak.statusCode).toBe(200);
-    const k: Tournament = (await startKnockout(played, { size: 4, raceTo: 2 })).json();
+    const k: Tournament = (await startKnockout(played, { size: 4 })).json();
     // Top two of pool A: the first player and D, the admin's pick.
     expect(k.seeds).toContain(first);
     expect(k.seeds).toContain(d);
@@ -194,15 +199,33 @@ describe('POST /api/tournaments/:id/knockout', () => {
 });
 
 describe('race length per round', () => {
-  /** A knockout with semifinals only, race to 2, and both semifinals' players known. */
+  /** A knockout with semifinals only, both semifinals' players known and no race length yet. */
   async function semifinals(): Promise<Tournament> {
     const t = await playPools(await startedTournament());
-    return (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    return (await startKnockout(t, { size: 4 })).json();
   }
+
+  it('is chosen for the first round before it can be played', async () => {
+    let k = await semifinals();
+    const sf1 = bySlot(k, 'SF1');
+    const refused = await app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${k.id}/matches/${sf1.id}/result`,
+      cookies,
+      payload: { framesA: 2, framesB: 0 },
+    });
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error).toBe('race_not_set');
+
+    k = (await setRace(k, 'SF', 3)).json();
+    expect(k.matches.filter((m) => m.stage === 'SF').map((m) => m.raceTo)).toEqual([3, 3]);
+    expect((await score(k, bySlot(k, 'SF1'), 3, 2)).statusCode).toBe(200);
+  });
+
 
   it('is chosen for each later round once its players are known', async () => {
     let k: Tournament = (
-      await startKnockout(await playPools(await startedTournament()), { size: 8, raceTo: 2 })
+      await startKnockout(await playPools(await startedTournament()), { size: 8 })
     ).json();
     for (const slot of ['QF1', 'QF2', 'QF3', 'QF4'])
       k = (await score(k, bySlot(k, slot), 2, 0)).json();
@@ -257,7 +280,7 @@ describe('race length per round', () => {
 describe('knockout results', () => {
   async function knockoutTournament(): Promise<Tournament> {
     const t = await playPools(await startedTournament());
-    return (await startKnockout(t, { size: 8, raceTo: 2 })).json();
+    return (await startKnockout(t, { size: 8 })).json();
   }
 
   async function play(t: Tournament, slot: string, aWins = true) {
@@ -316,7 +339,7 @@ describe('knockout results', () => {
   it('allows a pool correction after the pools close only if the qualifiers stay the same', async () => {
     // Semifinals: the top two of each pool. Pools finished in draw order (first player best).
     const t = await playPools(await startedTournament());
-    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
     const [poolA] = k.pools;
     const [first, second, third] = poolA!.playerIds;
     const between = (a: number, b: number) =>
@@ -353,7 +376,7 @@ describe('concluding', () => {
   /** A semifinal-only tournament with the knockout played: SF1, SF2, third place, final. */
   async function finishedKnockout(): Promise<Tournament> {
     const t = await playPools(await startedTournament());
-    let k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    let k: Tournament = (await startKnockout(t, { size: 4 })).json();
     for (const slot of ['SF1', 'SF2', 'THIRD', 'FINAL']) {
       k = (await score(k, bySlot(k, slot), 2, 0)).json();
     }
@@ -365,7 +388,7 @@ describe('concluding', () => {
 
   it('needs the final and the third-place final played', async () => {
     const t = await playPools(await startedTournament());
-    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
     const response = await conclude(k);
     expect(response.statusCode).toBe(409);
     expect(response.json().error).toBe('knockout_unfinished');
@@ -447,7 +470,8 @@ describe('concluding', () => {
 
   it('lets players score the knockout, and retires the join code on concluding', async () => {
     const t = await playPools(await startedTournament());
-    const k: Tournament = (await startKnockout(t, { size: 4, raceTo: 2 })).json();
+    await startKnockout(t, { size: 4 });
+    const k: Tournament = (await setRace(t, 'SF', 2)).json();
     const codeUrl = `/api/tournaments/${k.id}/code`;
     const code = (await app.inject({ url: codeUrl, cookies })).json().code;
     const joined = await app.inject({ method: 'POST', url: '/api/play/join', payload: { code } });

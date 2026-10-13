@@ -80,8 +80,10 @@ and signs out everyone using the old one, in case the code has spread beyond the
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
 another pool to move them (pools keep at least 2 players). Every change is saved at once. On
-touch screens a short press starts the drag, so the page still scrolls. "finalize brackets" (after
-a confirmation) creates the pool matches; "Annuller turnering" deletes the tournament.
+touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
+chooses the pool matches' length in "Først til" (2 or 3, 2 preselected), the same field
+(`RaceToInput`) as the knockout's race lengths. "finalize brackets" (after a confirmation that
+repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
@@ -98,17 +100,17 @@ resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order t
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
 When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
-quarterfinals or semifinals (the workbook's suggestion preselected) and the first round's race
-length, and it
-shows who qualifies, worked out with `qualifyFromPools` like the server. A tie that decides who
-goes through must be settled first: the admin clicks the tied players in order, best first (a
+quarterfinals or semifinals (the workbook's suggestion preselected), and it shows who qualifies,
+worked out with `qualifyFromPools` like the server. A tie that decides who goes through must be
+settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
 Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
 visible but read-only. Above the bracket, "Kampenes længde" (`RacePanel`) lists each round whose
-players are (partly) known and that has no result yet, with its race length: the semifinals after
-the quarterfinals, then the third-place final and the final separately. A round without one is
-marked "Skal vælges", starts from the previous round's length, and its matches say "Afventer
+players are (partly) known and that has no result yet, with its race length: the first round as
+soon as the knockout starts, the semifinals after the quarterfinals, then the third-place final and the
+final separately. A round without one is marked "Skal vælges" and starts from the previous
+round's length (the first round from the pool matches'), and its matches say "Afventer
 længde" and can't be tapped (on `/play` too) until the admin saves it.
 
 When the final and the third-place final are played, "conclude tournament" (after a
@@ -277,12 +279,12 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
 | `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
 | `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
-| `POST /api/tournaments/:id/start` | admin | "finalize brackets": draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`, race to 2) and moves to `pools`. |
+| `POST /api/tournaments/:id/start` | admin | "finalize brackets": `{ raceTo: 2 \| 3 }`, draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`) with that race length and moves to `pools`. |
 | `DELETE /api/tournaments/:id` | admin | Cancels a tournament that isn't concluded (deletes it with its pools and matches). |
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
-| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, raceTo, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match, with `raceTo` for the first round only (later rounds get theirs from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
+| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match without a race length (every round, the first included, gets one from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 | `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
@@ -442,9 +444,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
   Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
-- **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2. In the
+- **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2 or 3, chosen
+  by the admin with "finalize brackets" and the same for every pool match. In the
   knockout the admin chooses it **per round**: the first round (quarterfinals or semifinals)
-  with "complete qualifier brackets"; the semifinals once their players are known; and the
+  as soon as the knockout has started; the semifinals once their players are known; and the
   third-place final and the final separately once the semifinals are played. Until then the
   round's `race_to` is null and its matches can't be scored (409 `race_not_set`). A round's
   race length can be changed until its first result is in. `assertValidScore(a, b, raceTo)`
@@ -493,3 +496,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-08 | Look: the bar's colours (charcoal, felt blue, mahogany, cream) with the logo's red; light pages, a dark `/live`. Plain CSS with tokens, no framework. |
 | 2026-10-11 | Players can score matches themselves on `/play` with a 6-digit code that only admins see (not on `/live`). Anonymous, on trust; pool and knockout results, including corrections. |
 | 2026-10-11 | Knockout race length is chosen per round as the knockout goes on: first round at qualifying, then semifinals, then the third-place final and the final separately. |
+| 2026-10-13 | The admin chooses race to 2 or 3 for the pool matches before locking the pools. |
+| 2026-10-13 | The knockout's first round gets its race length in "Kampenes længde" like the later rounds, not in "Afslut puljespillet". |

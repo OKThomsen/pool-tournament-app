@@ -122,7 +122,8 @@ const da = {
     upNext: 'Næste kampe',
     week: 'Uge',
     cancelTournament: 'Annuller turnering',
-    confirmStart: 'Er puljerne klar? Bagefter kan de ikke ændres.',
+    confirmStart: (raceTo: number) =>
+      `Er puljerne klar? Puljekampene spilles først til ${raceTo}. Bagefter kan det ikke ændres.`,
     confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
     confirmConclude:
       'Afslut turneringen? Placeringer og point gemmes, og den kommer på listen over turneringer.',
@@ -149,15 +150,14 @@ const da = {
     quarterfinals: 'Kvartfinaler (8)',
     semifinals: 'Semifinaler (4)',
     raceTo: 'Først til',
-    laterRounds: 'De senere runder får deres længde undervejs.',
     cannot: 'Der er ikke spillere nok til det valgte slutspil.',
     qualifiers: (n: number) => `Disse ${n} går videre:`,
     tie: (players: string) => `Står lige: ${players}`,
     pickOrder: 'Klik spillerne i rækkefølge, bedste først.',
     startOver: 'Start forfra',
     tiesLeft: 'Der er stadig spillere, der står lige. Vælg rækkefølgen først.',
-    confirm: (round: string, raceTo: number) =>
-      `Start slutspillet med ${round}, først til ${raceTo}? Puljeresultater kan derefter kun rettes, hvis det ikke ændrer, hvem der går videre.`,
+    confirm: (round: string) =>
+      `Start slutspillet med ${round}? Puljeresultater kan derefter kun rettes, hvis det ikke ændrer, hvem der går videre.`,
   },
   knockout: {
     title: 'Slutspil',
@@ -327,7 +327,8 @@ const en: Strings = {
     upNext: 'Up next',
     week: 'Week',
     cancelTournament: 'Cancel tournament',
-    confirmStart: 'Are the pools ready? They can’t be changed afterwards.',
+    confirmStart: (raceTo: number) =>
+      `Are the pools ready? Pool matches are a race to ${raceTo}. This can’t be changed afterwards.`,
     confirmCancel: 'Are you sure you want to cancel the tournament? It will be deleted.',
     confirmConclude:
       'Conclude the tournament? Placings and points are saved and it goes on the list of tournaments.',
@@ -354,15 +355,14 @@ const en: Strings = {
     quarterfinals: 'Quarterfinals (8)',
     semifinals: 'Semifinals (4)',
     raceTo: 'Race to',
-    laterRounds: 'Later rounds get their race length as the knockout goes on.',
     cannot: 'There aren’t enough players for that knockout.',
     qualifiers: (n: number) => `These ${n} go through:`,
     tie: (players: string) => `Tied: ${players}`,
     pickOrder: 'Click the players in order, best first.',
     startOver: 'Start over',
     tiesLeft: 'Some players are still tied. Pick their order first.',
-    confirm: (round: string, raceTo: number) =>
-      `Start the knockout with ${round}, race to ${raceTo}? After that, pool results can only be corrected if it doesn’t change who goes through.`,
+    confirm: (round: string) =>
+      `Start the knockout with ${round}? After that, pool results can only be corrected if it doesn’t change who goes through.`,
   },
   knockout: {
     title: 'Knockout',

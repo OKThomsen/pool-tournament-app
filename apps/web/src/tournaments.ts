@@ -121,9 +121,13 @@ export function useSavePools(id: number) {
   );
 }
 
+/** The race lengths the admin can choose for the pool matches (the server's limits). */
+export const POOL_RACE_MIN = 2;
+export const POOL_RACE_MAX = 5;
+
 export function useStartTournament(id: number) {
-  return useTournamentMutation(() =>
-    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST' }),
+  return useTournamentMutation((raceTo: number) =>
+    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST', body: { raceTo } }),
   );
 }
 
@@ -164,7 +168,7 @@ export function useSetPoolTiebreak(id: number) {
 
 /** "complete qualifier brackets". */
 export function useStartKnockout(id: number) {
-  return useTournamentMutation((input: { size: 4 | 8; raceTo: number; adminOrder: number[] }) =>
+  return useTournamentMutation((input: { size: 4 | 8; adminOrder: number[] }) =>
     api<Tournament>(`/tournaments/${id}/knockout`, { method: 'POST', body: input }),
   );
 }
