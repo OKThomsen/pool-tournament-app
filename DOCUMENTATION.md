@@ -51,7 +51,8 @@ Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logge
 API checks the session on every admin request. When logged in, the header shows Ny Turnering
 and Logout instead of Log ind. Logout asks for confirmation first, using the reusable
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
-`api()` in `apps/web/src/api.ts`.
+`api()` in `apps/web/src/api.ts`. Queries are not retried when the server refuses them (a 4xx such
+as 404), so a wrong address says "Siden findes ikke" at once; other failures are retried.
 
 Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
 in separate columns, Medlem (an active membership), Sæsonpoint for the current season (the
