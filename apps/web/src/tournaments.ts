@@ -123,7 +123,7 @@ export function useSavePools(id: number) {
 
 /** The race lengths the admin can choose for the pool matches (the server's limits). */
 export const POOL_RACE_MIN = 2;
-export const POOL_RACE_MAX = 3;
+export const POOL_RACE_MAX = 5;
 
 export function useStartTournament(id: number) {
   return useTournamentMutation((raceTo: number) =>
