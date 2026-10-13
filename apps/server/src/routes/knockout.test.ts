@@ -222,7 +222,6 @@ describe('race length per round', () => {
     expect((await score(k, bySlot(k, 'SF1'), 3, 2)).statusCode).toBe(200);
   });
 
-
   it('is chosen for each later round once its players are known', async () => {
     let k: Tournament = (
       await startKnockout(await playPools(await startedTournament()), { size: 8 })
@@ -497,5 +496,76 @@ describe('concluding', () => {
     await app.inject({ method: 'POST', url: `/api/tournaments/${k.id}/reopen`, cookies });
     const reopenedCode = (await app.inject({ url: codeUrl, cookies })).json().code;
     expect(reopenedCode).toMatch(/^[0-9]{6}$/);
+  });
+});
+
+describe('final only', () => {
+  /** A started tournament with 5 players: one pool. */
+  async function onePool(): Promise<Tournament> {
+    const players = await addPlayers(db, ...'VWXYZ'.split(''));
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/tournaments',
+      cookies,
+      payload: { date: '2026-10-07', format: '8-ball', playerIds: players.map((p) => p.id) },
+    });
+    const { id } = created.json();
+    return (
+      await app.inject({
+        method: 'POST',
+        url: `/api/tournaments/${id}/start`,
+        cookies,
+        payload: { raceTo: 2 },
+      })
+    ).json();
+  }
+
+  it('sends the pool winner and runner-up straight to the final', async () => {
+    const t = await playPools(await onePool());
+    const [first, second] = t.pools[0]!.playerIds;
+    const response = await startKnockout(t, { size: 2 });
+    expect(response.statusCode).toBe(200);
+    const k: Tournament = response.json();
+    const knockout = k.matches.filter((m) => m.stage !== 'pool');
+    expect(knockout.map((m) => m.slot)).toEqual(['FINAL']);
+    expect(bySlot(k, 'FINAL')).toMatchObject({ playerAId: first, playerBId: second });
+    expect(k.seeds).toEqual([first, second]);
+  });
+
+  it('is only for a single pool', async () => {
+    const t = await playPools(await startedTournament());
+    const response = await startKnockout(t, { size: 2 });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toBe('final_only_needs_one_pool');
+  });
+
+  it('places 3rd and 4th by the pool ranking when concluded', async () => {
+    const t = await playPools(await onePool());
+    const [first, second, third, fourth, fifth] = t.pools[0]!.playerIds;
+    let k: Tournament = (await startKnockout(t, { size: 2 })).json();
+    // The runner-up wins the final.
+    k = (await score(k, bySlot(k, 'FINAL'), 0, 2)).json();
+    const done = await app.inject({
+      method: 'POST',
+      url: `/api/tournaments/${k.id}/conclude`,
+      cookies,
+    });
+    expect(done.statusCode).toBe(200);
+    const results: { playerId: number; placement: string; points: number }[] = done.json().results;
+    const placing = Object.fromEntries(results.map((r) => [r.playerId, [r.placement, r.points]]));
+    expect(placing).toEqual({
+      [second!]: ['1st', 10],
+      [first!]: ['2nd', 7],
+      [third!]: ['3rd', 5],
+      [fourth!]: ['4th', 4],
+      [fifth!]: ['participation', 1],
+    });
+
+    // Nobody played a semifinal; only the winner's Wins goes up.
+    const players: { id: number; wins: number; semifinals: number }[] = (
+      await app.inject({ url: '/api/players' })
+    ).json();
+    expect(players.every((p) => p.semifinals === 0)).toBe(true);
+    expect(players.find((p) => p.id === second)!.wins).toBe(1);
   });
 });

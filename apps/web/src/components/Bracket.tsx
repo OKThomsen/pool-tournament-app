@@ -24,7 +24,8 @@ interface BracketProps {
  */
 export function Bracket({ tournament, names, onPlayerClick }: BracketProps) {
   const knockout = tournament.matches.filter((m) => m.stage !== 'pool');
-  const firstStage = knockout.some((m) => m.stage === 'QF') ? 'QF' : 'SF';
+  // Seeds are shown in the first round: the quarterfinals, the semifinals, or the final only.
+  const firstStage = ROUNDS.find((round) => knockout.some((m) => m.stage === round.stage))?.stage;
   const seedOf = (player: number) => tournament.seeds.indexOf(player) + 1;
 
   return (

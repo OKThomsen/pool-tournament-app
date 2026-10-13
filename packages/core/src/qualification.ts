@@ -2,11 +2,14 @@ import { breakByAdminOrder, groupByDesc } from './ordering.js';
 import type { StandingRow } from './standings.js';
 import type { PlayerId } from './types.js';
 
-/** Number of players going through to the knockout: quarterfinals (8) or semifinals (4). */
-export type KnockoutSize = 4 | 8;
+/**
+ * Number of players going through to the knockout: quarterfinals (8), semifinals (4), or, with a
+ * single pool, the final only (2).
+ */
+export type KnockoutSize = 2 | 4 | 8;
 
 /** The workbook's default. The admin makes the actual choice; this is only the preselection. */
-export function suggestedKnockoutSize(playerCount: number): KnockoutSize {
+export function suggestedKnockoutSize(playerCount: number): 4 | 8 {
   return playerCount >= 14 ? 8 : 4;
 }
 
@@ -36,7 +39,7 @@ export interface Qualification {
  */
 export function qualifyFromPools(
   pools: readonly (readonly StandingRow[])[],
-  size: KnockoutSize,
+  size: 4 | 8,
   adminOrder: readonly PlayerId[] = [],
 ): Qualification {
   const playerCount = pools.reduce((sum, pool) => sum + pool.length, 0);
@@ -83,4 +86,24 @@ export function qualifyFromPools(
   }
 
   return { qualifiers, unresolved };
+}
+
+/**
+ * The final only, for a tournament with a single pool: the pool's top two play the final, and
+ * the pool ranking decides 3rd and 4th; everyone below gets participation.
+ *
+ * `unresolved` lists the ties the admin must settle first (with `poolStandings`' admin order):
+ * those that decide who plays the final, who is 3rd or who is 4th.
+ */
+export function qualifyForFinal(pool: readonly StandingRow[]): Qualification {
+  if (pool.length < 2) {
+    throw new UnsupportedQualificationError(`${pool.length} players can't play a final`);
+  }
+  const ranked = [...pool].sort((x, y) => x.rank - y.rank);
+  // What each position decides: the final (1st or 2nd), 3rd, 4th, or nothing.
+  const outcome = (index: number) => (index < 2 ? 'final' : index < 4 ? index : 'rest');
+  const unresolved = groupByDesc(ranked, (row) => [-row.rank])
+    .filter((tied) => new Set(tied.map((row) => outcome(ranked.indexOf(row)))).size > 1)
+    .map((tied) => tied.map((row) => row.playerId));
+  return { qualifiers: ranked.slice(0, 2), unresolved };
 }

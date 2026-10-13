@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { pointsTable, results } from '../db/schema.js';
 import type { TournamentDetail } from './detail.js';
-import { currentBracket, standingsByPool } from './knockout.js';
+import { currentBracket, poolOrder, standingsByPool } from './knockout.js';
 
 /**
  * Writes every player's result for a finished tournament: placement, points (from the points
@@ -21,6 +21,7 @@ export async function writeResults(db: Executor, detail: TournamentDetail): Prom
   const placed = placements(
     detail.players.map((p) => String(p.id)),
     currentBracket(detail),
+    poolOrder(detail),
   );
   const poolWins = new Map(
     standingsByPool(detail)

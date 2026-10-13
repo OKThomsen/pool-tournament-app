@@ -25,6 +25,7 @@ async function standings(db: Database, season: Season) {
       wins: sql<number>`(count(*) filter (where ${results.placement} = '1st'))::int`,
       semifinals: sql<number>`(count(*) filter (
         where ${results.placement} in ('1st', '2nd', '3rd', '4th')
+        and ${tournaments.knockoutSize} <> 2
       ))::int`,
       quarterfinals: sql<number>`(count(*) filter (
         where ${results.placement} in ('1st', '2nd', '3rd', '4th', '5-8')

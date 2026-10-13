@@ -4,6 +4,7 @@ import {
   knockoutBracket,
   knockoutSlots,
   poolStandings,
+  qualifyForFinal,
   qualifyFromPools,
   seedQualifiers,
   UnsupportedQualificationError,
@@ -40,6 +41,20 @@ function poolOf(detail: TournamentDetail) {
   return (player: string) => pools.get(player) ?? '';
 }
 
+/** Who goes through: the final only (one pool), or the semifinals or quarterfinals. */
+function qualify(detail: TournamentDetail, size: KnockoutSize, adminOrder: string[]) {
+  const standings = standingsByPool(detail);
+  return size === 2
+    ? qualifyForFinal(standings[0]!)
+    : qualifyFromPools(standings, size, adminOrder);
+}
+
+/** The single pool's ranking, best first: it decides 3rd and 4th in a final-only knockout. */
+export function poolOrder(detail: TournamentDetail): string[] {
+  if (detail.knockoutSize !== 2) return [];
+  return [...standingsByPool(detail)[0]!].sort((x, y) => x.rank - y.rank).map((r) => r.playerId);
+}
+
 export type StartKnockoutResult =
   { ok: true } | { ok: false; status: 400 | 409; error: string; ties?: number[][] };
 
@@ -60,10 +75,13 @@ export async function startKnockout(
   if (poolMatches.some((m) => m.framesA === null)) {
     return { ok: false, status: 409, error: 'pools_incomplete' };
   }
+  if (size === 2 && detail.pools.length !== 1) {
+    return { ok: false, status: 400, error: 'final_only_needs_one_pool' };
+  }
 
   let qualification;
   try {
-    qualification = qualifyFromPools(standingsByPool(detail), size, adminOrder.map(String));
+    qualification = qualify(detail, size, adminOrder.map(String));
   } catch (error) {
     if (error instanceof UnsupportedQualificationError) {
       return { ok: false, status: 400, error: 'cannot_qualify' };
@@ -75,7 +93,11 @@ export async function startKnockout(
     return { ok: false, status: 409, error: 'unresolved_ties', ties };
   }
 
-  const seeds = seedQualifiers(qualification.qualifiers);
+  // In a final only, the pool ranking already orders the two finalists.
+  const seeds =
+    size === 2
+      ? qualification.qualifiers.map((row) => row.playerId)
+      : seedQualifiers(qualification.qualifiers);
   const bracket = knockoutBracket(seeds, {}, poolOf(detail));
   await db.insert(knockoutSeeds).values(
     seeds.map((playerId, index) => ({
@@ -188,10 +210,9 @@ export function qualifiersUnchanged(
     ),
   };
   if (corrected.matches.some((m) => m.stage === 'pool' && m.framesA === null)) return false;
-  const size = detail.knockoutSize as KnockoutSize;
-  const { qualifiers, unresolved } = qualifyFromPools(
-    standingsByPool(corrected),
-    size,
+  const { qualifiers, unresolved } = qualify(
+    corrected,
+    detail.knockoutSize as KnockoutSize,
     detail.seeds.map(String),
   );
   const before = new Set(detail.seeds.map(String));

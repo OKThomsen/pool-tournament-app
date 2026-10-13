@@ -1,4 +1,5 @@
 import {
+  qualifyForFinal,
   qualifyFromPools,
   suggestedKnockoutSize,
   UnsupportedQualificationError,
@@ -26,7 +27,10 @@ export function QualifyPanel({
   names: Map<number, string>;
 }) {
   const playerCount = tournament.players.length;
-  const sizes = ([8, 4] as const).filter((size) => size <= playerCount);
+  // The final only is for a tournament with a single pool.
+  const sizes = ([8, 4, 2] as const).filter(
+    (size) => size <= playerCount && (size !== 2 || views.length === 1),
+  );
   const [size, setSize] = useState<KnockoutSize>(() =>
     Math.min(suggestedKnockoutSize(playerCount), sizes[0] ?? 4) === 8 ? 8 : 4,
   );
@@ -39,7 +43,10 @@ export function QualifyPanel({
   let preview: { qualifiers: number[]; ties: number[][] } | null = null;
   try {
     const standings = views.map((view) => [...view.standings.values()]);
-    const result = qualifyFromPools(standings, size, crossPoolOrder.map(String));
+    const result =
+      size === 2
+        ? qualifyForFinal(standings[0]!)
+        : qualifyFromPools(standings, size, crossPoolOrder.map(String));
     preview = {
       qualifiers: result.qualifiers.map((row) => Number(row.playerId)),
       ties: result.unresolved.map((group) => group.map(Number)),
@@ -73,11 +80,12 @@ export function QualifyPanel({
                 checked={size === option}
                 onChange={() => setSize(option)}
               />
-              {option === 8 ? t.qualify.quarterfinals : t.qualify.semifinals}
+              {sizeLabel(option)}
             </label>
           ))}
         </fieldset>
       </div>
+      {size === 2 && <p className="muted">{t.qualify.finalOnlyNote}</p>}
 
       {preview === null ? (
         <p className="error">{t.qualify.cannot}</p>
@@ -127,7 +135,7 @@ export function QualifyPanel({
       </button>
       <ConfirmDialog
         open={confirming}
-        message={t.qualify.confirm(size === 8 ? t.qualify.quarterfinals : t.qualify.semifinals)}
+        message={t.qualify.confirm(sizeLabel(size))}
         confirmLabel={t.ongoing.completeQualifiers}
         cancelLabel={t.cancel}
         onConfirm={() => {
@@ -138,6 +146,11 @@ export function QualifyPanel({
       />
     </section>
   );
+}
+
+function sizeLabel(size: KnockoutSize): string {
+  if (size === 8) return t.qualify.quarterfinals;
+  return size === 4 ? t.qualify.semifinals : t.qualify.finalOnly;
 }
 
 /** Tied players the admin puts in order by clicking them, best first. */

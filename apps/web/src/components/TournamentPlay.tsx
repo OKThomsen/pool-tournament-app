@@ -59,10 +59,9 @@ export function TournamentPlay({
   };
 
   const error = setResult.error ?? clearResult.error;
-  const knockoutDone = ['FINAL', 'THIRD'].every((slot) => {
-    const match = tournament.matches.find((m) => m.slot === slot);
-    return match && isPlayed(match);
-  });
+  // The final and, unless it's the final only, the third-place final.
+  const deciders = tournament.matches.filter((m) => m.slot === 'FINAL' || m.slot === 'THIRD');
+  const knockoutDone = deciders.length > 0 && deciders.every(isPlayed);
 
   return (
     <>

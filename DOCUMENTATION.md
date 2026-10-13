@@ -102,8 +102,10 @@ resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order t
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
 When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
-quarterfinals or semifinals (the workbook's suggestion preselected), and it shows who qualifies,
-worked out with `qualifyFromPools` like the server. A tie that decides who goes through must be
+quarterfinals or semifinals (the workbook's suggestion preselected), or, with a single pool,
+"Kun finale (2)": the pool's #1 and #2 play the final and the pool's #3 and #4 finish 3rd
+and 4th. It shows who qualifies, worked out with `qualifyFromPools` (or `qualifyForFinal`) like
+the server. A tie that decides who goes through must be
 settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
 Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
@@ -115,7 +117,7 @@ final separately. A round without one is marked "Skal vælges" and starts from t
 round's length (the first round from the pool matches'), and its matches say "Afventer
 længde" and can't be tapped (on `/play` too) until the admin saves it.
 
-When the final and the third-place final are played, "conclude tournament" (after a
+When the final and the third-place final (if there is one) are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
 
 `/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
@@ -246,7 +248,7 @@ clear results in that tournament's pools and knockout, and nothing else. This ru
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached), `quarterfinals` (played in one). |
+| `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached; a final-only tournament has none, so it doesn't count), `quarterfinals` (played in one). |
 | `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
 | `GET /api/players/:id` | public | One player. |
 | `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member?, memberSince? }` → 201. |
@@ -291,9 +293,9 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
-| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 4 \| 8, adminOrder? }`. Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match without a race length (every round, the first included, gets one from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
+| `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 2 \| 4 \| 8, adminOrder? }`, where 2 is the final only (400 `final_only_needs_one_pool` unless there is exactly one pool; the pool's #1 and #2 are the seeds). Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match without a race length (every round, the first included, gets one from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 | `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
-| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
+| `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
 
@@ -404,7 +406,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
 | `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`: default pool sizes, random draw, admin changes. |
-| `qualification.ts` | `qualifyFromPools`, `suggestedKnockoutSize`: who goes through to the knockout. |
+| `qualification.ts` | `qualifyFromPools`, `qualifyForFinal`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
@@ -463,6 +465,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+- **Final only** (`qualifyForFinal`, knockout size 2): an option when there is a single pool
+  (4–6 players). The pool's #1 and #2 (by the pool ranking) play the final; there are no
+  semifinals and no third-place final. A tie the admin must settle first is one that decides who
+  plays the final, who is 3rd or who is 4th.
 - **Seasons**: two a year. `1/YYYY` runs 1 January–31 May and `2/YYYY` 1 September–31
   December. June–August is the off-season (people are on holiday): no current season, no
   season points, and the leaderboards say when the next season starts. A tournament's season
@@ -471,7 +477,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   time in the season's first month counts; joining later, or leaving before the last day,
   doesn't.
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
-  losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1.
+  losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1. With the final
+  only, 3rd and 4th are the next two in the pool ranking (wins → set score → head-to-head →
+  admin), and 5th–6th get participation.
 
 ## Decisions log
 
@@ -505,3 +513,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-11 | Knockout race length is chosen per round as the knockout goes on: first round at qualifying, then semifinals, then the third-place final and the final separately. |
 | 2026-10-13 | The admin chooses race to 2 or 3 for the pool matches before locking the pools. |
 | 2026-10-13 | The knockout's first round gets its race length in "Kampenes længde" like the later rounds, not in "Afslut puljespillet". |
+| 2026-10-13 | With a single pool the admin can choose the final only: pool #1 v #2, 3rd/4th from the pool ranking (wins → set score → head-to-head → admin), 5th–6th participation. It doesn't count as reaching the semifinals. |

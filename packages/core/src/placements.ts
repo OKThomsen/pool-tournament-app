@@ -18,15 +18,19 @@ export const DEFAULT_POINTS_TABLE: PointsTable = {
 /**
  * Each player's single placement in a finished tournament. Quarterfinal losers share 5–8, and
  * everyone knocked out in the pools gets participation.
+ *
+ * A final-only knockout (one pool) has no third-place final: 3rd and 4th go to the best of the
+ * rest in `poolOrder`, the pool ranking (best first).
  */
 export function placements(
   players: readonly PlayerId[],
   bracket: readonly BracketMatch[],
+  poolOrder: readonly PlayerId[] = [],
 ): Map<PlayerId, Placement> {
   const byId = new Map(bracket.map((match) => [match.id, match]));
   const final = byId.get('FINAL');
   const third = byId.get('THIRD');
-  if (!final?.winner || !final.loser || !third?.winner || !third.loser) {
+  if (!final?.winner || !final.loser || (third && (!third.winner || !third.loser))) {
     throw new Error('The final and the third-place final must be played first');
   }
 
@@ -36,8 +40,16 @@ export function placements(
   }
   result.set(final.winner, '1st');
   result.set(final.loser, '2nd');
-  result.set(third.winner, '3rd');
-  result.set(third.loser, '4th');
+  if (third) {
+    result.set(third.winner!, '3rd');
+    result.set(third.loser!, '4th');
+  } else {
+    const [thirdPlace, fourthPlace] = poolOrder.filter(
+      (p) => p !== final.winner && p !== final.loser,
+    );
+    if (thirdPlace) result.set(thirdPlace, '3rd');
+    if (fourthPlace) result.set(fourthPlace, '4th');
+  }
   return result;
 }
 
