@@ -1,7 +1,8 @@
 import { MEMBER_BONUS } from '@franks/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../app.js';
-import { memberships } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
+import { memberships, results } from '../db/schema.js';
 import { createTestDb, resetDb } from '../test/database.js';
 import { addPlayers, addTournament, setToday } from '../test/fixtures.js';
 
@@ -126,5 +127,24 @@ describe('GET /api/seasons/current', () => {
       ['A', 2],
       ['B', 2],
     ]);
+  });
+});
+
+describe('players with 0 points', () => {
+  it('are left off the leaderboard but stay on Spillere', async () => {
+    const [mads, zero] = await addPlayers(db, 'Mads', 'Zero');
+    await addTournament(db, {
+      placements: [
+        [mads!.id, '1st'],
+        [zero!.id, 'participation'],
+      ],
+    });
+    // As if the points table gave 0 for taking part.
+    await db.update(results).set({ points: 0 }).where(eq(results.playerId, zero!.id));
+
+    const { standings } = await current();
+    expect(standings.map((row: { name: string }) => row.name)).toEqual(['Mads']);
+    const players = (await app.inject({ url: '/api/players' })).json();
+    expect(players.map((p: { name: string }) => p.name)).toContain('Zero');
   });
 });

@@ -282,7 +282,7 @@ points.
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone who played in the season or earns the member bonus, by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
+| `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone with at least 1 season point (from playing in the season or the member bonus; players with 0 points are left out here but still listed on Spillere), by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
 
 ### Tournaments API
 
@@ -524,3 +524,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | The knockout's first round gets its race length in "Kampenes længde" like the later rounds, not in "Afslut puljespillet". |
 | 2026-10-13 | With a single pool the admin can choose the final only: pool #1 v #2, 3rd/4th from the pool ranking (wins → set score → head-to-head → admin), 5th–6th participation. It doesn't count as reaching the semifinals. |
 | 2026-10-13 | Spillere, Sæson and Turneringer sort by every column and have a search (start of any word in a name, ignoring case; Turneringer also the date). The view is remembered in the browser; # on Sæson stays the season rank. |
+| 2026-10-13 | The season leaderboards (frontpage, Sæson, /live) only list players with at least 1 season point; everyone stays on Spillere. |
