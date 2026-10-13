@@ -168,7 +168,7 @@ export function useSetPoolTiebreak(id: number) {
 
 /** "complete qualifier brackets". */
 export function useStartKnockout(id: number) {
-  return useTournamentMutation((input: { size: 4 | 8; adminOrder: number[] }) =>
+  return useTournamentMutation((input: { size: 2 | 4 | 8; adminOrder: number[] }) =>
     api<Tournament>(`/tournaments/${id}/knockout`, { method: 'POST', body: input }),
   );
 }

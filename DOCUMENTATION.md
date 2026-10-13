@@ -102,8 +102,10 @@ resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order t
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
 When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
-quarterfinals or semifinals (the workbook's suggestion preselected), and it shows who qualifies,
-worked out with `qualifyFromPools` like the server. A tie that decides who goes through must be
+quarterfinals or semifinals (the workbook's suggestion preselected), or, with a single pool,
+"Kun finale (2)": the pool's #1 and #2 play the final and the pool's #3 and #4 finish 3rd
+and 4th. It shows who qualifies, worked out with `qualifyFromPools` (or `qualifyForFinal`) like
+the server. A tie that decides who goes through must be
 settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
 Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
@@ -115,7 +117,7 @@ final separately. A round without one is marked "Skal vælges" and starts from t
 round's length (the first round from the pool matches'), and its matches say "Afventer
 længde" and can't be tapped (on `/play` too) until the admin saves it.
 
-When the final and the third-place final are played, "conclude tournament" (after a
+When the final and the third-place final (if there is one) are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
 
 `/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
@@ -511,3 +513,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-11 | Knockout race length is chosen per round as the knockout goes on: first round at qualifying, then semifinals, then the third-place final and the final separately. |
 | 2026-10-13 | The admin chooses race to 2 or 3 for the pool matches before locking the pools. |
 | 2026-10-13 | The knockout's first round gets its race length in "Kampenes længde" like the later rounds, not in "Afslut puljespillet". |
+| 2026-10-13 | With a single pool the admin can choose the final only: pool #1 v #2, 3rd/4th from the pool ranking (wins → set score → head-to-head → admin), 5th–6th participation. It doesn't count as reaching the semifinals. |
