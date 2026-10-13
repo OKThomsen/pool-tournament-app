@@ -694,6 +694,36 @@ tbody tr:nth-child(even) {
   background: var(--surface-muted);
 }
 
+/* A header that sorts its table (TableView): looks like the header text, plus an arrow. */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sort-arrow {
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+
+th[aria-sort] .sort-arrow {
+  opacity: 1;
+}
+
+.table-search {
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 12px;
+}
+
 /* Wide tables scroll sideways on small screens. */
 .table-scroll {
   overflow-x: auto;
