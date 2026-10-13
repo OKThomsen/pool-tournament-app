@@ -100,17 +100,17 @@ resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order t
 played at the same time, and who sits out (`poolView.ts`). Even pools have no schedule.
 
 When every pool match is played, `QualifyPanel` appears ("complete qualifier brackets"): choose
-quarterfinals or semifinals (the workbook's suggestion preselected) and the first round's race
-length, and it
-shows who qualifies, worked out with `qualifyFromPools` like the server. A tie that decides who
-goes through must be settled first: the admin clicks the tied players in order, best first (a
+quarterfinals or semifinals (the workbook's suggestion preselected), and it shows who qualifies,
+worked out with `qualifyFromPools` like the server. A tie that decides who goes through must be
+settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
 Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
 visible but read-only. Above the bracket, "Kampenes længde" (`RacePanel`) lists each round whose
-players are (partly) known and that has no result yet, with its race length: the semifinals after
-the quarterfinals, then the third-place final and the final separately. A round without one is
-marked "Skal vælges", starts from the previous round's length, and its matches say "Afventer
+players are (partly) known and that has no result yet, with its race length: the first round as
+soon as the knockout starts, the semifinals after the quarterfinals, then the third-place final and the
+final separately. A round without one is marked "Skal vælges" and starts from the previous
+round's length (the first round from the pool matches'), and its matches say "Afventer
 længde" and can't be tapped (on `/play` too) until the admin saves it.
 
 When the final and the third-place final are played, "conclude tournament" (after a

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_RACE_TO,
   qualifyFromPools,
   suggestedKnockoutSize,
   UnsupportedQualificationError,
@@ -11,12 +10,11 @@ import type { PoolView } from '../poolView';
 import { t } from '../strings';
 import { useSetPoolTiebreak, useStartKnockout, type Tournament } from '../tournaments';
 import { ConfirmDialog } from './ConfirmDialog';
-import { RaceToInput } from './RaceToInput';
 
 /**
- * "complete qualifier brackets": choose quarterfinals or semifinals and the race length, see who
- * qualifies (worked out with the same core rules the server uses), and settle any tie that
- * decides who goes through before confirming.
+ * "complete qualifier brackets": choose quarterfinals or semifinals, see who qualifies (worked
+ * out with the same core rules the server uses), and settle any tie that decides who goes
+ * through before confirming. Race lengths are chosen afterwards, in `RacePanel`.
  */
 export function QualifyPanel({
   tournament,
@@ -32,7 +30,6 @@ export function QualifyPanel({
   const [size, setSize] = useState<KnockoutSize>(() =>
     Math.min(suggestedKnockoutSize(playerCount), sizes[0] ?? 4) === 8 ? 8 : 4,
   );
-  const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
   // The admin's order for players tied across pools at the cut-off.
   const [crossPoolOrder, setCrossPoolOrder] = useState<number[]>([]);
   const [confirming, setConfirming] = useState(false);
@@ -80,9 +77,7 @@ export function QualifyPanel({
             </label>
           ))}
         </fieldset>
-        <RaceToInput value={raceTo} onChange={setRaceTo} />
       </div>
-      <p className="muted">{t.qualify.laterRounds}</p>
 
       {preview === null ? (
         <p className="error">{t.qualify.cannot}</p>
@@ -132,15 +127,12 @@ export function QualifyPanel({
       </button>
       <ConfirmDialog
         open={confirming}
-        message={t.qualify.confirm(
-          size === 8 ? t.qualify.quarterfinals : t.qualify.semifinals,
-          raceTo,
-        )}
+        message={t.qualify.confirm(size === 8 ? t.qualify.quarterfinals : t.qualify.semifinals)}
         confirmLabel={t.ongoing.completeQualifiers}
         cancelLabel={t.cancel}
         onConfirm={() => {
           setConfirming(false);
-          startKnockout.mutate({ size, raceTo, adminOrder: crossPoolOrder });
+          startKnockout.mutate({ size, adminOrder: crossPoolOrder });
         }}
         onCancel={() => setConfirming(false)}
       />

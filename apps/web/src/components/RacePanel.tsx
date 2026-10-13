@@ -16,8 +16,9 @@ const ROUNDS: { stage: Stage; title: () => string }[] = [
 ];
 
 /**
- * The admin chooses each knockout round's race length as the knockout goes on: the semifinals
- * once their players are known, then the third-place final and the final separately. A round is
+ * The admin chooses each knockout round's race length as the knockout goes on: the first round
+ * as soon as the knockout starts, the semifinals once their players are known, then the
+ * third-place final and the final separately. A round is
  * listed from when one of its matches has both players until its first result.
  */
 export function RacePanel({ tournament }: { tournament: Tournament }) {
@@ -30,7 +31,7 @@ export function RacePanel({ tournament }: { tournament: Tournament }) {
   );
   if (rounds.length === 0) return null;
 
-  // A round without a race length starts from the one before it.
+  // A round without a race length starts from the one before it; the first round from the pools.
   const previousRace = (stage: Stage) => {
     const earlier = ROUNDS.slice(
       0,
@@ -40,7 +41,7 @@ export function RacePanel({ tournament }: { tournament: Tournament }) {
       const match = tournament.matches.find((m) => m.stage === round.stage && m.raceTo !== null);
       if (match) return match.raceTo!;
     }
-    return DEFAULT_RACE_TO;
+    return tournament.matches.find((m) => m.stage === 'pool')?.raceTo ?? DEFAULT_RACE_TO;
   };
 
   return (
