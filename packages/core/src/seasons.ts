@@ -51,6 +51,12 @@ export function seasonForDate(date: string): Season | null {
   return def ? season(year, def) : null;
 }
 
+/** The season with this label (`1/2026` or `2/2026`), or null if it isn't one. */
+export function seasonByLabel(label: string): Season | null {
+  const match = /^([12])\/(\d{4})$/.exec(label);
+  return match ? season(Number(match[2]), SEASONS[Number(match[1]) - 1]!) : null;
+}
+
 /** The first season that starts after the date; in the off-season, the one starting 1 September. */
 export function nextSeason(date: string): Season {
   const { year, monthDay } = parse(date);
