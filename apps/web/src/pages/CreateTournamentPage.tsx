@@ -1,7 +1,15 @@
 import { poolSizes, todayInDenmark } from '@franks/core';
 import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
 import { ApiError } from '../api';
+import { Modal } from '../components/Modal';
+import {
+  emptyPlayerInput,
+  PlayerFields,
+  playerErrorMessage,
+  toPlayerRequest,
+} from '../components/PlayerFields';
 import { useCreatePlayer, useSearchPlayers, type Player } from '../players';
 import { t } from '../strings';
 import { useCreateTournament, useOngoingTournament, type GameFormat } from '../tournaments';
@@ -131,12 +139,13 @@ export function CreateTournamentPage() {
 
 /**
  * "Tilføj spiller": a live search that matches the start of a name. When nobody matches
- * exactly, "Tilføj ny spiller" creates the player and adds them in one step.
+ * exactly, "Tilføj ny spiller" opens a form for the new player (handicaps, Medlem), which
+ * creates them and adds them in one step.
  */
 function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Player) => void }) {
   const [query, setQuery] = useState('');
   const search = useSearchPlayers(useDebounced(query, 150));
-  const createPlayer = useCreatePlayer();
+  const [creating, setCreating] = useState(false);
 
   const name = query.trim();
   const results = (search.data ?? []).filter((p) => !excluded.some((e) => e.id === p.id));
@@ -146,12 +155,6 @@ function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Play
     onAdd(player);
     setQuery('');
   };
-
-  const createAndAdd = () =>
-    createPlayer.mutate(
-      { name, baseHandicap: 0, frameHandicap: 0, member: false },
-      { onSuccess: (player) => pick(player) },
-    );
 
   // Enter picks the first match, so a known player can be added without the mouse.
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -185,25 +188,87 @@ function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Play
           )}
           {search.isSuccess && !exactMatch && (
             <li>
-              <button
-                type="button"
-                className="add-new"
-                disabled={createPlayer.isPending}
-                onClick={createAndAdd}
-              >
+              <button type="button" className="add-new" onClick={() => setCreating(true)}>
                 {t.create.addNewPlayer}: {name}
               </button>
             </li>
           )}
         </ul>
       )}
+      <NewPlayerDialog
+        open={creating}
+        name={name}
+        onAdded={(player) => {
+          setCreating(false);
+          pick(player);
+        }}
+        onClose={() => setCreating(false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * "Tilføj ny spiller": the new player's name (from the search), handicaps and membership.
+ * Rendered outside the tournament form, since forms can't be nested.
+ */
+function NewPlayerDialog({
+  open,
+  name,
+  onAdded,
+  onClose,
+}: {
+  open: boolean;
+  name: string;
+  onAdded: (player: Player) => void;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <Modal open={open} onClose={onClose}>
+      <NewPlayerForm name={name} onAdded={onAdded} onClose={onClose} />
+    </Modal>,
+    document.body,
+  );
+}
+
+function NewPlayerForm({
+  name,
+  onAdded,
+  onClose,
+}: {
+  name: string;
+  onAdded: (player: Player) => void;
+  onClose: () => void;
+}) {
+  const createPlayer = useCreatePlayer();
+  const [input, setInput] = useState({ ...emptyPlayerInput, name });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    // React events bubble through the portal to the tournament form; don't submit that too.
+    event.stopPropagation();
+    createPlayer.mutate(toPlayerRequest(input), { onSuccess: onAdded });
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <h2>{t.create.addNewPlayer}</h2>
+      <div className="player-form">
+        <PlayerFields input={input} onChange={setInput} />
+      </div>
       {createPlayer.error && (
         <p className="error" role="alert">
-          {createPlayer.error instanceof ApiError && createPlayer.error.code === 'name_taken'
-            ? t.players.nameTaken
-            : t.saveFailed}
+          {playerErrorMessage(createPlayer.error)}
         </p>
       )}
-    </div>
+      <div className="form-actions">
+        <button type="submit" className="primary" disabled={createPlayer.isPending}>
+          {t.create.addNewPlayer}
+        </button>
+        <button type="button" className="link" onClick={onClose}>
+          {t.cancel}
+        </button>
+      </div>
+    </form>
   );
 }
