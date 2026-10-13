@@ -140,7 +140,6 @@ const da = {
     complete: 'Alle kampe i puljen er spillet.',
     allComplete: 'Alle puljekampe er spillet. Næste trin: Afslut puljespillet.',
     jumpTo: 'Gå til pulje',
-    raceTo: 'Puljekampenes længde',
   },
   score: {
     raceTo: (n: number) => `Først til ${n}`,
@@ -347,7 +346,6 @@ const en: Strings = {
     complete: 'Every match in this pool has been played.',
     allComplete: 'Every pool match has been played. Next step: Complete qualifier brackets.',
     jumpTo: 'Go to pool',
-    raceTo: 'Pool match length',
   },
   score: {
     raceTo: (n: number) => `Race to ${n}`,

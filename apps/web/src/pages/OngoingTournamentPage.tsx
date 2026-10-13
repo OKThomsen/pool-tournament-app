@@ -1,19 +1,21 @@
+import { DEFAULT_RACE_TO } from '@franks/core';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
+import { RaceToInput } from '../components/RaceToInput';
 import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { t } from '../strings';
 import {
-  POOL_RACE_LENGTHS,
+  POOL_RACE_MAX,
+  POOL_RACE_MIN,
   useCancelTournament,
   useSavePools,
   useStartTournament,
   useTournament,
-  type PoolRaceTo,
   type Tournament,
 } from '../tournaments';
 
@@ -59,7 +61,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const cancel = useCancelTournament(tournament.id);
   const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
-  const [raceTo, setRaceTo] = useState<PoolRaceTo>(2);
+  const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
 
   // Follow the server's copy when it changes (for example after saving).
@@ -80,21 +82,15 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
           {t.saveFailed}
         </p>
       )}
-      <fieldset className="choice">
-        <legend>{t.pools.raceTo}</legend>
-        {POOL_RACE_LENGTHS.map((option) => (
-          <label key={option} className="checkbox">
-            <input
-              type="radio"
-              name="pool-race"
-              checked={raceTo === option}
-              disabled={busy}
-              onChange={() => setRaceTo(option)}
-            />
-            {t.score.raceTo(option)}
-          </label>
-        ))}
-      </fieldset>
+      <div className="player-form">
+        <RaceToInput
+          value={raceTo}
+          onChange={setRaceTo}
+          min={POOL_RACE_MIN}
+          max={POOL_RACE_MAX}
+          disabled={busy}
+        />
+      </div>
       <div className="form-actions">
         <button
           type="button"

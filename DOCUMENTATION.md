@@ -81,9 +81,9 @@ The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
 another pool to move them (pools keep at least 2 players). Every change is saved at once. On
 touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
-chooses the pool matches' length ("Først til 2" or "Først til 3", 2 preselected). "finalize
-brackets" (after a confirmation that repeats the length) creates the pool matches; "Annuller
-turnering" deletes the tournament.
+chooses the pool matches' length in "Først til" (2 or 3, 2 preselected), the same field
+(`RaceToInput`) as the knockout's race lengths. "finalize brackets" (after a confirmation that
+repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
