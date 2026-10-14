@@ -131,13 +131,15 @@ export function useStartTournament(id: number) {
   );
 }
 
-export function useCancelTournament(id: number) {
+/** Cancels a tournament in progress, or deletes a concluded one with its points. */
+export function useDeleteTournament(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api<void>(`/tournaments/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: tournamentKey(id) });
-      return queryClient.invalidateQueries({ queryKey: ongoingKey });
+      // The ongoing tournament, the history, players and seasons may all have changed.
+      return queryClient.invalidateQueries();
     },
   });
 }

@@ -97,7 +97,8 @@ another pool to move them (pools keep at least 2 players). Every change is saved
 touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
 chooses the pool matches' length in "Først til" (2 to 5, 2 preselected), the same field
 (`RaceToInput`) as the knockout's race lengths. "finalize brackets" (after a confirmation that
-repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament.
+repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament. It
+stays at the bottom of the page through pool play and the knockout.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
@@ -145,7 +146,9 @@ code form and says why (the live update makes it check its session again).
 Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
 Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
 placings, the bracket and the pools. Logged-in admins can click any result there to correct it
-(placings and points update at once), or "Genåbn turnering" for bigger changes.
+(placings and points update at once), or "Genåbn turnering" for bigger changes. "Slet turnering"
+(after a confirmation that says it can't be undone) deletes the tournament for good: it leaves
+Turneringer, and the players lose its points on the leaderboards and its counts on Spillere.
 
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
@@ -535,3 +538,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | The season leaderboards (frontpage, Sæson, /live) only list players with at least 1 season point; everyone stays on Spillere. |
 | 2026-10-13 | Sæson has a picker for earlier seasons (every season with a concluded tournament). The frontpage leaderboard stays on the current season (open question 8). |
 | 2026-10-13 | Pool matches can be race to 2–5 (was 2 or 3). |
+| 2026-10-14 | Admins can delete any tournament, concluded ones included; its results, and so its season points and statistics, go with it. |
