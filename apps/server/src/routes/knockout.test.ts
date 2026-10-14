@@ -467,6 +467,36 @@ describe('concluding', () => {
     expect((await app.inject({ url: '/api/tournaments' })).json()).toEqual([]);
   });
 
+  it('deletes a concluded tournament and takes its points and statistics with it', async () => {
+    const k = await finishedKnockout();
+    await conclude(k);
+    const standings = async () =>
+      (await app.inject({ url: '/api/seasons/2-2026' })).json().standings;
+    expect(await standings()).toHaveLength(8);
+
+    const url = `/api/tournaments/${k.id}`;
+    expect((await app.inject({ method: 'DELETE', url, cookies })).statusCode).toBe(204);
+    expect((await app.inject({ url })).statusCode).toBe(404);
+    expect((await app.inject({ url: '/api/tournaments' })).json()).toEqual([]);
+    expect(await standings()).toEqual([]);
+    const players = (await app.inject({ url: '/api/players' })).json();
+    for (const player of players) {
+      expect(player).toMatchObject({ participation: 0, wins: 0, semifinals: 0, quarterfinals: 0 });
+    }
+    // Nothing ties the players to it any more, so they can be deleted too.
+    const removePlayer = await app.inject({
+      method: 'DELETE',
+      url: `/api/players/${players[0].id}`,
+      cookies,
+    });
+    expect(removePlayer.statusCode).toBe(204);
+  });
+
+  it('404s when deleting a tournament that does not exist', async () => {
+    const url = '/api/tournaments/999999';
+    expect((await app.inject({ method: 'DELETE', url, cookies })).statusCode).toBe(404);
+  });
+
   it('lets players score the knockout, and retires the join code on concluding', async () => {
     const t = await playPools(await startedTournament());
     await startKnockout(t, { size: 4 });
