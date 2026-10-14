@@ -21,3 +21,6 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# Database dumps from the backup container
+backups/

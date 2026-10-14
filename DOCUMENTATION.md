@@ -207,6 +207,65 @@ built React app for every other path, so client-side routes like `/live` work on
 image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
 so it can move to any container host later.
 
+### Production (turneringsportal.kjaer-thomsen.dk)
+
+The site runs on a Linux VM with Docker, from a clone of this repo. `docker-compose.prod.yml`
+goes on top of `docker-compose.yml` and adds:
+
+- **Caddy** (`Caddyfile`) on ports 80 and 443. It gets and renews the HTTPS certificate from
+  Let's Encrypt by itself, redirects http to https, and passes everything on to the app,
+  including the live-update stream. It's the only container with published ports; the app and
+  Postgres are reachable only on the Docker network.
+- `COOKIE_SECURE=true` and `TRUST_PROXY=uniquelocal` for the app (see Login API).
+- A **backup** container (below).
+
+Before the first start, the domain's A record must point at the server's public IP, and ports
+80 and 443 must reach the VM (port forwarding on the router if it's behind one). Caddy can't
+get a certificate otherwise.
+
+**First setup**, in the repo folder on the server:
+
+```sh
+cat > .env <<EOF
+COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+DOMAIN=turneringsportal.kjaer-thomsen.dk
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
+EOF
+docker compose up -d --build
+docker compose exec app node apps/server/dist/cli/admin.js create <username>
+```
+
+With `COMPOSE_FILE` in `.env`, a plain `docker compose …` uses both files. Postgres only reads
+`POSTGRES_PASSWORD` when it creates the database, so changing it later in `.env` doesn't change
+the real password. If the database was first started with the default password, recreate it
+while it's still empty (`docker compose down -v`, then `up` again).
+
+**Updating**: `git pull && docker compose up -d --build`. The server migrates the database on
+start, and open pages reload themselves with the new version. Logs: `docker compose logs -f app`
+(or `caddy`, `backup`).
+
+**Backups.** The backup container (`scripts/backup.sh`) dumps the database with `pg_dump` when
+it starts and every night at 04:00 Danish time, into `backups/` in the repo folder (git-ignored):
+`daily/` keeps 14 days, and `monthly/` keeps the last dump of each month for 12 months
+(`BACKUP_HOUR`, `BACKUP_KEEP_DAYS`, `BACKUP_KEEP_MONTHS` and `BACKUP_DIR` in `.env` change
+this). `docker compose logs backup` shows each dump. These copies live on the same machine, so
+copy `backups/` somewhere else regularly too.
+
+**Restoring** a dump replaces the whole database. The app is stopped while it runs:
+
+```sh
+scripts/restore.sh backups/daily/franks-2026-10-14_0400.dump
+```
+
+The same script moves data between machines. To take the data from the local stack to the
+server, dump it on the PC and restore it on the server:
+
+```sh
+docker compose exec -T db pg_dump -U franks --format=custom franks > franks.dump   # on the PC
+scp franks.dump <user>@<server>:<repo folder>/
+scripts/restore.sh franks.dump                                                     # on the server
+```
+
 ### Admin accounts
 
 There is no sign-up. Only the owner creates admin accounts, with this command on the machine
@@ -543,3 +602,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | Sæson has a picker for earlier seasons (every season with a concluded tournament). The frontpage leaderboard stays on the current season (open question 8). |
 | 2026-10-13 | Pool matches can be race to 2–5 (was 2 or 3). |
 | 2026-10-14 | Admins can delete any tournament, concluded ones included; its results, and so its season points and statistics, go with it. |
+| 2026-10-14 | Hosted at turneringsportal.kjaer-thomsen.dk on a Linux VM (Docker, Caddy for HTTPS), with nightly `pg_dump` backups. |
