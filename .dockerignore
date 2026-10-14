@@ -9,3 +9,4 @@
 *.xlsx
 CLAUDE.md
 backups
+*.dump

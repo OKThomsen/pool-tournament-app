@@ -22,5 +22,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Database dumps from the backup container
+# Database dumps (the backup container's, and any made by hand: they hold all the data)
 backups/
+*.dump
