@@ -12,7 +12,7 @@ import { t } from '../strings';
 import {
   POOL_RACE_MAX,
   POOL_RACE_MIN,
-  useCancelTournament,
+  useDeleteTournament,
   useSavePools,
   useStartTournament,
   useTournament,
@@ -47,7 +47,10 @@ export function OngoingTournamentPage() {
       {data.status === 'draft' ? (
         <DraftPools tournament={data} />
       ) : (
-        <TournamentPlay tournament={data} manage />
+        <>
+          <TournamentPlay tournament={data} manage />
+          <CancelTournament tournamentId={data.id} />
+        </>
       )}
     </section>
   );
@@ -58,7 +61,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const navigate = useNavigate();
   const savePools = useSavePools(tournament.id);
   const start = useStartTournament(tournament.id);
-  const cancel = useCancelTournament(tournament.id);
+  const cancel = useDeleteTournament(tournament.id);
   const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
   const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
@@ -125,6 +128,43 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
           cancel.mutate(undefined, { onSuccess: () => navigate('/') });
         }}
         onCancel={() => setConfirm(null)}
+      />
+    </>
+  );
+}
+
+/** "Annuller turnering" once play has started (the draft has its own, next to its buttons). */
+function CancelTournament({ tournamentId }: { tournamentId: number }) {
+  const navigate = useNavigate();
+  const cancel = useDeleteTournament(tournamentId);
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <>
+      {cancel.error && (
+        <p className="error" role="alert">
+          {t.saveFailed}
+        </p>
+      )}
+      <div className="form-actions">
+        <button
+          type="button"
+          className="link"
+          disabled={cancel.isPending}
+          onClick={() => setConfirming(true)}
+        >
+          {t.ongoing.cancelTournament}
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        message={t.ongoing.confirmCancel}
+        confirmLabel={t.ongoing.cancelTournament}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          setConfirming(false);
+          cancel.mutate(undefined, { onSuccess: () => navigate('/') });
+        }}
+        onCancel={() => setConfirming(false)}
       />
     </>
   );

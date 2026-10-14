@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { useSession } from '../auth';
 import { Bracket } from '../components/Bracket';
@@ -10,6 +10,7 @@ import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { t } from '../strings';
 import {
+  useDeleteTournament,
   useReopenTournament,
   useSetResult,
   useTournament,
@@ -60,14 +61,16 @@ export function TournamentDetailPage() {
 function Concluded({ tournament, admin }: { tournament: Tournament; admin: boolean }) {
   const setResult = useSetResult(tournament.id);
   const reopen = useReopenTournament(tournament.id);
+  const remove = useDeleteTournament(tournament.id);
+  const navigate = useNavigate();
   const [scoring, setScoring] = useState<Scoring | null>(null);
-  const [confirmReopen, setConfirmReopen] = useState(false);
+  const [confirm, setConfirm] = useState<'reopen' | 'delete' | null>(null);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
   const close = () => setScoring(null);
 
-  const error = setResult.error ?? reopen.error;
+  const error = setResult.error ?? reopen.error ?? remove.error;
   const message =
     error instanceof ApiError &&
     (error.code === 'later_match_played' || error.code === 'would_change_qualification')
@@ -105,8 +108,17 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
       {admin && (
         <p className="muted">
           {t.detail.correctHelp}{' '}
-          <button type="button" className="link" onClick={() => setConfirmReopen(true)}>
+          <button type="button" className="link" onClick={() => setConfirm('reopen')}>
             {t.detail.reopen}
+          </button>{' '}
+          ·{' '}
+          <button
+            type="button"
+            className="link"
+            disabled={remove.isPending}
+            onClick={() => setConfirm('delete')}
+          >
+            {t.detail.delete}
           </button>
         </p>
       )}
@@ -142,15 +154,26 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
         onClose={close}
       />
       <ConfirmDialog
-        open={confirmReopen}
+        open={confirm === 'reopen'}
         message={t.detail.confirmReopen}
         confirmLabel={t.detail.reopen}
         cancelLabel={t.cancel}
         onConfirm={() => {
-          setConfirmReopen(false);
+          setConfirm(null);
           reopen.mutate(undefined);
         }}
-        onCancel={() => setConfirmReopen(false)}
+        onCancel={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        message={t.detail.confirmDelete}
+        confirmLabel={t.detail.delete}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          setConfirm(null);
+          remove.mutate(undefined, { onSuccess: () => navigate('/turneringer') });
+        }}
+        onCancel={() => setConfirm(null)}
       />
     </>
   );

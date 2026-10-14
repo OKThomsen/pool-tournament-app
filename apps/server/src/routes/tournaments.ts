@@ -277,18 +277,21 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     },
   );
 
-  /** Cancels a tournament that hasn't been concluded. Concluded ones are history. */
+  /**
+   * Deletes a tournament: cancels one in progress, or removes a concluded one from history.
+   * Its pools, matches, results and player sessions go with it (foreign keys cascade). Season
+   * points and player statistics are derived from `results`, so they drop it at once.
+   */
   app.delete<{ Params: { id: number } }>(
     '/tournaments/:id',
     { preHandler: requireAdmin, schema: { params: idParams } },
     async (request, reply) => {
       const { id } = request.params;
-      const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
-      if (!tournament) return reply.code(404).send({ error: 'not_found' });
-      if (tournament.status === 'concluded') {
-        return reply.code(409).send({ error: 'tournament_concluded' });
-      }
-      await db.delete(tournaments).where(eq(tournaments.id, id));
+      const deleted = await db
+        .delete(tournaments)
+        .where(eq(tournaments.id, id))
+        .returning({ id: tournaments.id });
+      if (deleted.length === 0) return reply.code(404).send({ error: 'not_found' });
       events.tournamentChanged(id);
       return reply.code(204).send();
     },

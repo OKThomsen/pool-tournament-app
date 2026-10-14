@@ -47,6 +47,9 @@ const da = {
     needsReopen:
       'Den rettelse ville ændre, hvem der gik videre eller mødte hinanden senere. Genåbn turneringen for at lave den.',
     otherInProgress: 'Der er en anden turnering i gang. Afslut den først.',
+    delete: 'Slet turnering',
+    confirmDelete:
+      'Slet turneringen for altid? Alle resultater forsvinder, og spillerne mister de point og statistikker, de fik i den. Det kan ikke fortrydes.',
   },
   placements: {
     '1st': '1.',
@@ -261,6 +264,9 @@ const en: Strings = {
     needsReopen:
       'That correction would change who went through or who met later. Reopen the tournament to make it.',
     otherInProgress: 'Another tournament is in progress. Finish it first.',
+    delete: 'Delete tournament',
+    confirmDelete:
+      'Delete the tournament for good? All its results are removed, and the players lose the points and statistics they got from it. This cannot be undone.',
   },
   placements: {
     '1st': '1st',
