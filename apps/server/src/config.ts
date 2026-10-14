@@ -12,4 +12,6 @@ export const config = {
   webDist: process.env.WEB_DIST,
   /** Only send the session cookie over HTTPS. Must be true once the app is hosted. */
   secureCookies: process.env.COOKIE_SECURE === 'true',
+  /** The reverse proxy's addresses (see `trustProxy` in app.ts). Unset when nothing is in front. */
+  trustProxy: process.env.TRUST_PROXY || undefined,
 };

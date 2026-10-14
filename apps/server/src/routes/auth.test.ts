@@ -79,6 +79,27 @@ describe('POST /api/auth/login', () => {
     }
     expect((await login('frank', PASSWORD, ip)).statusCode).toBe(429);
   });
+
+  it('limits per client, not per proxy, behind a trusted proxy', { timeout: 30_000 }, async () => {
+    const proxied = await buildApp({ db, logger: false, trustProxy: 'uniquelocal' });
+    const viaProxy = (password: string, client: string) =>
+      proxied.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { username: 'frank', password },
+        remoteAddress: '172.18.0.5',
+        headers: { 'x-forwarded-for': client },
+      });
+    try {
+      for (let i = 0; i < 10; i++) {
+        expect((await viaProxy('forkert-kodeord', '203.0.113.1')).statusCode).toBe(401);
+      }
+      expect((await viaProxy(PASSWORD, '203.0.113.1')).statusCode).toBe(429);
+      expect((await viaProxy(PASSWORD, '203.0.113.2')).statusCode).toBe(200);
+    } finally {
+      await proxied.close();
+    }
+  });
 });
 
 describe('GET /api/auth/me', () => {

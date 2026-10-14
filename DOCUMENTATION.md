@@ -234,6 +234,10 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 | `POST /api/auth/logout` | anyone | Ends the session and clears the cookie. 204. |
 | `GET /api/auth/me` | admin | `{ username }`, or 401 when not logged in. |
 
+- The rate limits (login, and joining on `/play`) count per client IP. Behind a reverse proxy,
+  set `TRUST_PROXY` to the proxy's addresses (Fastify's `trustProxy`; `uniquelocal` for Caddy on
+  the Docker network), so the IP comes from `X-Forwarded-For`. Without it every request looks
+  like the proxy's, and one person's wrong passwords would lock everyone out.
 - Sessions last 30 days. The cookie (`session`) is `HttpOnly` and `SameSite=Lax`; set
   `COOKIE_SECURE=true` once the app is served over HTTPS. Only a SHA-256 hash of the token is
   stored in `sessions`.

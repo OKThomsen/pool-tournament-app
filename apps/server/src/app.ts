@@ -31,6 +31,13 @@ export interface AppOptions {
   webDist?: string;
   /** Only send the session cookie over HTTPS. */
   secureCookies?: boolean;
+  /**
+   * Addresses of the reverse proxy in front of the app, in Fastify's `trustProxy` form (such as
+   * "uniquelocal" for Caddy on the Docker network). Requests from them take the client's IP from
+   * X-Forwarded-For; without it, every request looks like the proxy's and they all share one
+   * login rate limit.
+   */
+  trustProxy?: string;
   logger?: boolean;
   /** Shared with the routes; tests pass their own to listen in. */
   events?: Events;
@@ -40,11 +47,12 @@ export async function buildApp({
   db,
   webDist,
   secureCookies = false,
+  trustProxy,
   logger = true,
   events = new Events(),
 }: AppOptions) {
   // Close open live-update streams on shutdown instead of waiting for them.
-  const app = Fastify({ logger, forceCloseConnections: true });
+  const app = Fastify({ logger, forceCloseConnections: true, trustProxy: trustProxy ?? false });
   // Off by default; routes opt in (the login route limits attempts per IP).
   await app.register(fastifyRateLimit, { global: false });
   await app.register(sessionPlugin, { db });
