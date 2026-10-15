@@ -91,7 +91,7 @@ function RaceRow({
       <RaceToInput value={value} onChange={setValue} />
       <button
         type="submit"
-        className={missing ? 'primary' : ''}
+        className={missing ? 'primary' : 'secondary'}
         disabled={setRace.isPending || value === current}
       >
         {t.save}

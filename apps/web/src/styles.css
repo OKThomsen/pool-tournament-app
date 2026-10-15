@@ -545,6 +545,24 @@ button:disabled {
   color: var(--on-accent);
 }
 
+/* Next to a primary button: the same shape, outlined in the accent colour. */
+.secondary {
+  display: inline-block;
+  padding: 8px 18px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
 .link {
   padding: 0;
   border: 0;
@@ -600,6 +618,11 @@ label {
   gap: 16px;
   align-items: center;
   margin-top: 16px;
+}
+
+/* The admin's buttons above the pools or the bracket. */
+.form-actions.admin-tools {
+  margin-bottom: 16px;
 }
 
 .player-form {

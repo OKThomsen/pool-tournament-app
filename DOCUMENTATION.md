@@ -200,6 +200,9 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
   `--accent`, `--win-bg`, `--loss-bg` …). A theme redefines only those.
 - Win/loss colours are a green and a coral of their own, so a loss never looks like the brand red,
   and buttons use felt blue rather than red for the same reason.
+- Buttons come in two kinds: `.primary` (filled felt blue) for the main action, and `.secondary`
+  (the same shape, outlined in felt blue) for the rest, like "Rediger spillere" or "Randomize".
+  A toggle such as "Rediger puljer" / "Færdig" switches from secondary to primary while it's on.
 - Fonts are self-hosted with `@fontsource` (imported in `main.tsx`): **Barlow** for text and
   **Barlow Condensed** for headings, scores and numbers. Both cover æ, ø and å.
 - Logo files are in `apps/web/public/brand/`: `wordmark.png` (transparent background, for light

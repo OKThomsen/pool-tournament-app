@@ -79,10 +79,10 @@ export function TournamentPlay({
         <>
           <h2>{t.knockout.title}</h2>
           {manage && (
-            <div className="form-actions">
+            <div className="form-actions admin-tools">
               <button
                 type="button"
-                className={swapping ? 'primary' : undefined}
+                className={swapping ? 'primary' : 'secondary'}
                 onClick={() => setSwapping(!swapping)}
               >
                 {swapping ? t.ongoing.done : t.knockout.swap}
