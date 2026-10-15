@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { drawPools, movePlayer, poolSizes, swapPlayers } from './pools.js';
+import { drawPools, movePlayer, poolSizes, swapPlayers, updatePools } from './pools.js';
 import { seededRng } from './random.js';
 import { roundRobinRounds } from './schedule.js';
 
@@ -97,5 +97,48 @@ describe('movePlayer', () => {
   it('rejects unknown players and pools', () => {
     expect(() => movePlayer(pools, 'Z', 0)).toThrow();
     expect(() => movePlayer(pools, 'A', 5)).toThrow();
+  });
+});
+
+describe('updatePools', () => {
+  const pools = [
+    ['A', 'B', 'C', 'D'],
+    ['E', 'F', 'G', 'H'],
+  ];
+
+  it('puts newcomers into the smallest pool and keeps everyone else where they are', () => {
+    expect(updatePools(pools, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])).toEqual([
+      ['A', 'B', 'C', 'D', 'I'],
+      ['E', 'F', 'G', 'H', 'J'],
+    ]);
+  });
+
+  it('takes out players who left', () => {
+    expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G', 'H'])).toEqual([
+      ['A', 'B', 'C'],
+      ['E', 'F', 'G', 'H'],
+    ]);
+  });
+
+  it('adds and removes in one go', () => {
+    expect(updatePools(pools, ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'X'])).toEqual([
+      ['B', 'C', 'D', 'X'],
+      ['E', 'F', 'G', 'H'],
+    ]);
+  });
+
+  it('asks for a new draw when the player count needs another number of pools', () => {
+    // 8 → 11 players is 4 + 4 + 3; 8 → 6 is one pool of 6.
+    expect(updatePools(pools, [...pools.flat(), 'I', 'J', 'K'])).toBeNull();
+    expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G'])).toBeNull();
+  });
+
+  it('asks for a new draw when a pool would get too small', () => {
+    const uneven = [
+      ['A', 'B', 'C', 'D', 'E', 'F'],
+      ['G', 'H'],
+    ];
+    // G and H leave and X comes: X would be alone in the second pool.
+    expect(updatePools(uneven, ['A', 'B', 'C', 'D', 'E', 'F', 'X'])).toBeNull();
   });
 });

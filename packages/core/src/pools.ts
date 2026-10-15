@@ -90,3 +90,31 @@ export function movePlayer(
     return [...pool];
   });
 }
+
+/**
+ * The pools after the player list changes in a tournament that's already drawn: players who
+ * left are taken out, and each newcomer goes into the smallest pool (the first of several equally
+ * small ones). Returns null when the pools must be drawn again instead: the new number of players
+ * calls for a different number of pools (see poolSizes), or a pool would be left with fewer than
+ * MIN_PLAYERS_PER_POOL players.
+ */
+export function updatePools(
+  pools: readonly (readonly PlayerId[])[],
+  players: readonly PlayerId[],
+): PlayerId[][] | null {
+  const sizes = poolSizes(players.length);
+  if (!sizes || sizes.length !== pools.length) return null;
+  const staying = new Set(players);
+  const result = pools.map((pool) => pool.filter((p) => staying.has(p)));
+  const placed = new Set(result.flat());
+  for (const player of players) {
+    if (placed.has(player)) continue;
+    const smallest = result.reduce(
+      (min, pool, i) => (pool.length < result[min]!.length ? i : min),
+      0,
+    );
+    result[smallest]!.push(player);
+  }
+  if (result.some((pool) => pool.length < MIN_PLAYERS_PER_POOL)) return null;
+  return result;
+}
