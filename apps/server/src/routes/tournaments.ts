@@ -2,9 +2,8 @@ import {
   assertValidScore,
   drawPools,
   MIN_PLAYERS_PER_POOL,
-  playOrder,
   poolSizes,
-  roundRobinRounds,
+  updatePools,
   weekNumber,
 } from '@franks/core';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -18,7 +17,6 @@ import {
   playerSessions,
   players,
   poolMembers,
-  pools,
   results,
   tournamentPlayers,
   tournaments,
@@ -35,6 +33,7 @@ import {
   startKnockout,
   syncBracket,
 } from '../tournaments/knockout.js';
+import { deletePoolMatches, poolRace, savePools, syncPoolMatches } from '../tournaments/pools.js';
 import { writeResults } from '../tournaments/results.js';
 
 const idParams = {
@@ -49,21 +48,49 @@ const playerIdList = {
   uniqueItems: true,
 } as const;
 
-/** Pool names in order: A, B, C … */
-const poolName = (index: number) => String.fromCharCode(65 + index);
+const formats = ['8-ball', '9-ball', '10-ball'] as const;
+type GameFormat = (typeof formats)[number];
 
-/** Replaces a draft tournament's pools with the given arrangement. */
-async function savePools(db: Executor, tournamentId: number, arrangement: number[][]) {
-  await db.delete(pools).where(eq(pools.tournamentId, tournamentId));
-  for (const [index, playerIds] of arrangement.entries()) {
-    const [pool] = await db
-      .insert(pools)
-      .values({ tournamentId, name: poolName(index) })
-      .returning({ id: pools.id });
-    await db
-      .insert(poolMembers)
-      .values(playerIds.map((playerId, position) => ({ poolId: pool!.id, playerId, position })));
-  }
+/** Date, format and players: what CreateTurnering sends, and "Rediger spillere" afterwards. */
+const entryBody = {
+  type: 'object',
+  required: ['date', 'format', 'playerIds'],
+  additionalProperties: false,
+  properties: {
+    date: { type: 'string', format: 'date' },
+    format: { type: 'string', enum: formats },
+    playerIds: { ...playerIdList, maxItems: 64 },
+  },
+} as const;
+
+interface Entry {
+  date: string;
+  format: GameFormat;
+  playerIds: number[];
+}
+
+/** Why a player list can't be used: too few players for pools, or an unknown player. */
+async function entryError(db: Executor, playerIds: number[]): Promise<string | null> {
+  if (!poolSizes(playerIds.length)) return 'too_few_players';
+  const found = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(inArray(players.id, playerIds));
+  return found.length === playerIds.length ? null : 'unknown_player';
+}
+
+/** The players, date and pools can change until the knockout starts. */
+const poolsOpen = (status: string) => status === 'draft' || status === 'pools';
+
+/** Draws every pool again at random. Results in the pools are deleted. */
+async function redrawPools(db: Executor, tournamentId: number, playerIds: number[]) {
+  const race = await poolRace(db, tournamentId);
+  const drawn = drawPools(playerIds.map(String), poolSizes(playerIds.length)!).map((pool) =>
+    pool.map(Number),
+  );
+  await deletePoolMatches(db, tournamentId);
+  await savePools(db, tournamentId, drawn);
+  if (race !== null) await syncPoolMatches(db, tournamentId, race);
 }
 
 export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events }> = async (
@@ -85,35 +112,13 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
    * "Færdiggør" on CreateTurnering: creates a draft tournament and draws the pools at random.
    * Only one tournament can be in progress at a time.
    */
-  app.post<{
-    Body: { date: string; format: '8-ball' | '9-ball' | '10-ball'; playerIds: number[] };
-  }>(
+  app.post<{ Body: Entry }>(
     '/tournaments',
-    {
-      preHandler: requireAdmin,
-      schema: {
-        body: {
-          type: 'object',
-          required: ['date', 'format', 'playerIds'],
-          additionalProperties: false,
-          properties: {
-            date: { type: 'string', format: 'date' },
-            format: { type: 'string', enum: ['8-ball', '9-ball', '10-ball'] },
-            playerIds: { ...playerIdList, maxItems: 64 },
-          },
-        },
-      },
-    },
+    { preHandler: requireAdmin, schema: { body: entryBody } },
     async (request, reply) => {
       const { date, format, playerIds } = request.body;
-      const sizes = poolSizes(playerIds.length);
-      if (!sizes) return reply.code(400).send({ error: 'too_few_players' });
-      const found = await db
-        .select({ id: players.id })
-        .from(players)
-        .where(inArray(players.id, playerIds));
-      if (found.length !== playerIds.length)
-        return reply.code(400).send({ error: 'unknown_player' });
+      const error = await entryError(db, playerIds);
+      if (error) return reply.code(400).send({ error });
 
       try {
         const id = await db.transaction(async (tx) => {
@@ -129,8 +134,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           await tx
             .insert(tournamentPlayers)
             .values(playerIds.map((playerId) => ({ tournamentId: tournament!.id, playerId })));
-          const drawn = drawPools(playerIds.map(String), sizes).map((pool) => pool.map(Number));
-          await savePools(tx, tournament!.id, drawn);
+          await redrawPools(tx, tournament!.id, playerIds);
           return tournament!.id;
         });
         events.tournamentChanged(id);
@@ -145,8 +149,9 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * Saves the admin's changes to the pools (swaps, moves) before "finalize brackets". Every
-   * entrant must be in exactly one pool, and each pool needs at least 2 players.
+   * Saves the admin's changes to the pools (swaps, moves), until the knockout starts. Every
+   * entrant must be in exactly one pool, and each pool needs at least 2 players. Once the pools
+   * are being played, a result stays as long as both its players are still in that pool.
    */
   app.put<{ Params: { id: number }; Body: { pools: number[][] } }>(
     '/tournaments/:id/pools',
@@ -168,7 +173,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       const { id } = request.params;
       const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       if (!tournament) return reply.code(404).send({ error: 'not_found' });
-      if (tournament.status !== 'draft') return reply.code(409).send({ error: 'not_draft' });
+      if (!poolsOpen(tournament.status)) return reply.code(409).send({ error: 'pools_closed' });
 
       const arrangement = request.body.pools;
       if (arrangement.some((pool) => pool.length < MIN_PLAYERS_PER_POOL)) {
@@ -184,15 +189,134 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         return reply.code(400).send({ error: 'players_mismatch' });
       }
 
-      await db.transaction((tx) => savePools(tx, id, arrangement));
+      await db.transaction(async (tx) => {
+        await savePools(tx, id, arrangement);
+        const race = await poolRace(tx, id);
+        if (race !== null) await syncPoolMatches(tx, id, race);
+      });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },
   );
 
   /**
-   * "finalize brackets": `{ raceTo }`, 2 to 5. Locks the pools, creates every pool match in play
-   * order with that race length and starts the tournament.
+   * "Rediger spillere": changes the date, format and players until the knockout starts. Players
+   * who leave are taken out of their pool with their matches, and so get no result at all.
+   * Newcomers go into the smallest pool; when the new player count needs another number of
+   * pools, or a pool would get too small, every pool is drawn again and the pool results go.
+   */
+  app.put<{ Params: { id: number }; Body: Entry }>(
+    '/tournaments/:id',
+    { preHandler: requireAdmin, schema: { params: idParams, body: entryBody } },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { date, format, playerIds } = request.body;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      if (!poolsOpen(detail.status)) return reply.code(409).send({ error: 'pools_closed' });
+      const error = await entryError(db, playerIds);
+      if (error) return reply.code(400).send({ error });
+
+      const before = detail.players.map((p) => p.id);
+      const leaving = before.filter((p) => !playerIds.includes(p));
+      const joining = playerIds.filter((p) => !before.includes(p));
+      const kept = updatePools(
+        detail.pools.map((pool) => pool.playerIds.map(String)),
+        playerIds.map(String),
+      );
+      await db.transaction(async (tx) => {
+        await tx
+          .update(tournaments)
+          .set({ date, week: weekNumber(date), format })
+          .where(eq(tournaments.id, id));
+        if (leaving.length > 0) {
+          await tx
+            .delete(tournamentPlayers)
+            .where(
+              and(
+                eq(tournamentPlayers.tournamentId, id),
+                inArray(tournamentPlayers.playerId, leaving),
+              ),
+            );
+        }
+        if (joining.length > 0) {
+          await tx
+            .insert(tournamentPlayers)
+            .values(joining.map((playerId) => ({ tournamentId: id, playerId })));
+        }
+        if (!kept) return redrawPools(tx, id, playerIds);
+        await savePools(
+          tx,
+          id,
+          kept.map((pool) => pool.map(Number)),
+        );
+        const race = await poolRace(tx, id);
+        if (race !== null) await syncPoolMatches(tx, id, race);
+      });
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /** "Randomize": draws every pool again, until the knockout starts. Pool results are deleted. */
+  app.post<{ Params: { id: number } }>(
+    '/tournaments/:id/randomize',
+    { preHandler: requireAdmin, schema: { params: idParams } },
+    async (request, reply) => {
+      const { id } = request.params;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      if (!poolsOpen(detail.status)) return reply.code(409).send({ error: 'pools_closed' });
+      await db.transaction((tx) =>
+        redrawPools(
+          tx,
+          id,
+          detail.players.map((p) => p.id),
+        ),
+      );
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * Changes the pool matches' race length (2 to 5) while the pools are being played. Only before
+   * the first pool result; clear the results to change it later.
+   */
+  app.put<{ Params: { id: number }; Body: { raceTo: number } }>(
+    '/tournaments/:id/pools/race',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['raceTo'],
+          additionalProperties: false,
+          properties: { raceTo: { type: 'integer', minimum: 2, maximum: 5 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      if (detail.status !== 'pools') return reply.code(409).send({ error: 'not_in_pools' });
+      if (detail.matches.some((m) => m.stage === 'pool' && m.framesA !== null)) {
+        return reply.code(409).send({ error: 'round_started' });
+      }
+      await db
+        .update(matches)
+        .set({ raceTo: request.body.raceTo, updatedAt: new Date() })
+        .where(and(eq(matches.tournamentId, id), eq(matches.stage, 'pool')));
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * "Gå til turnering": `{ raceTo }`, 2 to 5. Creates every pool match in play order with that
+   * race length and starts the pools. The players and pools can still be changed afterwards.
    */
   app.post<{ Params: { id: number }; Body: { raceTo: number } }>(
     '/tournaments/:id/start',
@@ -216,22 +340,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       if (detail.status !== 'draft') return reply.code(409).send({ error: 'not_draft' });
 
       await db.transaction(async (tx) => {
-        for (const pool of detail.pools) {
-          const order = playOrder(roundRobinRounds(pool.playerIds.map(String)));
-          if (order.length > 0) {
-            await tx.insert(matches).values(
-              order.map((pairing, index) => ({
-                tournamentId: id,
-                stage: 'pool' as const,
-                poolId: pool.id,
-                playerAId: Number(pairing.playerA),
-                playerBId: Number(pairing.playerB),
-                raceTo,
-                scheduleOrder: index,
-              })),
-            );
-          }
-        }
+        await syncPoolMatches(tx, id, raceTo);
         await tx
           .update(tournaments)
           .set({ status: 'pools' })
