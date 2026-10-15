@@ -9,7 +9,7 @@ import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
-import { useOngoingTournament, useTournament } from '../tournaments';
+import { namesWithHandicap, useOngoingTournament, useTournament } from '../tournaments';
 
 /**
  * /live: the flatscreen in the club. Public and read-only, without the site header, in the dark
@@ -42,7 +42,9 @@ function LiveTournament({ id }: { id: number }) {
   const tournament = useTournament(id);
   if (!tournament.data) return null;
   const data = tournament.data;
-  const names = new Map(data.players.map((p) => [p.id, p.name]));
+  const names = namesWithHandicap(data.players);
+  // "Næste kampe" shows names only; the handicap is already in the table above it.
+  const plainNames = new Map(data.players.map((p) => [p.id, p.name]));
   const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (
@@ -65,7 +67,7 @@ function LiveTournament({ id }: { id: number }) {
                 return (
                   <section key={pool.id} className="pool-block">
                     <PoolTable view={view} names={names} slots={slots} />
-                    {data.status === 'pools' && <UpNext view={view} names={names} />}
+                    {data.status === 'pools' && <UpNext view={view} names={plainNames} />}
                   </section>
                 );
               })}

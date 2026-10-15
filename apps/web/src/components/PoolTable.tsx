@@ -1,3 +1,4 @@
+import { PlayerName } from './PlayerName';
 import type { CSSProperties } from 'react';
 import { isPlayed, scoreFor, type PoolView } from '../poolView';
 import { t } from '../strings';
@@ -62,7 +63,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
             <th>{t.players.name}</th>
             {ids.map((id) => (
               <th key={id} className="opponent" title={names.get(id)}>
-                {names.get(id)}
+                <PlayerName label={names.get(id)} />
               </th>
             ))}
             {padding.map((i) => (
@@ -81,7 +82,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
                   {row.framesFor} W - {row.framesAgainst} L
                 </td>
                 <th scope="row" title={names.get(rowId)}>
-                  {names.get(rowId)}
+                  <PlayerName label={names.get(rowId)} />
                 </th>
                 {ids.map((colId) => {
                   if (colId === rowId) return <td key={colId} className="self" />;

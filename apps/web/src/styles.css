@@ -1628,3 +1628,21 @@ button.match-side:hover {
   padding: 8px 4px;
   break-inside: avoid;
 }
+
+/* A name with its handicap ("Martin Johansen(-1)"): a long name is cut off, never the handicap. */
+.player-name {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: bottom;
+}
+
+.player-name-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.player-handicap {
+  flex: none;
+}

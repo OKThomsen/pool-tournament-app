@@ -2,6 +2,7 @@ import { isPlayed } from '../poolView';
 import { t } from '../strings';
 import type { Match, Tournament } from '../tournaments';
 import { Ball } from './Ball';
+import { PlayerName } from './PlayerName';
 
 // Titles are looked up when rendering, so they follow the current language.
 const ROUNDS = [
@@ -82,7 +83,9 @@ function MatchCard({
             {player !== null && seedOf && (
               <Ball n={seedOf(player)} label={t.knockout.seed(seedOf(player))} />
             )}
-            <span className="name">{player === null ? t.knockout.waiting : names.get(player)}</span>
+            <span className="name">
+              {player === null ? t.knockout.waiting : <PlayerName label={names.get(player)} />}
+            </span>
             <span className="frames">{played ? frames : ''}</span>
           </>
         );
