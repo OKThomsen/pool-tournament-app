@@ -22,6 +22,8 @@ interface PoolEditorProps {
   names: Map<number, string>;
   disabled?: boolean;
   onChange: (pools: number[][]) => void;
+  /** Shown at the bottom of each pool's box, under its players (the pool's race length). */
+  footer?: (index: number) => React.ReactNode;
 }
 
 const playerKey = (id: number) => `player:${id}`;
@@ -40,7 +42,7 @@ const collisionDetection: CollisionDetection = (args) => {
  * The drawn pools before "finalize brackets". Drag a player onto another player to swap them,
  * or into another pool to move them there.
  */
-export function PoolEditor({ pools, names, disabled = false, onChange }: PoolEditorProps) {
+export function PoolEditor({ pools, names, disabled = false, onChange, footer }: PoolEditorProps) {
   const [dragging, setDragging] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sensors = useSensors(
@@ -89,6 +91,9 @@ export function PoolEditor({ pools, names, disabled = false, onChange }: PoolEdi
             {pool.map((id) => (
               <PlayerChip key={id} id={id} name={names.get(id) ?? '?'} disabled={disabled} />
             ))}
+            {/* Pushes the footer to the bottom, so it lines up across pools of different sizes. */}
+            {footer && <div className="pool-spacer" />}
+            {footer?.(index)}
           </PoolDropZone>
         ))}
       </div>

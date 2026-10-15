@@ -1,4 +1,3 @@
-import { DEFAULT_RACE_TO } from '@franks/core';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
@@ -80,7 +79,9 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const start = useStartTournament(tournament.id);
   const cancel = useDeleteTournament(tournament.id);
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
-  const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
+  const races = tournament.pools
+    .map((pool) => `${t.pools.pool} ${pool.name}: ${t.score.raceTo(pool.raceTo).toLowerCase()}`)
+    .join(', ');
 
   const busy = start.isPending || cancel.isPending;
   return (
@@ -94,15 +95,6 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
           {t.saveFailed}
         </p>
       )}
-      <div className="player-form">
-        <RaceToInput
-          value={raceTo}
-          onChange={setRaceTo}
-          min={POOL_RACE_MIN}
-          max={POOL_RACE_MAX}
-          disabled={busy}
-        />
-      </div>
       <div className="form-actions">
         <button
           type="button"
@@ -118,12 +110,12 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
       </div>
       <ConfirmDialog
         open={confirm === 'start'}
-        message={t.ongoing.confirmStart(raceTo)}
+        message={t.ongoing.confirmStart(races)}
         confirmLabel={t.ongoing.finalizeBrackets}
         cancelLabel={t.cancel}
         onConfirm={() => {
           setConfirm(null);
-          start.mutate(raceTo);
+          start.mutate();
         }}
         onCancel={() => setConfirm(null)}
       />
@@ -163,7 +155,6 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
       {editing ? (
         <>
           <PoolsEditor tournament={tournament} />
-          <PoolRace tournament={tournament} />
         </>
       ) : (
         <TournamentPlay tournament={tournament} manage />
@@ -174,12 +165,14 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
 }
 
 /**
- * The pools with drag and drop, and "Randomize". Every change is saved at once; a change that
- * would delete results asks first.
+ * The pools with drag and drop, each with its race length, and "Randomize". Every change is saved
+ * at once; a change that would delete results asks first. A pool's race length is locked once it
+ * has a result.
  */
 function PoolsEditor({ tournament }: { tournament: Tournament }) {
   const savePools = useSavePools(tournament.id);
   const randomize = useRandomizePools(tournament.id);
+  const setRace = useSetPoolRace(tournament.id);
   const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<
     { kind: 'move'; next: number[][]; lost: number } | { kind: 'randomize'; lost: number } | null
@@ -204,12 +197,40 @@ function PoolsEditor({ tournament }: { tournament: Tournament }) {
     else randomize.mutate();
   };
 
-  const busy = savePools.isPending || randomize.isPending;
+  const busy = savePools.isPending || randomize.isPending || setRace.isPending;
+  const played = (poolId: number) =>
+    tournament.matches.some((m) => m.poolId === poolId && m.framesA !== null);
+  // Pools keep their place (A, B …), so the box at `index` is tournament.pools[index].
+  const raceField = (index: number) => {
+    const pool = tournament.pools[index];
+    if (!pool) return null;
+    return (
+      <div className="pool-race">
+        <RaceToInput
+          value={pool.raceTo}
+          onChange={(raceTo) => setRace.mutate({ poolId: pool.id, raceTo })}
+          min={POOL_RACE_MIN}
+          max={POOL_RACE_MAX}
+          disabled={busy || played(pool.id)}
+        />
+      </div>
+    );
+  };
+
   return (
     <>
       <h2>{t.stages.pools}</h2>
-      <PoolEditor pools={arrangement} names={names} disabled={busy} onChange={change} />
-      {(savePools.error || randomize.error) && (
+      <PoolEditor
+        pools={arrangement}
+        names={names}
+        disabled={busy}
+        onChange={change}
+        footer={raceField}
+      />
+      {tournament.pools.some((pool) => played(pool.id)) && (
+        <p className="muted">{t.pools.raceLocked}</p>
+      )}
+      {(savePools.error || randomize.error || setRace.error) && (
         <p className="error" role="alert">
           {t.saveFailed}
         </p>
@@ -236,48 +257,6 @@ function PoolsEditor({ tournament }: { tournament: Tournament }) {
         onCancel={() => setConfirm(null)}
       />
     </>
-  );
-}
-
-/** The pool matches' race length while the pools are on; it can change until the first result. */
-function PoolRace({ tournament }: { tournament: Tournament }) {
-  const setRace = useSetPoolRace(tournament.id);
-  const current = tournament.matches.find((m) => m.stage === 'pool')?.raceTo ?? DEFAULT_RACE_TO;
-  const [value, setValue] = useState(current);
-  const locked = poolResults(tournament) > 0;
-
-  return (
-    <form
-      className="player-form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        setRace.mutate(value);
-      }}
-    >
-      <RaceToInput
-        value={locked ? current : value}
-        onChange={setValue}
-        min={POOL_RACE_MIN}
-        max={POOL_RACE_MAX}
-        disabled={locked || setRace.isPending}
-      />
-      {locked ? (
-        <p className="muted">{t.pools.raceLocked}</p>
-      ) : (
-        <button
-          type="submit"
-          className="secondary"
-          disabled={setRace.isPending || value === current}
-        >
-          {t.save}
-        </button>
-      )}
-      {setRace.error && (
-        <span className="error" role="alert">
-          {t.saveFailed}
-        </span>
-      )}
-    </form>
   );
 }
 

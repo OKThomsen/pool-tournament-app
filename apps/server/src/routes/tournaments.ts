@@ -17,6 +17,7 @@ import {
   playerSessions,
   players,
   poolMembers,
+  pools,
   results,
   tournamentPlayers,
   tournaments,
@@ -34,7 +35,7 @@ import {
   swapFirstRound,
   syncBracket,
 } from '../tournaments/knockout.js';
-import { deletePoolMatches, poolRace, savePools, syncPoolMatches } from '../tournaments/pools.js';
+import { deletePoolMatches, savePools, syncPoolMatches } from '../tournaments/pools.js';
 import { writeResults } from '../tournaments/results.js';
 
 const idParams = {
@@ -83,15 +84,22 @@ async function entryError(db: Executor, playerIds: number[]): Promise<string | n
 /** The players, date and pools can change until the knockout starts. */
 const poolsOpen = (status: string) => status === 'draft' || status === 'pools';
 
-/** Draws every pool again at random. Results in the pools are deleted. */
-async function redrawPools(db: Executor, tournamentId: number, playerIds: number[]) {
-  const race = await poolRace(db, tournamentId);
+/**
+ * Draws every pool again at random. Results in the pools are deleted; once the pools are being
+ * played (`playing`), fresh matches are created.
+ */
+async function redrawPools(
+  db: Executor,
+  tournamentId: number,
+  playerIds: number[],
+  playing: boolean,
+) {
   const drawn = drawPools(playerIds.map(String), poolSizes(playerIds.length)!).map((pool) =>
     pool.map(Number),
   );
   await deletePoolMatches(db, tournamentId);
   await savePools(db, tournamentId, drawn);
-  if (race !== null) await syncPoolMatches(db, tournamentId, race);
+  if (playing) await syncPoolMatches(db, tournamentId);
 }
 
 export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events }> = async (
@@ -135,7 +143,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           await tx
             .insert(tournamentPlayers)
             .values(playerIds.map((playerId) => ({ tournamentId: tournament!.id, playerId })));
-          await redrawPools(tx, tournament!.id, playerIds);
+          await redrawPools(tx, tournament!.id, playerIds, false);
           return tournament!.id;
         });
         events.tournamentChanged(id);
@@ -192,8 +200,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
 
       await db.transaction(async (tx) => {
         await savePools(tx, id, arrangement);
-        const race = await poolRace(tx, id);
-        if (race !== null) await syncPoolMatches(tx, id, race);
+        if (tournament.status === 'pools') await syncPoolMatches(tx, id);
       });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
@@ -245,14 +252,14 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
             .insert(tournamentPlayers)
             .values(joining.map((playerId) => ({ tournamentId: id, playerId })));
         }
-        if (!kept) return redrawPools(tx, id, playerIds);
+        const playing = detail.status === 'pools';
+        if (!kept) return redrawPools(tx, id, playerIds, playing);
         await savePools(
           tx,
           id,
           kept.map((pool) => pool.map(Number)),
         );
-        const race = await poolRace(tx, id);
-        if (race !== null) await syncPoolMatches(tx, id, race);
+        if (playing) await syncPoolMatches(tx, id);
       });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
@@ -273,6 +280,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           tx,
           id,
           detail.players.map((p) => p.id),
+          detail.status === 'pools',
         ),
       );
       events.tournamentChanged(id);
@@ -281,15 +289,22 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * Changes the pool matches' race length (2 to 5) while the pools are being played. Only before
-   * the first pool result; clear the results to change it later.
+   * One pool's race length (2 to 5), until the knockout starts. Once the pools are being played,
+   * only while that pool has no result; clear its results to change it later.
    */
-  app.put<{ Params: { id: number }; Body: { raceTo: number } }>(
-    '/tournaments/:id/pools/race',
+  app.put<{ Params: { id: number; poolId: number }; Body: { raceTo: number } }>(
+    '/tournaments/:id/pools/:poolId/race',
     {
       preHandler: requireAdmin,
       schema: {
-        params: idParams,
+        params: {
+          type: 'object',
+          required: ['id', 'poolId'],
+          properties: {
+            id: { type: 'integer', minimum: 1 },
+            poolId: { type: 'integer', minimum: 1 },
+          },
+        },
         body: {
           type: 'object',
           required: ['raceTo'],
@@ -299,49 +314,42 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       },
     },
     async (request, reply) => {
-      const { id } = request.params;
+      const { id, poolId } = request.params;
+      const { raceTo } = request.body;
       const detail = await tournamentDetail(db, id);
-      if (!detail) return reply.code(404).send({ error: 'not_found' });
-      if (detail.status !== 'pools') return reply.code(409).send({ error: 'not_in_pools' });
-      if (detail.matches.some((m) => m.stage === 'pool' && m.framesA !== null)) {
+      const pool = detail?.pools.find((p) => p.id === poolId);
+      if (!detail || !pool) return reply.code(404).send({ error: 'not_found' });
+      if (!poolsOpen(detail.status)) return reply.code(409).send({ error: 'pools_closed' });
+      if (detail.matches.some((m) => m.poolId === poolId && m.framesA !== null)) {
         return reply.code(409).send({ error: 'round_started' });
       }
-      await db
-        .update(matches)
-        .set({ raceTo: request.body.raceTo, updatedAt: new Date() })
-        .where(and(eq(matches.tournamentId, id), eq(matches.stage, 'pool')));
+      await db.transaction(async (tx) => {
+        await tx.update(pools).set({ raceTo }).where(eq(pools.id, poolId));
+        await tx
+          .update(matches)
+          .set({ raceTo, updatedAt: new Date() })
+          .where(eq(matches.poolId, poolId));
+      });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },
   );
 
   /**
-   * "Gå til turnering": `{ raceTo }`, 2 to 5. Creates every pool match in play order with that
-   * race length and starts the pools. The players and pools can still be changed afterwards.
+   * "Gå til turnering": creates every pool match in play order, with each pool's race length,
+   * and starts the pools. The players and pools can still be changed afterwards.
    */
-  app.post<{ Params: { id: number }; Body: { raceTo: number } }>(
+  app.post<{ Params: { id: number } }>(
     '/tournaments/:id/start',
-    {
-      preHandler: requireAdmin,
-      schema: {
-        params: idParams,
-        body: {
-          type: 'object',
-          required: ['raceTo'],
-          additionalProperties: false,
-          properties: { raceTo: { type: 'integer', minimum: 2, maximum: 5 } },
-        },
-      },
-    },
+    { preHandler: requireAdmin, schema: { params: idParams } },
     async (request, reply) => {
       const { id } = request.params;
-      const { raceTo } = request.body;
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (detail.status !== 'draft') return reply.code(409).send({ error: 'not_draft' });
 
       await db.transaction(async (tx) => {
-        await syncPoolMatches(tx, id, raceTo);
+        await syncPoolMatches(tx, id);
         await tx
           .update(tournaments)
           .set({ status: 'pools' })

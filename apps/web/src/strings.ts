@@ -138,8 +138,8 @@ const da = {
     upNext: 'Næste kampe',
     week: 'Uge',
     cancelTournament: 'Annuller turnering',
-    confirmStart: (raceTo: number) =>
-      `Start puljespillet? Puljekampene spilles først til ${raceTo}. Spillere og puljer kan stadig ændres bagefter.`,
+    confirmStart: (races: string) =>
+      `Start puljespillet? ${races}. Spillere og puljer kan stadig ændres bagefter.`,
     confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
     confirmConclude:
       'Afslut turneringen? Placeringer og point gemmes, og den kommer på listen over turneringer.',
@@ -162,7 +162,7 @@ const da = {
     confirmMove: (n: number) =>
       `${n === 1 ? '1 resultat' : `${n} resultater`} bliver slettet, fordi spillerne ikke længere er i samme pulje. Fortsæt?`,
     raceLocked:
-      'Længden kan kun ændres, før der er puljeresultater. Ryd resultaterne for at ændre den.',
+      'En puljes længde kan kun ændres, før den har resultater. Ryd puljens resultater for at ændre den.',
   },
   score: {
     raceTo: (n: number) => `Først til ${n}`,
@@ -375,8 +375,8 @@ const en: Strings = {
     upNext: 'Up next',
     week: 'Week',
     cancelTournament: 'Cancel tournament',
-    confirmStart: (raceTo: number) =>
-      `Start the pools? Pool matches are a race to ${raceTo}. Players and pools can still be changed afterwards.`,
+    confirmStart: (races: string) =>
+      `Start the pools? ${races}. Players and pools can still be changed afterwards.`,
     confirmCancel: 'Are you sure you want to cancel the tournament? It will be deleted.',
     confirmConclude:
       'Conclude the tournament? Placings and points are saved and it goes on the list of tournaments.',
@@ -399,7 +399,7 @@ const en: Strings = {
     confirmMove: (n: number) =>
       `${n === 1 ? '1 result' : `${n} results`} will be deleted, because the players are no longer in the same pool. Continue?`,
     raceLocked:
-      'The length can only change before there are pool results. Clear the results to change it.',
+      "A pool's length can only change before it has results. Clear the pool's results to change it.",
   },
   score: {
     raceTo: (n: number) => `Race to ${n}`,

@@ -44,10 +44,14 @@ function savePools(id: number, arrangement: number[][]) {
 }
 
 /** "Gå til turnering". */
-function start(id: number, raceTo = 2) {
+function start(id: number) {
+  return app.inject({ method: 'POST', url: `/api/tournaments/${id}/start`, cookies });
+}
+
+function setPoolRace(id: number, poolId: number, raceTo: number) {
   return app.inject({
-    method: 'POST',
-    url: `/api/tournaments/${id}/start`,
+    method: 'PUT',
+    url: `/api/tournaments/${id}/pools/${poolId}/race`,
     cookies,
     payload: { raceTo },
   });
@@ -273,17 +277,23 @@ describe('POST /api/tournaments/:id/randomize', () => {
   const randomize = (id: number) =>
     app.inject({ method: 'POST', url: `/api/tournaments/${id}/randomize`, cookies });
 
-  it('draws the pools again and starts the pool matches over', async () => {
-    const { id } = (await create()).json();
-    const started = (await start(id, 3)).json();
-    await score(id, started.matches[0].id, 3);
+  it("draws the pools again and starts the pool matches over, keeping each pool's race", async () => {
+    const { id, pools } = (await create()).json();
+    await setPoolRace(id, pools[0].id, 3);
+    const started = (await start(id)).json();
+    const poolA = started.matches.filter((m: Match) => m.poolId === pools[0].id);
+    await score(id, poolA[0].id, 3);
     const response = await randomize(id);
     expect(response.statusCode).toBe(200);
     const after = response.json();
     expect(after.status).toBe('pools');
     expect(after.pools.map((p: { playerIds: number[] }) => p.playerIds.length)).toEqual([5, 4]);
     expect(after.matches).toHaveLength(16);
-    expect(after.matches.every((m: Match) => m.framesA === null && m.raceTo === 3)).toBe(true);
+    expect(after.matches.every((m: Match) => m.framesA === null)).toBe(true);
+    const raceOf = (poolId: number) =>
+      new Set(after.matches.filter((m: Match) => m.poolId === poolId).map((m: Match) => m.raceTo));
+    expect(raceOf(pools[0].id)).toEqual(new Set([3]));
+    expect(raceOf(pools[1].id)).toEqual(new Set([2]));
   });
 
   it('works in the draft too', async () => {
@@ -294,22 +304,33 @@ describe('POST /api/tournaments/:id/randomize', () => {
   });
 });
 
-describe('PUT /api/tournaments/:id/pools/race', () => {
-  const setRace = (id: number, raceTo: number) =>
-    app.inject({
-      method: 'PUT',
-      url: `/api/tournaments/${id}/pools/race`,
-      cookies,
-      payload: { raceTo },
-    });
-
-  it('changes the race length until the first pool result', async () => {
-    const { id } = (await create()).json();
+describe('PUT /api/tournaments/:id/pools/:poolId/race', () => {
+  it("sets a pool's race length in the draft, used when the pools start", async () => {
+    const { id, pools } = (await create()).json();
+    const set = await setPoolRace(id, pools[1].id, 3);
+    expect(set.json().pools.map((p: { raceTo: number }) => p.raceTo)).toEqual([2, 3]);
     const started = (await start(id)).json();
-    const changed = (await setRace(id, 4)).json();
-    expect(changed.matches.every((m: Match) => m.raceTo === 4)).toBe(true);
-    await score(id, started.matches[0].id, 4);
-    expect((await setRace(id, 3)).json()).toEqual({ error: 'round_started' });
+    for (const match of started.matches as Match[]) {
+      expect(match.raceTo).toBe(match.poolId === pools[1].id ? 3 : 2);
+    }
+  });
+
+  it("changes a pool's race length until that pool has a result", async () => {
+    const { id, pools } = (await create()).json();
+    const started = (await start(id)).json();
+    const inA = started.matches.find((m: Match) => m.poolId === pools[0].id);
+    await score(id, inA.id);
+    expect((await setPoolRace(id, pools[0].id, 3)).json()).toEqual({ error: 'round_started' });
+    const changed = (await setPoolRace(id, pools[1].id, 4)).json();
+    const poolB = changed.matches.filter((m: Match) => m.poolId === pools[1].id);
+    expect(poolB.every((m: Match) => m.raceTo === 4)).toBe(true);
+  });
+
+  it('only accepts a race to 2–5, for a pool of this tournament', async () => {
+    const { id, pools } = (await create()).json();
+    expect((await setPoolRace(id, pools[0].id, 1)).statusCode).toBe(400);
+    expect((await setPoolRace(id, pools[0].id, 6)).statusCode).toBe(400);
+    expect((await setPoolRace(id, 99999, 3)).statusCode).toBe(404);
   });
 });
 
@@ -337,34 +358,6 @@ describe('POST /api/tournaments/:id/start', () => {
       true,
     );
     expect(poolAMatches[0]).toMatchObject({ raceTo: 2, framesA: null, framesB: null });
-  });
-
-  it('creates the pool matches with the chosen race length', async () => {
-    const { id } = (await create()).json();
-    const response = await app.inject({
-      method: 'POST',
-      url: `/api/tournaments/${id}/start`,
-      cookies,
-      payload: { raceTo: 3 },
-    });
-    const { matches } = response.json();
-    expect(matches.every((m: { raceTo: number }) => m.raceTo === 3)).toBe(true);
-  });
-
-  it('only accepts a race to 2–5', async () => {
-    const { id } = (await create()).json();
-    const start = (raceTo: number) =>
-      app.inject({
-        method: 'POST',
-        url: `/api/tournaments/${id}/start`,
-        cookies,
-        payload: { raceTo },
-      });
-    expect((await start(1)).statusCode).toBe(400);
-    expect((await start(6)).statusCode).toBe(400);
-    const started = await start(5);
-    expect(started.statusCode).toBe(200);
-    expect(started.json().matches[0].raceTo).toBe(5);
   });
 
   it('can only start once', async () => {

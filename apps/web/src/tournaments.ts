@@ -15,6 +15,8 @@ export interface Entrant {
 export interface Pool {
   id: number;
   name: string;
+  /** Frames to win this pool's matches (2 to 5). */
+  raceTo: number;
   playerIds: number[];
   /** The admin's order for ties that results can't break, best first. */
   tiebreak: number[];
@@ -129,10 +131,13 @@ export function useRandomizePools(id: number) {
   );
 }
 
-/** The pool matches' race length, while no pool result is in. */
+/** One pool's race length, until the knockout; during the pools only while it has no result. */
 export function useSetPoolRace(id: number) {
-  return useTournamentMutation((raceTo: number) =>
-    api<Tournament>(`/tournaments/${id}/pools/race`, { method: 'PUT', body: { raceTo } }),
+  return useTournamentMutation((input: { poolId: number; raceTo: number }) =>
+    api<Tournament>(`/tournaments/${id}/pools/${input.poolId}/race`, {
+      method: 'PUT',
+      body: { raceTo: input.raceTo },
+    }),
   );
 }
 
@@ -171,9 +176,10 @@ export function useSavePools(id: number) {
 export const POOL_RACE_MIN = 2;
 export const POOL_RACE_MAX = 5;
 
+/** "Gå til turnering": creates the pool matches, each pool with its own race length. */
 export function useStartTournament(id: number) {
-  return useTournamentMutation((raceTo: number) =>
-    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST', body: { raceTo } }),
+  return useTournamentMutation(() =>
+    api<Tournament>(`/tournaments/${id}/start`, { method: 'POST' }),
   );
 }
 

@@ -886,8 +886,31 @@ table.clickable tbody tr:hover {
   border: 2px dashed var(--border);
   border-radius: var(--radius);
   background: var(--surface-muted);
+  /* A column, so a footer (the race length) can sit at the bottom of every box. */
+  display: flex;
+  flex-direction: column;
 }
 
+.pool-spacer {
+  flex: 1;
+}
+
+/* The pool's race length, under its players in the pool editor. */
+.pool-race {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.pool-race input {
+  width: 5em;
+}
+
+/* Locked: the pool already has a result. */
+.pool-race input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .pool-zone.over {
   border-color: var(--accent);
   background: var(--accent-soft);
