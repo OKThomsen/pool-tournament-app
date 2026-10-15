@@ -64,7 +64,11 @@ export function OngoingTournamentPage() {
 function EditPlayersButton({ tournamentId }: { tournamentId: number }) {
   const navigate = useNavigate();
   return (
-    <button type="button" onClick={() => navigate(`/admin/turnering/${tournamentId}/rediger`)}>
+    <button
+      type="button"
+      className="secondary"
+      onClick={() => navigate(`/admin/turnering/${tournamentId}/rediger`)}
+    >
       {t.ongoing.editPlayers}
     </button>
   );
@@ -81,7 +85,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
   const busy = start.isPending || cancel.isPending;
   return (
     <>
-      <div className="form-actions">
+      <div className="form-actions admin-tools">
         <EditPlayersButton tournamentId={tournament.id} />
       </div>
       <PoolsEditor tournament={tournament} />
@@ -146,11 +150,11 @@ function PoolPlay({ tournament }: { tournament: Tournament }) {
   const [editing, setEditing] = useState(false);
   return (
     <>
-      <div className="form-actions">
+      <div className="form-actions admin-tools">
         <EditPlayersButton tournamentId={tournament.id} />
         <button
           type="button"
-          className={editing ? 'primary' : undefined}
+          className={editing ? 'primary' : 'secondary'}
           onClick={() => setEditing(!editing)}
         >
           {editing ? t.ongoing.done : t.ongoing.editPools}
@@ -211,7 +215,7 @@ function PoolsEditor({ tournament }: { tournament: Tournament }) {
         </p>
       )}
       <div className="form-actions">
-        <button type="button" disabled={busy} onClick={shuffle}>
+        <button type="button" className="secondary" disabled={busy} onClick={shuffle}>
           {t.pools.randomize}
         </button>
       </div>
@@ -260,7 +264,11 @@ function PoolRace({ tournament }: { tournament: Tournament }) {
       {locked ? (
         <p className="muted">{t.pools.raceLocked}</p>
       ) : (
-        <button type="submit" disabled={setRace.isPending || value === current}>
+        <button
+          type="submit"
+          className="secondary"
+          disabled={setRace.isPending || value === current}
+        >
           {t.save}
         </button>
       )}
