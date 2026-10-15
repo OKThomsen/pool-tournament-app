@@ -16,17 +16,34 @@ const seeds8 = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
 const aWins = { framesA: 2, framesB: 0 };
 
 describe('seedQualifiers', () => {
-  it('orders by wins, then set score', () => {
+  it('orders by wins, then set score, among players in the same position', () => {
     const seeds = seedQualifiers([
-      { playerId: 'low', won: 1, setScore: 5 },
-      { playerId: 'top', won: 3, setScore: 1 },
-      { playerId: 'mid', won: 1, setScore: 6 },
+      { playerId: 'low', rank: 1, won: 1, setScore: 5 },
+      { playerId: 'top', rank: 1, won: 3, setScore: 1 },
+      { playerId: 'mid', rank: 1, won: 1, setScore: 6 },
     ]);
     expect(seeds).toEqual(['top', 'mid', 'low']);
   });
 
+  it('puts every pool winner before any runner-up', () => {
+    // The workbook's example: Mathias S (pool B's runner-up) is level with two pool winners.
+    const seeds = seedQualifiers([
+      { playerId: 'Mathias S', rank: 2, won: 2, setScore: 2 },
+      { playerId: 'Martin J', rank: 1, won: 2, setScore: 2 },
+      { playerId: 'Tobias K', rank: 1, won: 3, setScore: 3 },
+      { playerId: 'Mathias', rank: 1, won: 2, setScore: 2 },
+    ]);
+    expect(seeds[0]).toBe('Tobias K');
+    expect(seeds[3]).toBe('Mathias S');
+  });
+
   it('breaks exact ties at random', () => {
-    const tied = ['A', 'B', 'C', 'D'].map((playerId) => ({ playerId, won: 2, setScore: 2 }));
+    const tied = ['A', 'B', 'C', 'D'].map((playerId) => ({
+      playerId,
+      rank: 1,
+      won: 2,
+      setScore: 2,
+    }));
     const draws = new Set(
       Array.from({ length: 20 }, (_, i) => seedQualifiers(tied, seededRng(i)).join()),
     );
@@ -88,12 +105,33 @@ describe('firstRound', () => {
     });
   });
 
-  it('never rearranges semifinals', () => {
-    const { pairings } = firstRound(['S1', 'S2', 'S3', 'S4'], () => 'A');
+  it('keeps semifinals 1v4 and 2v3 when no two opponents share a pool', () => {
+    const { pairings } = firstRound(['S1', 'S2', 'S3', 'S4'], pools());
     expect(pairings).toEqual([
       ['S1', 'S4'],
       ['S2', 'S3'],
     ]);
+  });
+
+  it('switches the semifinals to 1v3 and 2v4 to keep a pool apart', () => {
+    // The workbook's example: seeds 1 and 4 are pool B's winner and runner-up.
+    const pool = pools({ S1: 'B', S2: 'A', S3: 'C', S4: 'B' });
+    expect(firstRound(['S1', 'S2', 'S3', 'S4'], pool)).toEqual({
+      pairings: [
+        ['S1', 'S3'],
+        ['S2', 'S4'],
+      ],
+      samePoolMatches: 0,
+    });
+  });
+
+  it('keeps 1v4 and 2v3 when a same-pool semifinal is unavoidable', () => {
+    const { pairings, samePoolMatches } = firstRound(['S1', 'S2', 'S3', 'S4'], () => 'A');
+    expect(pairings).toEqual([
+      ['S1', 'S4'],
+      ['S2', 'S3'],
+    ]);
+    expect(samePoolMatches).toBe(2);
   });
 
   it('feeds the rearranged pairings into the bracket', () => {

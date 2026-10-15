@@ -556,14 +556,18 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   a player's finishing position. With equal pools this is the same as "top N from each pool".
   Wins are compared as raw counts, like the workbook. This favours bigger pools on purpose:
   finishing second in a small pool is easier, and those players also play fewer matches.
-- **Seeding**: wins → set score → random. Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
+- **Seeding** (`seedQualifiers`, as the workbook's Qualifier Seeding): finishing position in the
+  pool first, so every pool winner is seeded above every runner-up, then wins → set score →
+  random (the workbook uses a manual number, then the pool order, for that last step). Bracket layout as in the workbook: QF1 1v8, QF2 4v5,
   QF3 2v7, QF4 3v6; SF1 = winners of QF1/QF2, SF2 = winners of QF3/QF4. Semifinals only: 1v4,
   2v3. The top two seeds can only meet in the final.
-- **Same-pool players apart** (`firstRound`, quarterfinals only): two players from the same pool
-  don't meet in a quarterfinal. Seeds 1–4 keep their places and seeds 5–8 are rearranged:
+- **Same-pool players apart** (`firstRound`, the first round only): two players from the same pool
+  don't meet in the first round, but may meet later (after the quarterfinals, in the
+  semifinals). When the semifinals are the first round, 1v4 and 2v3 become 1v3 and 2v4 if that
+  means fewer same-pool matches, like the workbook. In the quarterfinals seeds 1–4 keep their places and seeds 5–8 are rearranged:
   seed 1 gets the weakest opponent possible, then seed 2, 3 and 4. If a clash can't be
   avoided, strict seeding is used and `samePoolMatches` says how many clashes there are.
-  Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
+  The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
 - **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2–5, chosen
   by the admin **per pool** (`pools.race_to`, 2 by default), so a pool of 3 can play longer
@@ -641,3 +645,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-15 | The knockout's first round is computed as before, but the admin can then swap players in it, or bring in a player who didn't advance, while its matches have no result. |
 | 2026-10-15 | The pool race length is chosen per pool (2–5), e.g. race to 3 for a pool of 3 next to pools of 4 playing race to 2. |
 | 2026-10-15 | On /live, /play and the admin's tournament pages a player's handicap follows their name in parentheses ("Martin Johansen(-1)"), not in a column of its own. The public result pages under Turneringer show names only. |
+| 2026-10-15 | Seeding follows the workbook's Qualifier Seeding: pool winners first, then runners-up (each by wins → set score), and players from the same pool are kept apart in the first round, the semifinals too when they are the first round. |

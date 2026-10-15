@@ -3,6 +3,7 @@ CLAUDE.md
 *.pdf
 *.fig
 *.xlsx
+*.xlsm
 
 # Dependencies and build output
 node_modules/
