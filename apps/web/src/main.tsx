@@ -8,6 +8,7 @@ import { LanguageProvider } from './components/Language';
 import { LiveUpdates } from './components/LiveUpdates';
 import { RequireAdmin } from './components/RequireAdmin';
 import { CreateTournamentPage } from './pages/CreateTournamentPage';
+import { EditTournamentPage } from './pages/EditTournamentPage';
 import { FrontPage } from './pages/FrontPage';
 import { LivePage } from './pages/LivePage';
 import { LoginPage } from './pages/LoginPage';
@@ -60,6 +61,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="admin" element={<RequireAdmin />}>
                 <Route path="turnering/ny" element={<CreateTournamentPage />} />
                 <Route path="turnering/:id" element={<OngoingTournamentPage />} />
+                <Route path="turnering/:id/rediger" element={<EditTournamentPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>

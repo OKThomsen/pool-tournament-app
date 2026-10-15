@@ -900,6 +900,12 @@ table.clickable tbody tr:hover {
   box-shadow: var(--shadow-raised);
 }
 
+/* A player in a knockout match that has a result: it can't be swapped. */
+.chip.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* ---------- Pool tables: the winner's cell green, the loser's red (from the spec) ---------- */
 
 .pool-block {

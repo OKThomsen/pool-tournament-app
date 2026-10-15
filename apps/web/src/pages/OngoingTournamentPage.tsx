@@ -12,8 +12,12 @@ import { t } from '../strings';
 import {
   POOL_RACE_MAX,
   POOL_RACE_MIN,
+  poolResults,
+  resultsLost,
   useDeleteTournament,
+  useRandomizePools,
   useSavePools,
+  useSetPoolRace,
   useStartTournament,
   useTournament,
   type Tournament,
@@ -44,9 +48,9 @@ export function OngoingTournamentPage() {
         {t.create.count(data.players.length)}
       </p>
       <JoinCode tournamentId={data.id} />
-      {data.status === 'draft' ? (
-        <DraftPools tournament={data} />
-      ) : (
+      {data.status === 'draft' && <DraftPools tournament={data} />}
+      {data.status === 'pools' && <PoolPlay tournament={data} />}
+      {data.status === 'knockout' && (
         <>
           <TournamentPlay tournament={data} manage />
           <CancelTournament tournamentId={data.id} />
@@ -56,31 +60,32 @@ export function OngoingTournamentPage() {
   );
 }
 
-/** Before "finalize brackets": rearrange the drawn pools, then start or cancel. */
+/** "Rediger spillere": back to the player list, which keeps everyone already added. */
+function EditPlayersButton({ tournamentId }: { tournamentId: number }) {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(`/admin/turnering/${tournamentId}/rediger`)}>
+      {t.ongoing.editPlayers}
+    </button>
+  );
+}
+
+/** Before "Gå til turnering": rearrange the drawn pools, then start or cancel. */
 function DraftPools({ tournament }: { tournament: Tournament }) {
   const navigate = useNavigate();
-  const savePools = useSavePools(tournament.id);
   const start = useStartTournament(tournament.id);
   const cancel = useDeleteTournament(tournament.id);
-  const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
   const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
   const [raceTo, setRaceTo] = useState(DEFAULT_RACE_TO);
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
 
-  // Follow the server's copy when it changes (for example after saving).
-  useEffect(() => setArrangement(tournament.pools.map((p) => p.playerIds)), [tournament.pools]);
-
-  const change = (next: number[][]) => {
-    setArrangement(next);
-    savePools.mutate(next);
-  };
-
-  const busy = savePools.isPending || start.isPending || cancel.isPending;
+  const busy = start.isPending || cancel.isPending;
   return (
     <>
-      <h2>{t.stages.pools}</h2>
-      <PoolEditor pools={arrangement} names={names} disabled={busy} onChange={change} />
-      {(savePools.error || start.error || cancel.error) && (
+      <div className="form-actions">
+        <EditPlayersButton tournamentId={tournament.id} />
+      </div>
+      <PoolsEditor tournament={tournament} />
+      {(start.error || cancel.error) && (
         <p className="error" role="alert">
           {t.saveFailed}
         </p>
@@ -130,6 +135,141 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
         onCancel={() => setConfirm(null)}
       />
     </>
+  );
+}
+
+/**
+ * The pools being played. "Rediger spillere" and "Rediger puljer" stay available until the
+ * knockout: the pool editor replaces the pool tables while it is open.
+ */
+function PoolPlay({ tournament }: { tournament: Tournament }) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      <div className="form-actions">
+        <EditPlayersButton tournamentId={tournament.id} />
+        <button
+          type="button"
+          className={editing ? 'primary' : undefined}
+          onClick={() => setEditing(!editing)}
+        >
+          {editing ? t.ongoing.done : t.ongoing.editPools}
+        </button>
+      </div>
+      {editing ? (
+        <>
+          <PoolsEditor tournament={tournament} />
+          <PoolRace tournament={tournament} />
+        </>
+      ) : (
+        <TournamentPlay tournament={tournament} manage />
+      )}
+      <CancelTournament tournamentId={tournament.id} />
+    </>
+  );
+}
+
+/**
+ * The pools with drag and drop, and "Randomize". Every change is saved at once; a change that
+ * would delete results asks first.
+ */
+function PoolsEditor({ tournament }: { tournament: Tournament }) {
+  const savePools = useSavePools(tournament.id);
+  const randomize = useRandomizePools(tournament.id);
+  const [arrangement, setArrangement] = useState(() => tournament.pools.map((p) => p.playerIds));
+  const [confirm, setConfirm] = useState<
+    { kind: 'move'; next: number[][]; lost: number } | { kind: 'randomize'; lost: number } | null
+  >(null);
+  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+
+  // Follow the server's copy when it changes (for example after saving).
+  useEffect(() => setArrangement(tournament.pools.map((p) => p.playerIds)), [tournament.pools]);
+
+  const apply = (next: number[][]) => {
+    setArrangement(next);
+    savePools.mutate(next);
+  };
+  const change = (next: number[][]) => {
+    const lost = resultsLost(tournament, next);
+    if (lost > 0) setConfirm({ kind: 'move', next, lost });
+    else apply(next);
+  };
+  const shuffle = () => {
+    const lost = poolResults(tournament);
+    if (lost > 0) setConfirm({ kind: 'randomize', lost });
+    else randomize.mutate();
+  };
+
+  const busy = savePools.isPending || randomize.isPending;
+  return (
+    <>
+      <h2>{t.stages.pools}</h2>
+      <PoolEditor pools={arrangement} names={names} disabled={busy} onChange={change} />
+      {(savePools.error || randomize.error) && (
+        <p className="error" role="alert">
+          {t.saveFailed}
+        </p>
+      )}
+      <div className="form-actions">
+        <button type="button" disabled={busy} onClick={shuffle}>
+          {t.pools.randomize}
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirm !== null}
+        message={
+          confirm?.kind === 'move'
+            ? t.pools.confirmMove(confirm.lost)
+            : t.pools.confirmRandomize(confirm?.lost ?? 0)
+        }
+        confirmLabel={confirm?.kind === 'move' ? t.ongoing.done : t.pools.randomize}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          if (confirm?.kind === 'move') apply(confirm.next);
+          else randomize.mutate();
+          setConfirm(null);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+    </>
+  );
+}
+
+/** The pool matches' race length while the pools are on; it can change until the first result. */
+function PoolRace({ tournament }: { tournament: Tournament }) {
+  const setRace = useSetPoolRace(tournament.id);
+  const current = tournament.matches.find((m) => m.stage === 'pool')?.raceTo ?? DEFAULT_RACE_TO;
+  const [value, setValue] = useState(current);
+  const locked = poolResults(tournament) > 0;
+
+  return (
+    <form
+      className="player-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setRace.mutate(value);
+      }}
+    >
+      <RaceToInput
+        value={locked ? current : value}
+        onChange={setValue}
+        min={POOL_RACE_MIN}
+        max={POOL_RACE_MAX}
+        disabled={locked || setRace.isPending}
+      />
+      {locked ? (
+        <p className="muted">{t.pools.raceLocked}</p>
+      ) : (
+        <button type="submit" disabled={setRace.isPending || value === current}>
+          {t.save}
+        </button>
+      )}
+      {setRace.error && (
+        <span className="error" role="alert">
+          {t.saveFailed}
+        </span>
+      )}
+    </form>
   );
 }
 

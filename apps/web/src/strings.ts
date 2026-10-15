@@ -116,6 +116,10 @@ const da = {
     tooFew: 'Der skal mindst være 4 spillere',
     alreadyRunning: 'Der er allerede en turnering i gang. Afslut eller annuller den først.',
     goToRunning: 'Gå til turneringen',
+    editTitle: 'Rediger turnering',
+    redraw: 'Det nye antal spillere kræver en anden opdeling, så alle puljer bliver trukket igen.',
+    resultsLost: (n: number) =>
+      n === 1 ? '1 puljeresultat bliver slettet.' : `${n} puljeresultater bliver slettet.`,
   },
   stages: {
     pools: 'Indledende puljer',
@@ -125,14 +129,17 @@ const da = {
     final: 'Finale',
   },
   ongoing: {
-    finalizeBrackets: 'Lås puljerne',
+    finalizeBrackets: 'Gå til turnering',
+    editPlayers: 'Rediger spillere',
+    editPools: 'Rediger puljer',
+    done: 'Færdig',
     completeQualifiers: 'Afslut puljespillet',
     concludeTournament: 'Afslut turneringen',
     upNext: 'Næste kampe',
     week: 'Uge',
     cancelTournament: 'Annuller turnering',
     confirmStart: (raceTo: number) =>
-      `Er puljerne klar? Puljekampene spilles først til ${raceTo}. Bagefter kan det ikke ændres.`,
+      `Start puljespillet? Puljekampene spilles først til ${raceTo}. Spillere og puljer kan stadig ændres bagefter.`,
     confirmCancel: 'Er du sikker på at du vil annullere turneringen? Den bliver slettet.',
     confirmConclude:
       'Afslut turneringen? Placeringer og point gemmes, og den kommer på listen over turneringer.',
@@ -149,6 +156,13 @@ const da = {
     complete: 'Alle kampe i puljen er spillet.',
     allComplete: 'Alle puljekampe er spillet. Næste trin: Afslut puljespillet.',
     jumpTo: 'Gå til pulje',
+    randomize: 'Randomize',
+    confirmRandomize: (n: number) =>
+      `Træk alle puljer igen? ${n === 1 ? '1 puljeresultat' : `${n} puljeresultater`} bliver slettet.`,
+    confirmMove: (n: number) =>
+      `${n === 1 ? '1 resultat' : `${n} resultater`} bliver slettet, fordi spillerne ikke længere er i samme pulje. Fortsæt?`,
+    raceLocked:
+      'Længden kan kun ændres, før der er puljeresultater. Ryd resultaterne for at ændre den.',
   },
   score: {
     raceTo: (n: number) => `Først til ${n}`,
@@ -182,6 +196,11 @@ const da = {
     raceHelp:
       'Vælg først til hvor mange frames, før rundens kampe kan spilles. Den kan ændres, indtil rundens første resultat er indtastet.',
     raceMissing: 'Skal vælges',
+    swap: 'Byt spillere',
+    swapHelp:
+      'Træk en spiller over på en anden for at bytte dem. En spiller, der ikke gik videre, kan trækkes ind i stedet for en anden. Kampe med et resultat kan ikke ændres.',
+    notQualified: 'Gik ikke videre',
+    matchPlayed: 'Kampen har et resultat. Ryd det først.',
   },
   joinCode: {
     label: 'Kode til /play',
@@ -333,6 +352,10 @@ const en: Strings = {
     tooFew: 'You need at least 4 players',
     alreadyRunning: 'A tournament is already in progress. Finish or cancel it first.',
     goToRunning: 'Go to the tournament',
+    editTitle: 'Edit tournament',
+    redraw: 'The new number of players needs a different split, so every pool is drawn again.',
+    resultsLost: (n: number) =>
+      n === 1 ? '1 pool result will be deleted.' : `${n} pool results will be deleted.`,
   },
   stages: {
     pools: 'Preliminary pools',
@@ -342,14 +365,17 @@ const en: Strings = {
     final: 'Final',
   },
   ongoing: {
-    finalizeBrackets: 'Finalize brackets',
+    finalizeBrackets: 'Go to tournament',
+    editPlayers: 'Edit players',
+    editPools: 'Edit pools',
+    done: 'Done',
     completeQualifiers: 'Complete qualifier brackets',
     concludeTournament: 'Conclude tournament',
     upNext: 'Up next',
     week: 'Week',
     cancelTournament: 'Cancel tournament',
     confirmStart: (raceTo: number) =>
-      `Are the pools ready? Pool matches are a race to ${raceTo}. This can’t be changed afterwards.`,
+      `Start the pools? Pool matches are a race to ${raceTo}. Players and pools can still be changed afterwards.`,
     confirmCancel: 'Are you sure you want to cancel the tournament? It will be deleted.',
     confirmConclude:
       'Conclude the tournament? Placings and points are saved and it goes on the list of tournaments.',
@@ -366,6 +392,13 @@ const en: Strings = {
     complete: 'Every match in this pool has been played.',
     allComplete: 'Every pool match has been played. Next step: Complete qualifier brackets.',
     jumpTo: 'Go to pool',
+    randomize: 'Randomize',
+    confirmRandomize: (n: number) =>
+      `Draw every pool again? ${n === 1 ? '1 pool result' : `${n} pool results`} will be deleted.`,
+    confirmMove: (n: number) =>
+      `${n === 1 ? '1 result' : `${n} results`} will be deleted, because the players are no longer in the same pool. Continue?`,
+    raceLocked:
+      'The length can only change before there are pool results. Clear the results to change it.',
   },
   score: {
     raceTo: (n: number) => `Race to ${n}`,
@@ -399,6 +432,11 @@ const en: Strings = {
     raceHelp:
       'Choose the race length before the round can be played. It can be changed until the round has its first result.',
     raceMissing: 'Not chosen yet',
+    swap: 'Swap players',
+    swapHelp:
+      'Drag a player onto another to swap them. A player who did not advance can be dragged in to take someone’s place. Matches with a result can’t change.',
+    notQualified: 'Did not advance',
+    matchPlayed: 'That match has a result. Clear it first.',
   },
   joinCode: {
     label: 'Code for /play',

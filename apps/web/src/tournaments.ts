@@ -115,6 +115,52 @@ export function useCreateTournament() {
   );
 }
 
+/** "Rediger spillere": date, format and players, until the knockout starts. */
+export function useEditTournament(id: number) {
+  return useTournamentMutation((input: { date: string; format: GameFormat; playerIds: number[] }) =>
+    api<Tournament>(`/tournaments/${id}`, { method: 'PUT', body: input }),
+  );
+}
+
+/** "Randomize": draws every pool again. Pool results are deleted. */
+export function useRandomizePools(id: number) {
+  return useTournamentMutation(() =>
+    api<Tournament>(`/tournaments/${id}/randomize`, { method: 'POST' }),
+  );
+}
+
+/** The pool matches' race length, while no pool result is in. */
+export function useSetPoolRace(id: number) {
+  return useTournamentMutation((raceTo: number) =>
+    api<Tournament>(`/tournaments/${id}/pools/race`, { method: 'PUT', body: { raceTo } }),
+  );
+}
+
+/** Swaps two players in the knockout's first round, or brings in one who didn't advance. */
+export function useSwapKnockout(id: number) {
+  return useTournamentMutation((input: { playerId: number; otherId: number }) =>
+    api<Tournament>(`/tournaments/${id}/knockout/swap`, { method: 'PUT', body: input }),
+  );
+}
+
+/**
+ * How many pool results a new arrangement of the pools would delete: those whose two players are
+ * no longer both in the match's pool. Pools are compared by position (A, B …).
+ */
+export function resultsLost(tournament: Tournament, arrangement: number[][]): number {
+  return tournament.matches.filter((m) => {
+    if (m.stage !== 'pool' || m.framesA === null) return false;
+    const index = tournament.pools.findIndex((p) => p.id === m.poolId);
+    const pool = arrangement[index] ?? [];
+    return !pool.includes(m.playerAId!) || !pool.includes(m.playerBId!);
+  }).length;
+}
+
+/** How many pool results there are. */
+export function poolResults(tournament: Tournament): number {
+  return tournament.matches.filter((m) => m.stage === 'pool' && m.framesA !== null).length;
+}
+
 export function useSavePools(id: number) {
   return useTournamentMutation((pools: number[][]) =>
     api<Tournament>(`/tournaments/${id}/pools`, { method: 'PUT', body: { pools } }),

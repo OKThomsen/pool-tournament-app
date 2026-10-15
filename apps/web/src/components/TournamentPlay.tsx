@@ -12,6 +12,7 @@ import {
 } from '../tournaments';
 import { Bracket } from './Bracket';
 import { ConfirmDialog } from './ConfirmDialog';
+import { KnockoutSwap } from './KnockoutSwap';
 import { PoolTable, UpNext } from './PoolTable';
 import { QualifyPanel } from './QualifyPanel';
 import { RacePanel } from './RacePanel';
@@ -44,6 +45,7 @@ export function TournamentPlay({
   const setResult = useSetResult(tournament.id);
   const clearResult = useClearResult(tournament.id);
   const [scoring, setScoring] = useState<Scoring | null>(null);
+  const [swapping, setSwapping] = useState(false);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
@@ -76,8 +78,23 @@ export function TournamentPlay({
       {tournament.status === 'knockout' && (
         <>
           <h2>{t.knockout.title}</h2>
-          {manage && <RacePanel tournament={tournament} />}
-          <Bracket tournament={tournament} names={names} onPlayerClick={score} />
+          {manage && (
+            <div className="form-actions">
+              <button
+                type="button"
+                className={swapping ? 'primary' : undefined}
+                onClick={() => setSwapping(!swapping)}
+              >
+                {swapping ? t.ongoing.done : t.knockout.swap}
+              </button>
+            </div>
+          )}
+          {manage && !swapping && <RacePanel tournament={tournament} />}
+          {swapping ? (
+            <KnockoutSwap tournament={tournament} />
+          ) : (
+            <Bracket tournament={tournament} names={names} onPlayerClick={score} />
+          )}
           {manage && knockoutDone && <Conclude tournament={tournament} />}
         </>
       )}
