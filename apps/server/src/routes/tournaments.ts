@@ -31,6 +31,7 @@ import {
   knockoutChangeAllowed,
   qualifiersUnchanged,
   startKnockout,
+  swapFirstRound,
   syncBracket,
 } from '../tournaments/knockout.js';
 import { deletePoolMatches, poolRace, savePools, syncPoolMatches } from '../tournaments/pools.js';
@@ -656,6 +657,39 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         .update(matches)
         .set({ raceTo, updatedAt: new Date() })
         .where(and(eq(matches.tournamentId, id), eq(matches.stage, stage)));
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * The admin's drag and drop in the knockout's first round: `{ playerId, otherId }` swaps two
+   * players in it, or puts `otherId` (who didn't qualify) in `playerId`'s place.
+   */
+  app.put<{ Params: { id: number }; Body: { playerId: number; otherId: number } }>(
+    '/tournaments/:id/knockout/swap',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['playerId', 'otherId'],
+          additionalProperties: false,
+          properties: {
+            playerId: { type: 'integer', minimum: 1 },
+            otherId: { type: 'integer', minimum: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { playerId, otherId } = request.body;
+      const detail = await tournamentDetail(db, id);
+      if (!detail) return reply.code(404).send({ error: 'not_found' });
+      const result = await db.transaction((tx) => swapFirstRound(tx, detail, playerId, otherId));
+      if (!result.ok) return reply.code(result.status).send({ error: result.error });
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },

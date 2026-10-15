@@ -381,6 +381,7 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 2 \| 4 \| 8, adminOrder? }`, where 2 is the final only (400 `final_only_needs_one_pool` unless there is exactly one pool; the pool's #1 and #2 are the seeds). Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match without a race length (every round, the first included, gets one from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 | `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
+| `PUT /api/tournaments/:id/knockout/swap` | admin | `{ playerId, otherId }`: the admin's drag and drop in the knockout's first round (quarterfinals, semifinals, or the final only). Swaps the two players, or, when `otherId` is in the tournament but not in the knockout, puts them in `playerId`'s place and seed (`swapInFirstRound`). Only matches without a result can change (409 `match_played`); later rounds follow (`syncBracket`). 409 `not_in_knockout`, 400 `unknown_player` / `not_in_first_round`. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
@@ -550,7 +551,11 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
-  bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+  first round is drawn from the seeds once, when the knockout starts, and stored; the admin can
+  then swap players in it, or bring in a player who didn't qualify, while its matches have no
+  result. The rest of the bracket is recomputed from the stored first round and the scores every
+  time (`bracketFromFirstRound`), so a corrected score flows through. Corrections to pool results
+  are checked against who qualified by the results, not against who is in the bracket.
 - **Final only** (`qualifyForFinal`, knockout size 2): an option when there is a single pool
   (4–6 players). The pool's #1 and #2 (by the pool ranking) play the final; there are no
   semifinals and no third-place final. A tie the admin must settle first is one that decides who
