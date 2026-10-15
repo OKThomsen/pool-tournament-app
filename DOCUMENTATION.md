@@ -95,10 +95,12 @@ and signs out everyone using the old one, in case the code has spread beyond the
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
 another pool to move them (pools keep at least 2 players). Every change is saved at once. On
-touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
-chooses the pool matches' length in "Først til" (2 to 5, 2 preselected), the same field
-(`RaceToInput`) as the knockout's race lengths. "Gå til turnering" (after a confirmation that
-repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament. It
+touch screens a short press starts the drag, so the page still scrolls. At the bottom of each
+pool's box the admin chooses that pool's length in "Først til" (2 to 5, 2 by default; saved at
+once), the same field (`RaceToInput`) as the knockout's race lengths, so a pool of 3 can play a
+longer race than the pools of 4. The pool tables show it in their title ("Pulje C · Først til 3"),
+on /live too. "Gå til turnering" (after a confirmation that lists each pool's length) creates the
+pool matches; "Annuller turnering" deletes the tournament. It
 stays at the bottom of the page through pool play and the knockout. "Randomize" draws every pool
 again.
 
@@ -108,8 +110,8 @@ with the date, format and every player already filled in; "Færdiggør" saves an
 pools. The form says beforehand what saving will do: the pools are drawn again when the new count
 needs another number of pools, and how many pool results go with the players who leave; it asks
 for confirmation when results would be deleted. During pool play "Rediger puljer" swaps the pool
-tables for the pool editor, with "Randomize" and the race length (only changeable while there are
-no pool results). A move that would delete results (a played match whose players are no longer
+tables for the pool editor, with "Randomize" and each pool's race length (only changeable while that
+pool has no results). A move that would delete results (a played match whose players are no longer
 in the same pool), and "Randomize" once results exist, ask first.
 
 In the knockout, "Byt spillere" (`KnockoutSwap.tsx`) shows the first round as drag-and-drop: drag
@@ -632,3 +634,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-14 | Hosted at turneringsportal.kjaer-thomsen.dk on a Linux VM (Docker, Caddy for HTTPS), with nightly `pg_dump` backups. |
 | 2026-10-15 | "Lås puljerne" is now "Gå til turnering" and locks nothing: until the knockout starts, the admin can change the date, format and players ("Rediger spillere", the list is kept) and rearrange or "Randomize" the pools. Results stay while both players are in the same pool; Randomize, or a new number of pools, starts the pool results over. Players who leave get no result at all. The pool race length can change while there are no pool results. |
 | 2026-10-15 | The knockout's first round is computed as before, but the admin can then swap players in it, or bring in a player who didn't advance, while its matches have no result. |
+| 2026-10-15 | The pool race length is chosen per pool (2–5), e.g. race to 3 for a pool of 3 next to pools of 4 playing race to 2. |

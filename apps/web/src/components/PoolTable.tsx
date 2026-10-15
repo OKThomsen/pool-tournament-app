@@ -44,7 +44,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
       <table className="pool-table" style={style}>
         <caption>
           <span>
-            {t.pools.pool} {pool.name}
+            {t.pools.pool} {pool.name} · {t.score.raceTo(pool.raceTo)}
           </span>
         </caption>
         <colgroup>

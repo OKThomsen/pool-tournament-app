@@ -888,6 +888,22 @@ table.clickable tbody tr:hover {
   background: var(--surface-muted);
 }
 
+/* The pool's race length, under its players in the pool editor. */
+.pool-race {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.pool-race input {
+  width: 5em;
+}
+
+/* Locked: the pool already has a result. */
+.pool-race input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .pool-zone.over {
   border-color: var(--accent);
   background: var(--accent-soft);
