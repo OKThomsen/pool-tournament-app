@@ -8,3 +8,5 @@
 *.fig
 *.xlsx
 CLAUDE.md
+backups
+*.dump

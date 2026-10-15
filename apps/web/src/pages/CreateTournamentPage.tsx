@@ -1,5 +1,5 @@
 import { poolSizes, todayInDenmark } from '@franks/core';
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router';
 import { ApiError } from '../api';
@@ -10,21 +10,15 @@ import {
   playerErrorMessage,
   toPlayerRequest,
 } from '../components/PlayerFields';
-import { useCreatePlayer, useSearchPlayers, type Player } from '../players';
+import { matchesWordStart } from '../components/TableView';
+import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
 import { useCreateTournament, useOngoingTournament, type GameFormat } from '../tournaments';
 
 const FORMATS: GameFormat[] = ['8-ball', '9-ball', '10-ball'];
 
-/** The value, but only after it has stopped changing for `ms`. */
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
+/** How many matches "Tilføj spiller" lists at most. */
+const MAX_RESULTS = 10;
 
 /** CreateTurnering: pick date, format and players, then "Færdiggør" draws the pools. */
 export function CreateTournamentPage() {
@@ -138,18 +132,21 @@ export function CreateTournamentPage() {
 }
 
 /**
- * "Tilføj spiller": a live search that matches the start of a name. When nobody matches
+ * "Tilføj spiller": a live search that matches the start of any word in a name, like the
+ * search on Spillere ("jo" finds "Martin Johansen"). When nobody matches
  * exactly, "Tilføj ny spiller" opens a form for the new player (handicaps, Medlem), which
  * creates them and adds them in one step.
  */
 function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Player) => void }) {
   const [query, setQuery] = useState('');
-  const search = useSearchPlayers(useDebounced(query, 150));
+  const players = usePlayers();
   const [creating, setCreating] = useState(false);
 
   const name = query.trim();
-  const results = (search.data ?? []).filter((p) => !excluded.some((e) => e.id === p.id));
-  const exactMatch = (search.data ?? []).some((p) => p.name.toLowerCase() === name.toLowerCase());
+  const results = (players.data ?? [])
+    .filter((p) => matchesWordStart(p.name, name) && !excluded.some((e) => e.id === p.id))
+    .slice(0, MAX_RESULTS);
+  const exactMatch = (players.data ?? []).some((p) => p.name.toLowerCase() === name.toLowerCase());
 
   const pick = (player: Player) => {
     onAdd(player);
@@ -183,10 +180,10 @@ function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Play
               </button>
             </li>
           ))}
-          {search.isSuccess && results.length === 0 && (
+          {players.isSuccess && results.length === 0 && (
             <li className="muted">{t.create.noMatch}</li>
           )}
-          {search.isSuccess && !exactMatch && (
+          {players.isSuccess && !exactMatch && (
             <li>
               <button type="button" className="add-new" onClick={() => setCreating(true)}>
                 {t.create.addNewPlayer}: {name}

@@ -1,0 +1,6 @@
+# Caddy gets and renews the HTTPS certificate for DOMAIN by itself (Let's Encrypt), redirects
+# http to https, and passes everything to the app. Live updates (Server-Sent Events) are
+# streamed through without buffering.
+{$DOMAIN} {
+	reverse_proxy app:3000
+}

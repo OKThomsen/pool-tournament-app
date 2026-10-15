@@ -83,33 +83,6 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       .orderBy(sql`lower(${players.name})`);
   });
 
-  /** "Tilføj spiller": players whose name starts with `q`, ignoring case. */
-  app.get<{ Querystring: { q: string } }>(
-    '/players/search',
-    {
-      preHandler: requireAdmin,
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['q'],
-          properties: { q: { type: 'string', maxLength: 60 } },
-        },
-      },
-    },
-    async (request) => {
-      const prefix = request.query.q.trim();
-      if (!prefix) return [];
-      // Escape LIKE wildcards so "%" or "_" in a name are matched literally.
-      const pattern = prefix.replace(/[\\%_]/g, (c) => `\\${c}`) + '%';
-      return db
-        .select(playerColumns())
-        .from(players)
-        .where(sql`${players.name} ilike ${pattern}`)
-        .orderBy(sql`lower(${players.name})`)
-        .limit(10);
-    },
-  );
-
   app.get<{ Params: { id: number } }>(
     '/players/:id',
     { schema: { params: idParams } },

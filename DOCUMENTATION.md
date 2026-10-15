@@ -79,8 +79,9 @@ The frontpage's Sæson Leaderboard shows the same standings as "name – points"
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
-and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
-player has exactly that name, "Tilføj ny spiller" opens a dialog with the typed name and the same
+and the players. "Tilføj spiller" searches as you type, like the search on Spillere (the start of
+any word in a name, ignoring case, so "jo" finds "Martin Johansen"; up to 10 hits, and Enter adds
+the first); when no player has exactly that name, "Tilføj ny spiller" opens a dialog with the typed name and the same
 fields as on Spillere (handicap, frame handicap, Medlem and Medlem siden, from
 `components/PlayerFields.tsx`), which creates the player and adds them in one go. The page
 shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
@@ -207,6 +208,65 @@ built React app for every other path, so client-side routes like `/live` work on
 image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
 so it can move to any container host later.
 
+### Production (turneringsportal.kjaer-thomsen.dk)
+
+The site runs on a Linux VM with Docker, from a clone of this repo. `docker-compose.prod.yml`
+goes on top of `docker-compose.yml` and adds:
+
+- **Caddy** (`Caddyfile`) on ports 80 and 443. It gets and renews the HTTPS certificate from
+  Let's Encrypt by itself, redirects http to https, and passes everything on to the app,
+  including the live-update stream. It's the only container with published ports; the app and
+  Postgres are reachable only on the Docker network.
+- `COOKIE_SECURE=true` and `TRUST_PROXY=uniquelocal` for the app (see Login API).
+- A **backup** container (below).
+
+Before the first start, the domain's A record must point at the server's public IP, and ports
+80 and 443 must reach the VM (port forwarding on the router if it's behind one). Caddy can't
+get a certificate otherwise.
+
+**First setup**, in the repo folder on the server:
+
+```sh
+cat > .env <<EOF
+COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+DOMAIN=turneringsportal.kjaer-thomsen.dk
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
+EOF
+docker compose up -d --build
+docker compose exec app node apps/server/dist/cli/admin.js create <username>
+```
+
+With `COMPOSE_FILE` in `.env`, a plain `docker compose …` uses both files. Postgres only reads
+`POSTGRES_PASSWORD` when it creates the database, so changing it later in `.env` doesn't change
+the real password. If the database was first started with the default password, recreate it
+while it's still empty (`docker compose down -v`, then `up` again).
+
+**Updating**: `git pull && docker compose up -d --build`. The server migrates the database on
+start, and open pages reload themselves with the new version. Logs: `docker compose logs -f app`
+(or `caddy`, `backup`).
+
+**Backups.** The backup container (`scripts/backup.sh`) dumps the database with `pg_dump` when
+it starts and every night at 04:00 Danish time, into `backups/` in the repo folder (git-ignored):
+`daily/` keeps 14 days, and `monthly/` keeps the last dump of each month for 12 months
+(`BACKUP_HOUR`, `BACKUP_KEEP_DAYS`, `BACKUP_KEEP_MONTHS` and `BACKUP_DIR` in `.env` change
+this). `docker compose logs backup` shows each dump. These copies live on the same machine, so
+copy `backups/` somewhere else regularly too.
+
+**Restoring** a dump replaces the whole database. The app is stopped while it runs:
+
+```sh
+scripts/restore.sh backups/daily/franks-2026-10-14_0400.dump
+```
+
+The same script moves data between machines. To take the data from the local stack to the
+server, dump it on the PC and restore it on the server:
+
+```sh
+docker compose exec -T db pg_dump -U franks --format=custom franks > franks.dump   # on the PC
+scp franks.dump <user>@<server>:<repo folder>/
+scripts/restore.sh franks.dump                                                     # on the server
+```
+
 ### Admin accounts
 
 There is no sign-up. Only the owner creates admin accounts, with this command on the machine
@@ -234,6 +294,10 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 | `POST /api/auth/logout` | anyone | Ends the session and clears the cookie. 204. |
 | `GET /api/auth/me` | admin | `{ username }`, or 401 when not logged in. |
 
+- The rate limits (login, and joining on `/play`) count per client IP. Behind a reverse proxy,
+  set `TRUST_PROXY` to the proxy's addresses (Fastify's `trustProxy`; `uniquelocal` for Caddy on
+  the Docker network), so the IP comes from `X-Forwarded-For`. Without it every request looks
+  like the proxy's, and one person's wrong passwords would lock everyone out.
 - Sessions last 30 days. The cookie (`session`) is `HttpOnly` and `SameSite=Lax`; set
   `COOKIE_SECURE=true` once the app is served over HTTPS. Only a SHA-256 hash of the token is
   stored in `sessions`.
@@ -267,13 +331,12 @@ clear results in that tournament's pools and knockout, and nothing else. This ru
 | Route | Who | What |
 |---|---|---|
 | `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached; a final-only tournament has none, so it doesn't count), `quarterfinals` (played in one). |
-| `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
 | `GET /api/players/:id` | public | One player. |
 | `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member?, memberSince? }` → 201. |
 | `PATCH /api/players/:id` | admin | Change name, handicaps and/or membership. A handicap change sets `lastAdjusted` to today (Danish time). `member: true` starts a membership (`memberSince`, default today; on an active one it moves the start), `member: false` ends it today. `memberSince` can't be in the future (400 `member_since_in_future`) or come without `member: true` (400 `member_since_without_member`). |
 | `DELETE /api/players/:id` | admin | 204. Refused with 409 `player_has_tournaments` if the player has been in a tournament, so history stays intact. |
 
-Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so the search never
+Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so "Tilføj spiller" never
 shows two identical names. Handicaps are whole numbers from −20 to 20.
 
 **Membership and season points.** Membership runs all year, the off-season included (members
@@ -539,3 +602,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | Sæson has a picker for earlier seasons (every season with a concluded tournament). The frontpage leaderboard stays on the current season (open question 8). |
 | 2026-10-13 | Pool matches can be race to 2–5 (was 2 or 3). |
 | 2026-10-14 | Admins can delete any tournament, concluded ones included; its results, and so its season points and statistics, go with it. |
+| 2026-10-14 | Hosted at turneringsportal.kjaer-thomsen.dk on a Linux VM (Docker, Caddy for HTTPS), with nightly `pg_dump` backups. |
