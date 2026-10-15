@@ -4,6 +4,8 @@ import { Events, type ChangeEvent } from '../events.js';
 import { loginAsAdmin } from '../test/auth.js';
 import { createTestDb, resetDb } from '../test/database.js';
 import { addPlayers } from '../test/fixtures.js';
+import { tournaments } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const { db, pool } = createTestDb();
 const events = new Events();
@@ -30,6 +32,52 @@ function create(ids = playerIds, date = '2026-10-07') {
     cookies,
     payload: { date, format: '8-ball', playerIds: ids },
   });
+}
+
+function savePools(id: number, arrangement: number[][]) {
+  return app.inject({
+    method: 'PUT',
+    url: `/api/tournaments/${id}/pools`,
+    cookies,
+    payload: { pools: arrangement },
+  });
+}
+
+/** "Gå til turnering". */
+function start(id: number, raceTo = 2) {
+  return app.inject({
+    method: 'POST',
+    url: `/api/tournaments/${id}/start`,
+    cookies,
+    payload: { raceTo },
+  });
+}
+
+/** Player A wins the match, in a race to `raceTo`. */
+function score(id: number, matchId: number, raceTo = 2) {
+  return app.inject({
+    method: 'PUT',
+    url: `/api/tournaments/${id}/matches/${matchId}/result`,
+    cookies,
+    payload: { framesA: raceTo, framesB: 0 },
+  });
+}
+
+type Nine = [number, number, number, number, number, number, number, number, number];
+
+interface Match {
+  id: number;
+  poolId: number | null;
+  playerAId: number | null;
+  playerBId: number | null;
+  raceTo: number | null;
+  framesA: number | null;
+}
+
+function matchBetween(tournament: { matches: Match[] }, a: number, b: number) {
+  return tournament.matches.find(
+    (m) => (m.playerAId === a && m.playerBId === b) || (m.playerAId === b && m.playerBId === a),
+  )!;
 }
 
 describe('POST /api/tournaments', () => {
@@ -92,15 +140,6 @@ describe('POST /api/tournaments', () => {
 });
 
 describe('PUT /api/tournaments/:id/pools', () => {
-  async function savePools(id: number, arrangement: number[][]) {
-    return app.inject({
-      method: 'PUT',
-      url: `/api/tournaments/${id}/pools`,
-      cookies,
-      payload: { pools: arrangement },
-    });
-  }
-
   it("saves the admin's swaps and moves", async () => {
     const { id } = (await create()).json();
     const arrangement = [playerIds.slice(0, 3), playerIds.slice(3)];
@@ -125,16 +164,152 @@ describe('PUT /api/tournaments/:id/pools', () => {
     expect(response.json()).toEqual({ error: 'pool_too_small' });
   });
 
-  it('only works before the tournament starts', async () => {
+  it('keeps the pool ids, and results while both players stay in the pool', async () => {
     const { id } = (await create()).json();
-    await app.inject({
-      method: 'POST',
-      url: `/api/tournaments/${id}/start`,
-      cookies,
-      payload: { raceTo: 2 },
-    });
+    await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)]);
+    const started = (await start(id)).json();
+    const [poolA, poolB] = started.pools;
+    const [p1, p2, p3, p4, p5, p6, p7, p8, p9] = playerIds as Nine;
+    // One result between two players who stay in pool A, one with p5, who moves to pool B.
+    const staying = matchBetween(started, p1, p2);
+    const moving = matchBetween(started, p1, p5);
+    await score(id, staying.id);
+    await score(id, moving.id);
+
+    const response = await savePools(id, [
+      [p1, p2, p3, p4],
+      [p6, p7, p8, p9, p5],
+    ]);
+    expect(response.statusCode).toBe(200);
+    const after = response.json();
+    expect(after.pools.map((p: { id: number }) => p.id)).toEqual([poolA.id, poolB.id]);
+    expect(matchBetween(after, p1, p2)).toMatchObject({ id: staying.id, framesA: 2 });
+    expect(matchBetween(after, p1, p5)).toBeUndefined();
+    // Pool A of 4 has 6 matches, pool B of 5 has 10, and p5 plays everyone in pool B.
+    expect(after.matches).toHaveLength(16);
+    expect(matchBetween(after, p5!, p6!)).toMatchObject({ poolId: poolB.id, framesA: null });
+  });
+
+  it('only works until the knockout starts', async () => {
+    const { id } = (await create()).json();
+    await db.update(tournaments).set({ status: 'knockout' }).where(eq(tournaments.id, id));
     const response = await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)]);
-    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ error: 'pools_closed' });
+  });
+});
+
+describe('PUT /api/tournaments/:id', () => {
+  function edit(id: number, ids: number[], date = '2026-10-08', format = '9-ball') {
+    return app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${id}`,
+      cookies,
+      payload: { date, format, playerIds: ids },
+    });
+  }
+
+  it('changes the date and format', async () => {
+    const { id } = (await create()).json();
+    const response = await edit(id, playerIds, '2026-10-14');
+    expect(response.json()).toMatchObject({ date: '2026-10-14', week: 42, format: '9-ball' });
+  });
+
+  it('puts a latecomer into the smallest pool and keeps the rest of the pools', async () => {
+    const [late] = await addPlayers(db, 'Sen');
+    const { id } = (await create()).json();
+    await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)]);
+    const response = await edit(id, [...playerIds, late!.id]);
+    expect(response.json().pools.map((p: { playerIds: number[] }) => p.playerIds)).toEqual([
+      playerIds.slice(0, 5),
+      [...playerIds.slice(5), late!.id],
+    ]);
+    expect(response.json().players).toHaveLength(10);
+  });
+
+  it('takes out a player who leaves, with their matches, during the pools', async () => {
+    const { id } = (await create()).json();
+    await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)]);
+    const started = (await start(id)).json();
+    const [p1, p2, p3] = playerIds as Nine;
+    const kept = matchBetween(started, p2, p3);
+    await score(id, matchBetween(started, p1, p2).id);
+    await score(id, kept.id);
+
+    const after = (await edit(id, playerIds.slice(1))).json();
+    expect(after.players.map((p: { id: number }) => p.id)).not.toContain(p1);
+    expect(after.pools[0].playerIds).toEqual(playerIds.slice(1, 5));
+    expect(after.matches.some((m: Match) => m.playerAId === p1 || m.playerBId === p1)).toBe(false);
+    expect(matchBetween(after, p2, p3)).toMatchObject({ id: kept.id, framesA: 2 });
+    // Two pools of 4: 6 + 6 matches.
+    expect(after.matches).toHaveLength(12);
+  });
+
+  it('draws the pools again when the player count needs another number of pools', async () => {
+    const extra = await addPlayers(db, 'Sen 1', 'Sen 2');
+    const { id } = (await create()).json();
+    const started = (await start(id)).json();
+    await score(id, started.matches[0].id);
+    // 9 → 11 players is 4 + 4 + 3.
+    const after = (await edit(id, [...playerIds, ...extra.map((p) => p.id)])).json();
+    expect(after.pools.map((p: { playerIds: number[] }) => p.playerIds.length)).toEqual([4, 4, 3]);
+    expect(after.matches.every((m: Match) => m.framesA === null)).toBe(true);
+    expect(after.matches).toHaveLength(6 + 6 + 3);
+  });
+
+  it('needs at least 4 known players', async () => {
+    const { id } = (await create()).json();
+    expect((await edit(id, playerIds.slice(0, 3))).json()).toEqual({ error: 'too_few_players' });
+    expect((await edit(id, [...playerIds, 9999])).json()).toEqual({ error: 'unknown_player' });
+  });
+
+  it('only works until the knockout starts', async () => {
+    const { id } = (await create()).json();
+    await db.update(tournaments).set({ status: 'knockout' }).where(eq(tournaments.id, id));
+    expect((await edit(id, playerIds)).json()).toEqual({ error: 'pools_closed' });
+  });
+});
+
+describe('POST /api/tournaments/:id/randomize', () => {
+  const randomize = (id: number) =>
+    app.inject({ method: 'POST', url: `/api/tournaments/${id}/randomize`, cookies });
+
+  it('draws the pools again and starts the pool matches over', async () => {
+    const { id } = (await create()).json();
+    const started = (await start(id, 3)).json();
+    await score(id, started.matches[0].id, 3);
+    const response = await randomize(id);
+    expect(response.statusCode).toBe(200);
+    const after = response.json();
+    expect(after.status).toBe('pools');
+    expect(after.pools.map((p: { playerIds: number[] }) => p.playerIds.length)).toEqual([5, 4]);
+    expect(after.matches).toHaveLength(16);
+    expect(after.matches.every((m: Match) => m.framesA === null && m.raceTo === 3)).toBe(true);
+  });
+
+  it('works in the draft too', async () => {
+    const { id } = (await create()).json();
+    const after = (await randomize(id)).json();
+    expect(after.status).toBe('draft');
+    expect(after.matches).toEqual([]);
+  });
+});
+
+describe('PUT /api/tournaments/:id/pools/race', () => {
+  const setRace = (id: number, raceTo: number) =>
+    app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${id}/pools/race`,
+      cookies,
+      payload: { raceTo },
+    });
+
+  it('changes the race length until the first pool result', async () => {
+    const { id } = (await create()).json();
+    const started = (await start(id)).json();
+    const changed = (await setRace(id, 4)).json();
+    expect(changed.matches.every((m: Match) => m.raceTo === 4)).toBe(true);
+    await score(id, started.matches[0].id, 4);
+    expect((await setRace(id, 3)).json()).toEqual({ error: 'round_started' });
   });
 });
 

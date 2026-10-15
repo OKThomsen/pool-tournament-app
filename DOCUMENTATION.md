@@ -97,9 +97,24 @@ the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap th
 another pool to move them (pools keep at least 2 players). Every change is saved at once. On
 touch screens a short press starts the drag, so the page still scrolls. Below the pools the admin
 chooses the pool matches' length in "Først til" (2 to 5, 2 preselected), the same field
-(`RaceToInput`) as the knockout's race lengths. "finalize brackets" (after a confirmation that
+(`RaceToInput`) as the knockout's race lengths. "Gå til turnering" (after a confirmation that
 repeats the length) creates the pool matches; "Annuller turnering" deletes the tournament. It
-stays at the bottom of the page through pool play and the knockout.
+stays at the bottom of the page through pool play and the knockout. "Randomize" draws every pool
+again.
+
+Until the knockout starts, nothing is locked. "Rediger spillere" opens the player list at
+`/admin/turnering/:id/rediger` (`EditTournamentPage.tsx`, the same `EntryForm` as Ny Turnering)
+with the date, format and every player already filled in; "Færdiggør" saves and goes back to the
+pools. The form says beforehand what saving will do: the pools are drawn again when the new count
+needs another number of pools, and how many pool results go with the players who leave; it asks
+for confirmation when results would be deleted. During pool play "Rediger puljer" swaps the pool
+tables for the pool editor, with "Randomize" and the race length (only changeable while there are
+no pool results). A move that would delete results (a played match whose players are no longer
+in the same pool), and "Randomize" once results exist, ask first.
+
+In the knockout, "Byt spillere" (`KnockoutSwap.tsx`) shows the first round as drag-and-drop: drag
+a player onto another to swap them, or drag in someone from "Gik ikke videre" to take a player's
+place and seed. Players in a match with a result are locked.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
@@ -370,14 +385,18 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `GET /api/tournaments/:id/code` | admin | `{ code }`: the join code for `/play` (null once concluded). |
 | `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
 | `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
-| `PUT /api/tournaments/:id/pools` | admin | Draft only. `{ pools: playerId[][] }` saves the admin's swaps and moves. Every entrant exactly once, pools of at least 2. |
-| `POST /api/tournaments/:id/start` | admin | "finalize brackets": `{ raceTo }` (2 to 5, else 400), draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`) with that race length and moves to `pools`. |
+| `PUT /api/tournaments/:id` | admin | "Rediger spillere": `{ date, format, playerIds }`, in `draft` or `pools` (409 `pools_closed` once the knockout has started; 400 `too_few_players` / `unknown_player` as when creating). Players who leave are taken out of their pool with all their matches, so they get no result at all. Newcomers go into the smallest pool (`updatePools`). When the new count needs another number of pools (`poolSizes`), or a pool would get too small, every pool is drawn again and every pool result is deleted. |
+| `PUT /api/tournaments/:id/pools` | admin | `{ pools: playerId[][] }` saves the admin's swaps and moves, in `draft` or `pools` (409 `pools_closed`). Every entrant exactly once, pools of at least 2. Pool rows keep their ids. During the pools, each pool's matches follow its players (`syncPoolMatches`): a result stays while both its players are still in that pool, matches with a player who left the pool are deleted, new pairings are added with the pools' race length, and the play order is rebuilt. A pool whose players changed loses its `tiebreak`. |
+| `POST /api/tournaments/:id/randomize` | admin | "Randomize": draws every pool again (`poolSizes` + `drawPools`), in `draft` or `pools`. Every pool match and result is deleted; during the pools new matches are created with the same race length. |
+| `POST /api/tournaments/:id/start` | admin | "Gå til turnering": `{ raceTo }` (2 to 5, else 400), draft only. Creates every pool match in play order (`roundRobinRounds` + `playOrder`) with that race length and moves to `pools`. Players and pools can still change afterwards (above). |
+| `PUT /api/tournaments/:id/pools/race` | admin | `{ raceTo }` (2 to 5): changes every pool match's race length during the pools (409 `not_in_pools`), only while no pool result is in (409 `round_started`). |
 | `DELETE /api/tournaments/:id` | admin | Deletes a tournament, in progress or concluded, with its pools, matches, results and player sessions. Season points, standings and player statistics are derived from `results`, so the players lose that tournament's points and counts at once. Players and memberships stay. 404 `not_found`. |
 | `PUT /api/tournaments/:id/matches/:matchId/result` | admin, player | `{ framesA, framesB }` (player A's and B's frames) enters or corrects a result. Must be a finished race (`assertValidScore` with the match's `raceTo`), else 400 `invalid_score`. Pool matches only while the status is `pools` (409 `stage_closed` otherwise). |
 | `DELETE /api/tournaments/:id/matches/:matchId/result` | admin, player | Clears a result entered by mistake. |
 | `PUT /api/tournaments/:id/pools/:poolId/tiebreak` | admin | `{ playerIds }`, best first: the admin's order for players in one pool that results can't separate (stored in `pool_members.admin_tiebreak`, returned as the pool's `tiebreak`). Only during pool play. |
 | `POST /api/tournaments/:id/knockout` | admin | "complete qualifier brackets": `{ size: 2 \| 4 \| 8, adminOrder? }`, where 2 is the final only (400 `final_only_needs_one_pool` unless there is exactly one pool; the pool's #1 and #2 are the seeds). Needs every pool match played (409 `pools_incomplete`). Qualifies (`qualifyFromPools`), seeds (`seedQualifiers`: wins, set score, random), stores `knockout_seeds`, creates every knockout match without a race length (every round, the first included, gets one from the race route), and moves to `knockout`. 409 `unresolved_ties` with `ties` (groups of player ids) when the admin must order players first; 400 `cannot_qualify` if there are too few players. |
 | `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
+| `PUT /api/tournaments/:id/knockout/swap` | admin | `{ playerId, otherId }`: the admin's drag and drop in the knockout's first round (quarterfinals, semifinals, or the final only). Swaps the two players, or, when `otherId` is in the tournament but not in the knockout, puts them in `playerId`'s place and seed (`swapInFirstRound`). Only matches without a result can change (409 `match_played`); later rounds follow (`syncBracket`). 409 `not_in_knockout`, 400 `unknown_player` / `not_in_first_round`. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
@@ -488,10 +507,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 |---|---|
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
-| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`: default pool sizes, random draw, admin changes. |
+| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`, `updatePools`: default pool sizes, random draw, admin changes, players joining or leaving. |
 | `qualification.ts` | `qualifyFromPools`, `qualifyForFinal`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
-| `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. |
+| `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
 | `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
 
@@ -537,7 +556,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   Semifinals are never rearranged. The workbook also keeps seeds 1–4 in place, but tries
   layouts in a fixed order, so it can give seed 1 a stronger opponent than needed.
 - **Race length**: stored per match (`matches.race_to`). Pool matches are race to 2–5, chosen
-  by the admin with "finalize brackets" and the same for every pool match. In the
+  by the admin with "Gå til turnering" and the same for every pool match (changeable until the first pool result). In the
   knockout the admin chooses it **per round**: the first round (quarterfinals or semifinals)
   as soon as the knockout has started; the semifinals once their players are known; and the
   third-place final and the final separately once the semifinals are played. Until then the
@@ -547,7 +566,11 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
-  bracket is recomputed from seeds and scores every time, so a corrected score flows through.
+  first round is drawn from the seeds once, when the knockout starts, and stored; the admin can
+  then swap players in it, or bring in a player who didn't qualify, while its matches have no
+  result. The rest of the bracket is recomputed from the stored first round and the scores every
+  time (`bracketFromFirstRound`), so a corrected score flows through. Corrections to pool results
+  are checked against who qualified by the results, not against who is in the bracket.
 - **Final only** (`qualifyForFinal`, knockout size 2): an option when there is a single pool
   (4–6 players). The pool's #1 and #2 (by the pool ranking) play the final; there are no
   semifinals and no third-place final. A tie the admin must settle first is one that decides who
@@ -603,3 +626,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-13 | Pool matches can be race to 2–5 (was 2 or 3). |
 | 2026-10-14 | Admins can delete any tournament, concluded ones included; its results, and so its season points and statistics, go with it. |
 | 2026-10-14 | Hosted at turneringsportal.kjaer-thomsen.dk on a Linux VM (Docker, Caddy for HTTPS), with nightly `pg_dump` backups. |
+| 2026-10-15 | "Lås puljerne" is now "Gå til turnering" and locks nothing: until the knockout starts, the admin can change the date, format and players ("Rediger spillere", the list is kept) and rearrange or "Randomize" the pools. Results stay while both players are in the same pool; Randomize, or a new number of pools, starts the pool results over. Players who leave get no result at all. The pool race length can change while there are no pool results. |
+| 2026-10-15 | The knockout's first round is computed as before, but the admin can then swap players in it, or bring in a player who didn't advance, while its matches have no result. |

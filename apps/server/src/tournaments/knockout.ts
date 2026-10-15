@@ -1,15 +1,18 @@
 import {
   FEEDS_INTO,
   KNOCKOUT_STAGE,
+  bracketFromFirstRound,
   knockoutBracket,
   knockoutSlots,
   poolStandings,
   qualifyForFinal,
   qualifyFromPools,
   seedQualifiers,
+  swapInFirstRound,
   UnsupportedQualificationError,
   type KnockoutMatchId,
   type KnockoutSize,
+  type PlayerId,
   type Score,
   type StandingRow,
 } from '@franks/core';
@@ -149,15 +152,29 @@ export function knockoutChangeAllowed(
   );
 }
 
-/** Fills in the later knockout matches' players from the results so far. */
-export async function syncBracket(db: Executor, detail: TournamentDetail): Promise<void> {
-  const rows = await db
-    .select()
-    .from(matches)
-    .where(and(eq(matches.tournamentId, detail.id), isNotNull(matches.slot)));
+/** A knockout match as stored: its slot, players and score. */
+interface KnockoutRow {
+  slot: string | null;
+  playerAId: number | null;
+  playerBId: number | null;
+  framesA: number | null;
+  framesB: number | null;
+  raceTo: number | null;
+}
+
+/**
+ * The knockout worked out from its stored first round (which the admin may have changed, see
+ * swapFirstRound) and the results so far.
+ */
+function bracketOf(rows: readonly KnockoutRow[], size: KnockoutSize) {
+  const firstSlots = knockoutSlots(size).slice(0, size / 2);
+  const pairings = firstSlots.map((slot) => {
+    const row = rows.find((r) => r.slot === slot)!;
+    return [String(row.playerAId), String(row.playerBId)] as [PlayerId, PlayerId];
+  });
   const scores: Partial<Record<KnockoutMatchId, Score>> = {};
   for (const row of rows) {
-    if (row.framesA !== null && row.framesB !== null) {
+    if (row.slot && row.framesA !== null && row.framesB !== null) {
       scores[row.slot as KnockoutMatchId] = {
         framesA: row.framesA,
         framesB: row.framesB,
@@ -165,7 +182,16 @@ export async function syncBracket(db: Executor, detail: TournamentDetail): Promi
       };
     }
   }
-  const bracket = knockoutBracket(detail.seeds.map(String), scores, poolOf(detail));
+  return bracketFromFirstRound(pairings, scores);
+}
+
+/** Fills in the later knockout matches' players from the results so far. */
+export async function syncBracket(db: Executor, detail: TournamentDetail): Promise<void> {
+  const rows = await db
+    .select()
+    .from(matches)
+    .where(and(eq(matches.tournamentId, detail.id), isNotNull(matches.slot)));
+  const bracket = bracketOf(rows, detail.knockoutSize as KnockoutSize);
   for (const row of rows) {
     const match = bracket.find((m) => m.id === row.slot)!;
     const playerAId = match.playerA === null ? null : Number(match.playerA);
@@ -176,25 +202,16 @@ export async function syncBracket(db: Executor, detail: TournamentDetail): Promi
   }
 }
 
-/** The knockout as it stands, worked out from the seeds and the knockout results so far. */
+/** The knockout as it stands, worked out from its first round and the knockout results so far. */
 export function currentBracket(detail: TournamentDetail) {
-  const scores: Partial<Record<KnockoutMatchId, Score>> = {};
-  for (const m of detail.matches) {
-    if (m.slot && m.framesA !== null && m.framesB !== null) {
-      scores[m.slot as KnockoutMatchId] = {
-        framesA: m.framesA,
-        framesB: m.framesB,
-        raceTo: m.raceTo ?? undefined,
-      };
-    }
-  }
-  return knockoutBracket(detail.seeds.map(String), scores, poolOf(detail));
+  return bracketOf(detail.matches, detail.knockoutSize as KnockoutSize);
 }
 
 /**
  * Whether changing a pool result after the pools have closed keeps the same qualifiers. The
  * knockout was already drawn from them, so a correction that would change who qualified is
- * refused. Ties between pools are taken in seed order.
+ * refused. Ties between pools are taken in seed order. The pool results decide this, not who is
+ * in the bracket, since the admin may have brought someone else in (swapFirstRound).
  */
 export function qualifiersUnchanged(
   detail: TournamentDetail,
@@ -210,11 +227,62 @@ export function qualifiersUnchanged(
     ),
   };
   if (corrected.matches.some((m) => m.stage === 'pool' && m.framesA === null)) return false;
-  const { qualifiers, unresolved } = qualify(
-    corrected,
-    detail.knockoutSize as KnockoutSize,
-    detail.seeds.map(String),
+  const size = detail.knockoutSize as KnockoutSize;
+  const seeds = detail.seeds.map(String);
+  const before = qualify(detail, size, seeds);
+  const after = qualify(corrected, size, seeds);
+  const ids = (q: typeof before) => q.qualifiers.map((row) => row.playerId).sort();
+  return after.unresolved.length === 0 && ids(after).join() === ids(before).join();
+}
+
+export type SwapResult = { ok: true } | { ok: false; status: 400 | 409; error: string };
+
+/**
+ * The admin's change to the knockout's first round: swaps two players in it, or puts a player who
+ * didn't qualify in the place of one who did (taking over their seed). Only matches without a
+ * result can change; clear a result first. Later rounds follow from the first.
+ */
+export async function swapFirstRound(
+  db: Executor,
+  detail: TournamentDetail,
+  playerId: number,
+  otherId: number,
+): Promise<SwapResult> {
+  if (detail.status !== 'knockout') return { ok: false, status: 409, error: 'not_in_knockout' };
+  if (!detail.players.some((p) => p.id === otherId)) {
+    return { ok: false, status: 400, error: 'unknown_player' };
+  }
+  const size = detail.knockoutSize as KnockoutSize;
+  const firstSlots = knockoutSlots(size).slice(0, size / 2);
+  const firstRound = firstSlots.map((slot) => detail.matches.find((m) => m.slot === slot)!);
+  const pairings = firstRound.map((m) => [String(m.playerAId), String(m.playerBId)] as const);
+  let swapped;
+  try {
+    swapped = swapInFirstRound(pairings, String(playerId), String(otherId));
+  } catch {
+    return { ok: false, status: 400, error: 'not_in_first_round' };
+  }
+
+  const changed = firstRound.filter(
+    (m, i) => String(m.playerAId) !== swapped[i]![0] || String(m.playerBId) !== swapped[i]![1],
   );
-  const before = new Set(detail.seeds.map(String));
-  return unresolved.length === 0 && qualifiers.every((q) => before.has(q.playerId));
+  if (changed.some((m) => m.framesA !== null)) {
+    return { ok: false, status: 409, error: 'match_played' };
+  }
+  for (const match of changed) {
+    const [playerA, playerB] = swapped[firstRound.indexOf(match)]!;
+    await db
+      .update(matches)
+      .set({ playerAId: Number(playerA), playerBId: Number(playerB), updatedAt: new Date() })
+      .where(eq(matches.id, match.id));
+  }
+  // Someone from outside the knockout takes the seed of the player they replace.
+  if (!detail.seeds.includes(otherId)) {
+    await db
+      .update(knockoutSeeds)
+      .set({ playerId: otherId })
+      .where(and(eq(knockoutSeeds.tournamentId, detail.id), eq(knockoutSeeds.playerId, playerId)));
+  }
+  await syncBracket(db, detail);
+  return { ok: true };
 }

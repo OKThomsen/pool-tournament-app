@@ -25,9 +25,6 @@ export function CreateTournamentPage() {
   const navigate = useNavigate();
   const ongoing = useOngoingTournament();
   const createTournament = useCreateTournament();
-  const [date, setDate] = useState(todayInDenmark());
-  const [format, setFormat] = useState<GameFormat>('8-ball');
-  const [entrants, setEntrants] = useState<Player[]>([]);
 
   if (ongoing.data) {
     return (
@@ -39,7 +36,65 @@ export function CreateTournamentPage() {
     );
   }
 
+  const error = createTournament.error;
+  return (
+    <EntryForm
+      title={t.nav.newTournament}
+      initial={{ date: todayInDenmark(), format: '8-ball', entrants: [] }}
+      busy={createTournament.isPending}
+      error={
+        error &&
+        (error instanceof ApiError && error.code === 'tournament_in_progress'
+          ? t.create.alreadyRunning
+          : t.saveFailed)
+      }
+      onSubmit={(entry) =>
+        createTournament.mutate(entry, {
+          onSuccess: (tournament) => navigate(`/admin/turnering/${tournament.id}`),
+        })
+      }
+      onCancel={() => navigate('/')}
+    />
+  );
+}
+
+export interface Entry {
+  date: string;
+  format: GameFormat;
+  playerIds: number[];
+}
+
+interface EntryFormProps {
+  title: string;
+  initial: { date: string; format: GameFormat; entrants: Player[] };
+  busy: boolean;
+  error?: string | null;
+  /** What saving will do, shown above the buttons (for an existing tournament). */
+  notice?: (playerIds: number[]) => string | null;
+  onSubmit: (entry: Entry) => void;
+  onCancel: () => void;
+}
+
+/**
+ * Date, format and the player list, with "Færdiggør" and "Annuller". Used to create a tournament
+ * and, with "Rediger spillere", to change one until the knockout starts.
+ */
+export function EntryForm({
+  title,
+  initial,
+  busy,
+  error,
+  notice,
+  onSubmit,
+  onCancel,
+}: EntryFormProps) {
+  const [date, setDate] = useState(initial.date);
+  const [format, setFormat] = useState<GameFormat>(initial.format);
+  const [entrants, setEntrants] = useState<Player[]>(initial.entrants);
+
   const sizes = poolSizes(entrants.length);
+  const playerIds = entrants.map((p) => p.id);
+  const message = sizes ? notice?.(playerIds) : null;
   const add = (player: Player) =>
     setEntrants((current) =>
       current.some((p) => p.id === player.id) ? current : [...current, player],
@@ -47,15 +102,12 @@ export function CreateTournamentPage() {
 
   const finish = (event: FormEvent) => {
     event.preventDefault();
-    createTournament.mutate(
-      { date, format, playerIds: entrants.map((p) => p.id) },
-      { onSuccess: (tournament) => navigate(`/admin/turnering/${tournament.id}`) },
-    );
+    onSubmit({ date, format, playerIds });
   };
 
   return (
     <form className="panel create-tournament" onSubmit={finish}>
-      <h1>{t.nav.newTournament}</h1>
+      <h1>{title}</h1>
       <div className="player-form">
         <label>
           {t.tournaments.date}
@@ -111,19 +163,17 @@ export function CreateTournamentPage() {
         {sizes && entrants.length > 0 && ` · ${t.create.pools(sizes)}`}
         {!sizes && entrants.length > 0 && ` · ${t.create.tooFew}`}
       </p>
-      {createTournament.error && (
+      {message && <p className="notice">{message}</p>}
+      {error && (
         <p className="error" role="alert">
-          {createTournament.error instanceof ApiError &&
-          createTournament.error.code === 'tournament_in_progress'
-            ? t.create.alreadyRunning
-            : t.saveFailed}
+          {error}
         </p>
       )}
       <div className="form-actions">
-        <button type="submit" className="primary" disabled={!sizes || createTournament.isPending}>
+        <button type="submit" className="primary" disabled={!sizes || busy}>
           {t.create.finish}
         </button>
-        <button type="button" className="link" onClick={() => navigate('/')}>
+        <button type="button" className="link" onClick={onCancel}>
           {t.create.cancel}
         </button>
       </div>

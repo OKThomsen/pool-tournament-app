@@ -120,21 +120,32 @@ export function knockoutBracket(
   scores: Partial<Record<KnockoutMatchId, Score>>,
   poolOf?: PoolOf,
 ): BracketMatch[] {
+  return bracketFromFirstRound(firstRound(seeds, poolOf).pairings, scores);
+}
+
+/**
+ * Works out the whole knockout from its first-round pairings (in slot order, as firstRound
+ * gives them) and the scores entered so far. Used once the first round is set, since the admin
+ * may have swapped players in it.
+ */
+export function bracketFromFirstRound(
+  pairings: readonly (readonly [PlayerId, PlayerId])[],
+  scores: Partial<Record<KnockoutMatchId, Score>>,
+): BracketMatch[] {
   const bracket: BracketMatch[] = [];
   const add = (id: KnockoutMatchId, playerA: PlayerId | null, playerB: PlayerId | null) => {
     const match = decide(id, playerA, playerB, scores[id]);
     bracket.push(match);
     return match;
   };
-  const { pairings } = firstRound(seeds, poolOf);
-  if (seeds.length === 2) {
+  if (pairings.length === 1) {
     add('FINAL', ...pairings[0]!);
     return bracket;
   }
 
   let sf1: BracketMatch;
   let sf2: BracketMatch;
-  if (seeds.length === 8) {
+  if (pairings.length === 4) {
     const qf = (['QF1', 'QF2', 'QF3', 'QF4'] as const).map((id, i) => add(id, ...pairings[i]!));
     sf1 = add('SF1', qf[0]!.winner, qf[1]!.winner);
     sf2 = add('SF2', qf[2]!.winner, qf[3]!.winner);
@@ -145,6 +156,22 @@ export function knockoutBracket(
   add('THIRD', sf1.loser, sf2.loser);
   add('FINAL', sf1.winner, sf2.winner);
   return bracket;
+}
+
+/**
+ * The admin's change to the first round: swaps two players in it, or, when `other` isn't in the
+ * knockout, puts them in `player`'s place. Returns new pairings in the same slot order.
+ */
+export function swapInFirstRound(
+  pairings: readonly (readonly [PlayerId, PlayerId])[],
+  player: PlayerId,
+  other: PlayerId,
+): [PlayerId, PlayerId][] {
+  if (!pairings.some((pair) => pair.includes(player))) {
+    throw new Error(`Player ${player} is not in the first round`);
+  }
+  const swap = (p: PlayerId) => (p === player ? other : p === other ? player : p);
+  return pairings.map(([a, b]) => [swap(a), swap(b)]);
 }
 
 function decide(

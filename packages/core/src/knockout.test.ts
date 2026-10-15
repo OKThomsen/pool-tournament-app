@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   FEEDS_INTO,
+  bracketFromFirstRound,
   firstRound,
   KNOCKOUT_STAGE,
   knockoutBracket,
   knockoutSlots,
+  swapInFirstRound,
 } from './knockout.js';
 import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
 import { seededRng } from './random.js';
@@ -222,5 +224,40 @@ describe('bracket structure', () => {
       const fed = FEEDS_INTO[id];
       expect(fed.length > 0).toBe(KNOCKOUT_STAGE[id] === 'QF' || KNOCKOUT_STAGE[id] === 'SF');
     }
+  });
+});
+
+describe('swapInFirstRound', () => {
+  const pairings: [string, string][] = [
+    ['S1', 'S4'],
+    ['S2', 'S3'],
+  ];
+
+  it('swaps two players in the first round', () => {
+    expect(swapInFirstRound(pairings, 'S4', 'S3')).toEqual([
+      ['S1', 'S3'],
+      ['S2', 'S4'],
+    ]);
+    expect(pairings[0]).toEqual(['S1', 'S4']);
+  });
+
+  it('puts a player from outside the knockout in the place of one inside', () => {
+    expect(swapInFirstRound(pairings, 'S2', 'X')).toEqual([
+      ['S1', 'S4'],
+      ['X', 'S3'],
+    ]);
+  });
+
+  it('rejects a player who is not in the first round', () => {
+    expect(() => swapInFirstRound(pairings, 'X', 'S1')).toThrow();
+  });
+
+  it('feeds the swapped pairings into the rest of the bracket', () => {
+    const bracket = bracketFromFirstRound(swapInFirstRound(pairings, 'S4', 'S3'), {
+      SF1: aWins,
+      SF2: aWins,
+    });
+    expect(bracket.find((m) => m.id === 'FINAL')).toMatchObject({ playerA: 'S1', playerB: 'S2' });
+    expect(bracket.find((m) => m.id === 'THIRD')).toMatchObject({ playerA: 'S3', playerB: 'S4' });
   });
 });

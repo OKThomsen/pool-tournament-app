@@ -599,3 +599,72 @@ describe('final only', () => {
     expect(players.find((p) => p.id === second)!.wins).toBe(1);
   });
 });
+
+describe('swapping players in the first round', () => {
+  function swap(t: Tournament, playerId: number, otherId: number) {
+    return app.inject({
+      method: 'PUT',
+      url: `/api/tournaments/${t.id}/knockout/swap`,
+      cookies,
+      payload: { playerId, otherId },
+    });
+  }
+
+  it('swaps two players and keeps their seeds', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
+    const [s1, s2, s3, s4] = k.seeds as [number, number, number, number];
+    const response = await swap(k, s4, s3);
+    expect(response.statusCode).toBe(200);
+    const after: Tournament = response.json();
+    expect(bySlot(after, 'SF1')).toMatchObject({ playerAId: s1, playerBId: s3 });
+    expect(bySlot(after, 'SF2')).toMatchObject({ playerAId: s2, playerBId: s4 });
+    expect(after.seeds).toEqual(k.seeds);
+  });
+
+  it('brings in a player who did not qualify, in the seed of the one they replace', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
+    const outsider = t.pools.flatMap((p) => p.playerIds).find((id) => !k.seeds.includes(id))!;
+    const replaced = k.seeds[3]!;
+    const after: Tournament = (await swap(k, replaced, outsider)).json();
+    expect(bySlot(after, 'SF1').playerBId).toBe(outsider);
+    expect(after.seeds[3]).toBe(outsider);
+    expect(after.seeds).not.toContain(replaced);
+  });
+
+  it('carries the change into the later rounds', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 8 })).json();
+    const qf1 = bySlot(k, 'QF1');
+    const qf2 = bySlot(k, 'QF2');
+    await score(k, qf1, 2, 0);
+    // QF2's player A and QF3's player A change places; the newcomer to QF2 wins it.
+    const incoming = bySlot(k, 'QF3').playerAId!;
+    const swapped: Tournament = (await swap(k, qf2.playerAId!, incoming)).json();
+    const played: Tournament = (await score(swapped, bySlot(swapped, 'QF2'), 2, 0)).json();
+    expect(bySlot(played, 'SF1')).toMatchObject({
+      playerAId: qf1.playerAId,
+      playerBId: incoming,
+    });
+  });
+
+  it('refuses to change a match that has a result', async () => {
+    const t = await playPools(await startedTournament());
+    const k: Tournament = (await startKnockout(t, { size: 8 })).json();
+    const qf1 = bySlot(k, 'QF1');
+    await score(k, qf1, 2, 0);
+    const response = await swap(k, qf1.playerAId!, bySlot(k, 'QF2').playerAId!);
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('match_played');
+  });
+
+  it('only takes players from this tournament, and only during the knockout', async () => {
+    const t = await playPools(await startedTournament());
+    expect((await swap(t, t.pools[0]!.playerIds[0]!, t.pools[1]!.playerIds[0]!)).json()).toEqual({
+      error: 'not_in_knockout',
+    });
+    const k: Tournament = (await startKnockout(t, { size: 4 })).json();
+    expect((await swap(k, k.seeds[0]!, 99999)).json()).toEqual({ error: 'unknown_player' });
+  });
+});
