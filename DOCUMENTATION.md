@@ -79,8 +79,9 @@ The frontpage's Sæson Leaderboard shows the same standings as "name – points"
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
-and the players. "Tilføj spiller" searches as you type (Enter adds the first match); when no
-player has exactly that name, "Tilføj ny spiller" opens a dialog with the typed name and the same
+and the players. "Tilføj spiller" searches as you type, like the search on Spillere (the start of
+any word in a name, ignoring case, so "jo" finds "Martin Johansen"; up to 10 hits, and Enter adds
+the first); when no player has exactly that name, "Tilføj ny spiller" opens a dialog with the typed name and the same
 fields as on Spillere (handicap, frame handicap, Medlem and Medlem siden, from
 `components/PlayerFields.tsx`), which creates the player and adds them in one go. The page
 shows how the players will be split into pools (from `poolSizes` in `@franks/core`, which the web
@@ -330,13 +331,12 @@ clear results in that tournament's pools and knockout, and nothing else. This ru
 | Route | Who | What |
 |---|---|---|
 | `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached; a final-only tournament has none, so it doesn't count), `quarterfinals` (played in one). |
-| `GET /api/players/search?q=` | admin | "Tilføj spiller": up to 10 players whose name starts with `q`, ignoring case. |
 | `GET /api/players/:id` | public | One player. |
 | `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member?, memberSince? }` → 201. |
 | `PATCH /api/players/:id` | admin | Change name, handicaps and/or membership. A handicap change sets `lastAdjusted` to today (Danish time). `member: true` starts a membership (`memberSince`, default today; on an active one it moves the start), `member: false` ends it today. `memberSince` can't be in the future (400 `member_since_in_future`) or come without `member: true` (400 `member_since_without_member`). |
 | `DELETE /api/players/:id` | admin | 204. Refused with 409 `player_has_tournaments` if the player has been in a tournament, so history stays intact. |
 
-Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so the search never
+Names are trimmed and unique regardless of capitalisation (409 `name_taken`), so "Tilføj spiller" never
 shows two identical names. Handicaps are whole numbers from −20 to 20.
 
 **Membership and season points.** Membership runs all year, the off-season included (members

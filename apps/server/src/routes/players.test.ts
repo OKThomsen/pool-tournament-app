@@ -91,25 +91,6 @@ describe('GET /api/players', () => {
   });
 });
 
-describe('GET /api/players/search', () => {
-  it('matches the start of the name, ignoring case', async () => {
-    await addPlayers(db, 'Mads', 'Martin Johansen', 'Emma', 'Ma_x');
-    const search = async (q: string) =>
-      (await app.inject({ url: `/api/players/search?q=${encodeURIComponent(q)}`, cookies }))
-        .json()
-        .map((p: { name: string }) => p.name);
-    expect(await search('ma')).toEqual(['Ma_x', 'Mads', 'Martin Johansen']);
-    expect(await search('MAR')).toEqual(['Martin Johansen']);
-    // "_" is a literal underscore, not a wildcard.
-    expect(await search('Ma_')).toEqual(['Ma_x']);
-    expect(await search('  ')).toEqual([]);
-  });
-
-  it('is admin-only', async () => {
-    expect((await app.inject({ url: '/api/players/search?q=M' })).statusCode).toBe(401);
-  });
-});
-
 describe('POST /api/players', () => {
   it('creates a player', async () => {
     const response = await app.inject({
