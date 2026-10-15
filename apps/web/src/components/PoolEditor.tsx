@@ -91,6 +91,8 @@ export function PoolEditor({ pools, names, disabled = false, onChange, footer }:
             {pool.map((id) => (
               <PlayerChip key={id} id={id} name={names.get(id) ?? '?'} disabled={disabled} />
             ))}
+            {/* Pushes the footer to the bottom, so it lines up across pools of different sizes. */}
+            {footer && <div className="pool-spacer" />}
             {footer?.(index)}
           </PoolDropZone>
         ))}
