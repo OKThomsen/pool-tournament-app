@@ -143,12 +143,24 @@ describe('POST /api/tournaments/:id/knockout', () => {
     expect(bySlot(k, 'SF1')).toMatchObject({ playerAId: null, playerBId: null });
   });
 
-  it('seeds a semifinal-only knockout 1v4 and 2v3', async () => {
+  it('seeds the pool winners first and keeps each pool apart in the semifinals', async () => {
     const t = await playPools(await startedTournament());
     const k: Tournament = (await startKnockout(t, { size: 4 })).json();
-    const [s1, s2, s3, s4] = k.seeds;
-    expect(bySlot(k, 'SF1')).toMatchObject({ playerAId: s1, playerBId: s4 });
-    expect(bySlot(k, 'SF2')).toMatchObject({ playerAId: s2, playerBId: s3 });
+    const [poolA, poolB] = k.pools as [Tournament['pools'][0], Tournament['pools'][0]];
+    // playPools makes each pool finish in draw order.
+    const winners = [poolA.playerIds[0], poolB.playerIds[0]];
+    const runnersUp = [poolA.playerIds[1], poolB.playerIds[1]];
+    expect(k.seeds.slice(0, 2).sort()).toEqual(winners.sort());
+    expect(k.seeds.slice(2).sort()).toEqual(runnersUp.sort());
+
+    // Each pool winner meets the other pool's runner-up: 1v4 and 2v3, or 1v3 and 2v4 when 1v4
+    // would be a pool against itself.
+    const poolOf = (id: number) => k.pools.find((p) => p.playerIds.includes(id))!.name;
+    for (const slot of ['SF1', 'SF2']) {
+      const sf = bySlot(k, slot);
+      expect(poolOf(sf.playerAId!)).not.toBe(poolOf(sf.playerBId!));
+    }
+    expect([bySlot(k, 'SF1').playerAId, bySlot(k, 'SF2').playerAId]).toEqual(k.seeds.slice(0, 2));
     expect(k.matches.some((m) => m.stage === 'QF')).toBe(false);
   });
 
@@ -613,12 +625,19 @@ describe('swapping players in the first round', () => {
   it('swaps two players and keeps their seeds', async () => {
     const t = await playPools(await startedTournament());
     const k: Tournament = (await startKnockout(t, { size: 4 })).json();
-    const [s1, s2, s3, s4] = k.seeds as [number, number, number, number];
-    const response = await swap(k, s4, s3);
+    const sf1 = bySlot(k, 'SF1');
+    const sf2 = bySlot(k, 'SF2');
+    const response = await swap(k, sf1.playerBId!, sf2.playerBId!);
     expect(response.statusCode).toBe(200);
     const after: Tournament = response.json();
-    expect(bySlot(after, 'SF1')).toMatchObject({ playerAId: s1, playerBId: s3 });
-    expect(bySlot(after, 'SF2')).toMatchObject({ playerAId: s2, playerBId: s4 });
+    expect(bySlot(after, 'SF1')).toMatchObject({
+      playerAId: sf1.playerAId,
+      playerBId: sf2.playerBId,
+    });
+    expect(bySlot(after, 'SF2')).toMatchObject({
+      playerAId: sf2.playerAId,
+      playerBId: sf1.playerBId,
+    });
     expect(after.seeds).toEqual(k.seeds);
   });
 
@@ -626,10 +645,11 @@ describe('swapping players in the first round', () => {
     const t = await playPools(await startedTournament());
     const k: Tournament = (await startKnockout(t, { size: 4 })).json();
     const outsider = t.pools.flatMap((p) => p.playerIds).find((id) => !k.seeds.includes(id))!;
-    const replaced = k.seeds[3]!;
+    const replaced = bySlot(k, 'SF1').playerBId!;
+    const seed = k.seeds.indexOf(replaced);
     const after: Tournament = (await swap(k, replaced, outsider)).json();
     expect(bySlot(after, 'SF1').playerBId).toBe(outsider);
-    expect(after.seeds[3]).toBe(outsider);
+    expect(after.seeds[seed]).toBe(outsider);
     expect(after.seeds).not.toContain(replaced);
   });
 

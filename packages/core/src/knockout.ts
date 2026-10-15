@@ -74,27 +74,38 @@ export interface FirstRound {
  * First-round pairings. Best plays worst: 1v8, 4v5, 2v7, 3v6 in the quarterfinals, 1v4 and 2v3
  * in the semifinals.
  *
- * Given `poolOf`, quarterfinals avoid two players from the same pool meeting. The top four seeds
- * keep their places and seeds 5–8 are rearranged: seed 1 gets the weakest opponent possible
- * without a same-pool match, then seed 2, 3 and 4. Semifinals are never rearranged.
+ * Given `poolOf`, the first round avoids two players from the same pool meeting (a later round
+ * may still pair them). In the quarterfinals the top four seeds keep their places and seeds 5–8
+ * are rearranged: seed 1 gets the weakest opponent possible without a same-pool match, then seed
+ * 2, 3 and 4. When the semifinals are the first round, 1v3 and 2v4 replace 1v4 and 2v3 if that
+ * means fewer same-pool matches.
  */
 export function firstRound(seeds: readonly PlayerId[], poolOf?: PoolOf): FirstRound {
   const seed = (n: number) => seeds[n - 1]!;
+  const samePool = (a: number, b: number) => (poolOf ? poolOf(seed(a)) === poolOf(seed(b)) : false);
   if (seeds.length === 2) return { pairings: [[seed(1), seed(2)]], samePoolMatches: 0 };
   if (seeds.length === 4) {
-    return {
-      pairings: [
-        [seed(1), seed(4)],
-        [seed(2), seed(3)],
+    // 1v4 and 2v3, or else 1v3 and 2v4: the first with the fewest same-pool semifinals, like the
+    // workbook's Qualifier Seeding.
+    const layouts = [
+      [
+        [1, 4],
+        [2, 3],
       ],
-      samePoolMatches: 0,
-    };
+      [
+        [1, 3],
+        [2, 4],
+      ],
+    ].map((layout) => ({
+      pairings: layout.map(([a, b]) => [seed(a!), seed(b!)] as [PlayerId, PlayerId]),
+      samePoolMatches: layout.filter(([a, b]) => samePool(a!, b!)).length,
+    }));
+    return layouts[1]!.samePoolMatches < layouts[0]!.samePoolMatches ? layouts[1]! : layouts[0]!;
   }
   if (seeds.length !== 8) {
     throw new RangeError(`A knockout needs 2, 4 or 8 seeds, got ${seeds.length}`);
   }
 
-  const samePool = (a: number, b: number) => (poolOf ? poolOf(seed(a)) === poolOf(seed(b)) : false);
   // opponents[i] is the opponent of top seed i + 1. Strict seeding is [8, 7, 6, 5].
   let best: { opponents: number[]; conflicts: number } | null = null;
   for (const opponents of permutations([8, 7, 6, 5])) {
