@@ -1,4 +1,4 @@
-import { DEFAULT_RACE_TO, playOrder, roundRobinRounds, samePairing } from '@franks/core';
+import { playOrder, roundRobinRounds, samePairing } from '@franks/core';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { matches, poolMembers, pools } from '../db/schema.js';
@@ -8,13 +8,14 @@ const poolName = (index: number) => String.fromCharCode(65 + index);
 
 /**
  * Saves the pools (player ids per pool, in order). The pool rows are kept, so their matches and
- * results stay; pools are added or removed at the end. A pool whose players changed loses the
- * admin's tiebreak, which only applied to the old line-up. Call syncPoolMatches afterwards once
- * the pools are being played.
+ * results and race lengths stay; pools are added or removed at the end (a new pool gets the race
+ * length of the pool before it). A pool whose players changed loses the admin's tiebreak, which
+ * only applied to the old line-up. Call syncPoolMatches afterwards once the pools are being
+ * played.
  */
 export async function savePools(db: Executor, tournamentId: number, arrangement: number[][]) {
   const existing = await db
-    .select({ id: pools.id })
+    .select({ id: pools.id, raceTo: pools.raceTo })
     .from(pools)
     .where(eq(pools.tournamentId, tournamentId))
     .orderBy(asc(pools.name));
@@ -26,7 +27,7 @@ export async function savePools(db: Executor, tournamentId: number, arrangement:
     if (poolId === undefined) {
       const [pool] = await db
         .insert(pools)
-        .values({ tournamentId, name: poolName(index) })
+        .values({ tournamentId, name: poolName(index), raceTo: existing.at(-1)?.raceTo })
         .returning({ id: pools.id });
       poolId = pool!.id;
     }
@@ -49,24 +50,14 @@ export async function savePools(db: Executor, tournamentId: number, arrangement:
   }
 }
 
-/** The pool matches' race length, or null before they exist (in the draft). */
-export async function poolRace(db: Executor, tournamentId: number): Promise<number | null> {
-  const [match] = await db
-    .select({ raceTo: matches.raceTo })
-    .from(matches)
-    .where(and(eq(matches.tournamentId, tournamentId), eq(matches.stage, 'pool')))
-    .limit(1);
-  return match ? (match.raceTo ?? DEFAULT_RACE_TO) : null;
-}
-
 /**
  * Makes each pool's matches fit its players: a match between two players who are both still in
  * the pool keeps its result, matches with a player who left the pool are deleted, and missing
- * pairings are added with `raceTo`. Every pool's play order is rebuilt.
+ * pairings are added with the pool's race length. Every pool's play order is rebuilt.
  */
-export async function syncPoolMatches(db: Executor, tournamentId: number, raceTo: number) {
+export async function syncPoolMatches(db: Executor, tournamentId: number) {
   const members = await db
-    .select({ poolId: pools.id, playerId: poolMembers.playerId })
+    .select({ poolId: pools.id, raceTo: pools.raceTo, playerId: poolMembers.playerId })
     .from(pools)
     .innerJoin(poolMembers, eq(poolMembers.poolId, pools.id))
     .where(eq(pools.tournamentId, tournamentId))
@@ -74,7 +65,9 @@ export async function syncPoolMatches(db: Executor, tournamentId: number, raceTo
   const poolIds = [...new Set(members.map((m) => m.poolId))];
 
   for (const poolId of poolIds) {
-    const playerIds = members.filter((m) => m.poolId === poolId).map((m) => String(m.playerId));
+    const inPool = members.filter((m) => m.poolId === poolId);
+    const playerIds = inPool.map((m) => String(m.playerId));
+    const raceTo = inPool[0]!.raceTo;
     const order = playOrder(roundRobinRounds(playerIds));
     const current = await db
       .select({ id: matches.id, playerAId: matches.playerAId, playerBId: matches.playerBId })

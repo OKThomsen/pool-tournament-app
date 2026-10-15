@@ -111,6 +111,8 @@ export const pools = pgTable(
       .references(() => tournaments.id, { onDelete: 'cascade' }),
     /** A, B, C â€¦ */
     name: text('name').notNull(),
+    /** Frames to win this pool's matches (2 to 5), chosen per pool by the admin. */
+    raceTo: integer('race_to').notNull().default(2),
   },
   (t) => [unique().on(t.tournamentId, t.name)],
 );

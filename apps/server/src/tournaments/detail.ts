@@ -46,6 +46,7 @@ export async function tournamentDetail(db: Executor, id: number) {
     .select({
       poolId: pools.id,
       name: pools.name,
+      raceTo: pools.raceTo,
       playerId: poolMembers.playerId,
       tiebreak: poolMembers.adminTiebreak,
     })
@@ -54,11 +55,18 @@ export async function tournamentDetail(db: Executor, id: number) {
     .where(eq(pools.tournamentId, id))
     .orderBy(asc(pools.name), asc(poolMembers.position));
   // `tiebreak` is the admin's order for ties that results can't break (see poolStandings).
-  const poolList: { id: number; name: string; playerIds: number[]; tiebreak: number[] }[] = [];
+  const poolList: {
+    id: number;
+    name: string;
+    /** Frames to win this pool's matches. */
+    raceTo: number;
+    playerIds: number[];
+    tiebreak: number[];
+  }[] = [];
   for (const row of memberRows) {
     let pool = poolList.find((p) => p.id === row.poolId);
     if (!pool) {
-      pool = { id: row.poolId, name: row.name, playerIds: [], tiebreak: [] };
+      pool = { id: row.poolId, name: row.name, raceTo: row.raceTo, playerIds: [], tiebreak: [] };
       poolList.push(pool);
     }
     pool.playerIds.push(row.playerId);
