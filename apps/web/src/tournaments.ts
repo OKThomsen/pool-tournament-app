@@ -12,6 +12,14 @@ export interface Entrant {
   member: boolean;
 }
 
+/**
+ * Player names with their handicap after them, as /live, /play and the admin's tournament pages
+ * show them: "Martin Johansen(-1)".
+ */
+export function namesWithHandicap(players: readonly Entrant[]): Map<number, string> {
+  return new Map(players.map((p) => [p.id, `${p.name}(${p.baseHandicap})`]));
+}
+
 export interface Pool {
   id: number;
   name: string;

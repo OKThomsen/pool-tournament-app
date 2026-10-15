@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { ApiError } from '../api';
 import { isPlayed } from '../poolView';
 import { t } from '../strings';
-import { useSwapKnockout, type Match, type Tournament } from '../tournaments';
+import { namesWithHandicap, useSwapKnockout, type Match, type Tournament } from '../tournaments';
 
 const ROUND_TITLE = {
   QF: () => t.stages.quarterfinals,
@@ -35,7 +35,7 @@ export function KnockoutSwap({ tournament }: { tournament: Tournament }) {
     // A short press before dragging on touch screens, so the page can still be scrolled.
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+  const names = namesWithHandicap(tournament.players);
   const seedOf = (player: number) => tournament.seeds.indexOf(player) + 1;
 
   // The first round: the quarterfinals, the semifinals, or the final only.
@@ -97,7 +97,7 @@ export function KnockoutSwap({ tournament }: { tournament: Tournament }) {
               <SwapChip
                 key={player.id}
                 id={player.id}
-                label={player.name}
+                label={names.get(player.id) ?? player.name}
                 disabled={swap.isPending}
                 dropTarget={false}
               />

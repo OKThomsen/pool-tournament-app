@@ -9,7 +9,7 @@ import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
-import { useOngoingTournament, useTournament } from '../tournaments';
+import { namesWithHandicap, useOngoingTournament, useTournament } from '../tournaments';
 
 /**
  * /live: the flatscreen in the club. Public and read-only, without the site header, in the dark
@@ -42,7 +42,7 @@ function LiveTournament({ id }: { id: number }) {
   const tournament = useTournament(id);
   if (!tournament.data) return null;
   const data = tournament.data;
-  const names = new Map(data.players.map((p) => [p.id, p.name]));
+  const names = namesWithHandicap(data.players);
   const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (

@@ -118,6 +118,10 @@ In the knockout, "Byt spillere" (`KnockoutSwap.tsx`) shows the first round as dr
 a player onto another to swap them, or drag in someone from "Gik ikke videre" to take a player's
 place and seed. Players in a match with a result are locked.
 
+Wherever /live, /play and the admin's tournament pages show a player, the name carries their
+handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen(-1)"). In cells
+that cut long names off, `PlayerName` shortens the name and always keeps the handicap.
+
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
@@ -635,3 +639,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-15 | "Lås puljerne" is now "Gå til turnering" and locks nothing: until the knockout starts, the admin can change the date, format and players ("Rediger spillere", the list is kept) and rearrange or "Randomize" the pools. Results stay while both players are in the same pool; Randomize, or a new number of pools, starts the pool results over. Players who leave get no result at all. The pool race length can change while there are no pool results. |
 | 2026-10-15 | The knockout's first round is computed as before, but the admin can then swap players in it, or bring in a player who didn't advance, while its matches have no result. |
 | 2026-10-15 | The pool race length is chosen per pool (2–5), e.g. race to 3 for a pool of 3 next to pools of 4 playing race to 2. |
+| 2026-10-15 | On /live, /play and the admin's tournament pages a player's handicap follows their name in parentheses ("Martin Johansen(-1)"), not in a column of its own. The public result pages under Turneringer show names only. |

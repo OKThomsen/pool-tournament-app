@@ -4,6 +4,7 @@ import { ApiError } from '../api';
 import { isPlayed, poolView } from '../poolView';
 import { t } from '../strings';
 import {
+  namesWithHandicap,
   useClearResult,
   useConcludeTournament,
   useSetResult,
@@ -46,7 +47,7 @@ export function TournamentPlay({
   const clearResult = useClearResult(tournament.id);
   const [scoring, setScoring] = useState<Scoring | null>(null);
   const [swapping, setSwapping] = useState(false);
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+  const names = namesWithHandicap(tournament.players);
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const busy = setResult.isPending || clearResult.isPending;

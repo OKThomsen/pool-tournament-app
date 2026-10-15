@@ -9,6 +9,7 @@ import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { t } from '../strings';
 import {
+  namesWithHandicap,
   POOL_RACE_MAX,
   POOL_RACE_MIN,
   poolResults,
@@ -177,7 +178,7 @@ function PoolsEditor({ tournament }: { tournament: Tournament }) {
   const [confirm, setConfirm] = useState<
     { kind: 'move'; next: number[][]; lost: number } | { kind: 'randomize'; lost: number } | null
   >(null);
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+  const names = namesWithHandicap(tournament.players);
 
   // Follow the server's copy when it changes (for example after saving).
   useEffect(() => setArrangement(tournament.pools.map((p) => p.playerIds)), [tournament.pools]);
