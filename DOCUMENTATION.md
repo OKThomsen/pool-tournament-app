@@ -119,7 +119,8 @@ a player onto another to swap them, or drag in someone from "Gik ikke videre" to
 place and seed. Players in a match with a result are locked.
 
 Wherever /live, /play and the admin's tournament pages show a player, the name carries their
-handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen(-1)"). In cells
+handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen(-1)"), except
+"Næste kampe", which sits right under the pool table and shows names only. In cells
 that cut long names off, `PlayerName` shortens the name and always keeps the handicap.
 
 In pool play the page shows each pool as a matrix (`PoolTable`), read across like the workbook.

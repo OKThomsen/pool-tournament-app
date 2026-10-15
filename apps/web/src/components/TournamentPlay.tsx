@@ -48,6 +48,8 @@ export function TournamentPlay({
   const [scoring, setScoring] = useState<Scoring | null>(null);
   const [swapping, setSwapping] = useState(false);
   const names = namesWithHandicap(tournament.players);
+  // "Næste kampe" shows names only; the handicap is already in the table above it.
+  const plainNames = new Map(tournament.players.map((p) => [p.id, p.name]));
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const busy = setResult.isPending || clearResult.isPending;
@@ -108,7 +110,7 @@ export function TournamentPlay({
             slots={slots}
             onCellClick={inPools ? score : undefined}
           />
-          {inPools && <UpNext view={view} names={names} />}
+          {inPools && <UpNext view={view} names={plainNames} />}
         </div>
       ))}
       {manage && inPools && views.every((view) => view.complete) && (

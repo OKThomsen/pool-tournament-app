@@ -43,6 +43,8 @@ function LiveTournament({ id }: { id: number }) {
   if (!tournament.data) return null;
   const data = tournament.data;
   const names = namesWithHandicap(data.players);
+  // "Næste kampe" shows names only; the handicap is already in the table above it.
+  const plainNames = new Map(data.players.map((p) => [p.id, p.name]));
   const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (
@@ -65,7 +67,7 @@ function LiveTournament({ id }: { id: number }) {
                 return (
                   <section key={pool.id} className="pool-block">
                     <PoolTable view={view} names={names} slots={slots} />
-                    {data.status === 'pools' && <UpNext view={view} names={names} />}
+                    {data.status === 'pools' && <UpNext view={view} names={plainNames} />}
                   </section>
                 );
               })}
