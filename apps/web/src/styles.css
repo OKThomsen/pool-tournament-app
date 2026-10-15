@@ -1430,6 +1430,11 @@ button.match-side:hover {
   border-bottom: 3px solid var(--brand);
 }
 
+/* The logo is the only way back to the site from /live. */
+.live-home {
+  display: flex;
+}
+
 .live-header img {
   width: 72px;
   height: 72px;

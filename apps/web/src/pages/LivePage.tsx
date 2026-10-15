@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { Bracket } from '../components/Bracket';
 import { LiveStage } from '../components/LiveStage';
 import { PoolTable, UpNext } from '../components/PoolTable';
@@ -23,11 +24,13 @@ export function LivePage() {
   );
 }
 
-/** The logo, a "Live" badge, and what is on. */
+/** The logo (a link back to the frontpage), a "Live" badge, and what is on. */
 function LiveHeader({ children }: { children: ReactNode }) {
   return (
     <header className="live-header">
-      <img src="/brand/roundel.png" alt="" />
+      <Link to="/" className="live-home" aria-label={t.live.home} title={t.live.home}>
+        <img src="/brand/roundel.png" alt="" />
+      </Link>
       <h1>{t.brand}</h1>
       <span className="live-badge">{t.live.badge}</span>
       <p>{children}</p>

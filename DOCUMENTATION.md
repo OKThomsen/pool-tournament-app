@@ -157,7 +157,7 @@ pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 `/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
 tables and "Up next" in large type,
 or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
-"Live" badge. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
+"Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
 below the header, `LiveStage` (`components/LiveStage.tsx`) lays the bracket and the pools out at
 their natural size and scales each to fit the screen, centred. Pools show two per row (a third
 sits under the first), each with its "Up next" as wide as the table, and shorter rows than the
