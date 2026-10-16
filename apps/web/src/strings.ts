@@ -167,6 +167,11 @@ const da = {
   score: {
     raceTo: (n: number) => `Først til ${n}`,
     clear: 'Ryd resultat',
+    confirm: (player: string, own: number, other: number, opponent: string) =>
+      `Er du sikker på, at du vil indtaste resultatet: ${player} ${own} – ${other} ${opponent}? Det kan kun ændres af en administrator bagefter.`,
+    back: 'Tilbage',
+    locked: 'Resultatet er låst. Kun en administrator kan ændre det.',
+    alreadyEntered: 'Resultatet er allerede indtastet.',
   },
   qualify: {
     knockout: 'Slutspil',
@@ -404,6 +409,11 @@ const en: Strings = {
   score: {
     raceTo: (n: number) => `Race to ${n}`,
     clear: 'Clear result',
+    confirm: (player: string, own: number, other: number, opponent: string) =>
+      `Are you sure you want to enter the result: ${player} ${own} – ${other} ${opponent}? Only an administrator can change it afterwards.`,
+    back: 'Back',
+    locked: 'The result is locked. Only an administrator can change it.',
+    alreadyEntered: 'The result has already been entered.',
   },
   qualify: {
     knockout: 'Knockout',

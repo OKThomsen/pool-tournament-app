@@ -160,7 +160,12 @@ confirmation) saves the results and opens the tournament's public page.
 progress, the header links to it ("Spil", "Play" in English; not shown to admins). It asks for the
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
-the same `ScoreDialog`, but there is no drawing, qualifying or concluding. At the top, one button
+the same `ScoreDialog`, but there is no drawing, qualifying or concluding. Choosing a score asks
+"Er du sikker på, at du vil indtaste resultatet: August 2 – 1 Oskar?" (Ja / Tilbage, from the
+tapped player's side). A match with a result can't be opened: a tap shows "Resultatet er låst"
+in a message that fades away by itself (`components/Toast.tsx`), and there's no "Ryd resultat".
+When another player got there first, the same kind of message says "Resultatet er allerede
+indtastet" and the page fetches their result. At the top, one button
 per pool ("Pulje A", "Pulje B" …, `poolLinks`) jumps straight to that pool, so a player in pool D
 doesn't have to scroll past the others (or past the bracket in the knockout). "Forlad" leaves. When
 the admin makes a new code, or the tournament is concluded or cancelled, the page goes back to the
