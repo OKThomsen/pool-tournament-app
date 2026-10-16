@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ApiError } from '../api';
@@ -5,6 +6,7 @@ import { isPlayed, poolView } from '../poolView';
 import { t } from '../strings';
 import {
   namesWithHandicap,
+  tournamentKey,
   useClearResult,
   useConcludeTournament,
   useSetResult,
@@ -18,12 +20,13 @@ import { PoolTable, UpNext } from './PoolTable';
 import { QualifyPanel } from './QualifyPanel';
 import { RacePanel } from './RacePanel';
 import { ScoreDialog, type Scoring } from './ScoreDialog';
+import { Toast, type ToastMessage } from './Toast';
 
 interface TournamentPlayProps {
   tournament: Tournament;
   /**
    * Admins also complete the qualifier brackets and conclude the tournament. Players on /play
-   * only enter results.
+   * only enter results, each after a confirmation, and only in matches without one.
    */
   manage: boolean;
   /** Called when the API refuses a result with 401 (a player's code was replaced). */
@@ -45,7 +48,12 @@ export function TournamentPlay({
 }: TournamentPlayProps) {
   const setResult = useSetResult(tournament.id);
   const clearResult = useClearResult(tournament.id);
+  const queryClient = useQueryClient();
   const [scoring, setScoring] = useState<Scoring | null>(null);
+  // A player's chosen score (the match's player A and B), waiting for "Ja".
+  const [confirming, setConfirming] = useState<{ framesA: number; framesB: number } | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const notify = (text: string) => setToast({ text, key: Date.now() });
   const [swapping, setSwapping] = useState(false);
   const names = namesWithHandicap(tournament.players);
   // "Næste kampe" shows names only; the handicap is already in the table above it.
@@ -53,17 +61,34 @@ export function TournamentPlay({
   const views = tournament.pools.map((pool) => poolView(tournament, pool));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const busy = setResult.isPending || clearResult.isPending;
-  const close = () => setScoring(null);
+  const close = () => {
+    setScoring(null);
+    setConfirming(null);
+  };
   const inPools = tournament.status === 'pools';
-  const score = (match: Match, player: number) => setScoring({ match, player });
+  const score = (match: Match, player: number) => {
+    // Once a result is in, only an admin can change it.
+    if (!manage && isPlayed(match)) notify(t.score.locked);
+    else setScoring({ match, player });
+  };
   const onError = (error: Error) => {
     if (error instanceof ApiError && error.status === 401) {
       close();
       onUnauthorized?.();
+    } else if (isLocked(error)) {
+      // Someone else entered it first. Fetch the tournament to show their result.
+      close();
+      notify(t.score.alreadyEntered);
+      queryClient.invalidateQueries({ queryKey: tournamentKey(tournament.id) });
     }
   };
+  const save = (framesA: number, framesB: number) =>
+    setResult.mutate(
+      { matchId: scoring!.match.id, framesA, framesB },
+      { onSuccess: close, onError },
+    );
 
-  const error = setResult.error ?? clearResult.error;
+  const error = [setResult.error, clearResult.error].find((e) => e && !isLocked(e));
   // The final and, unless it's the final only, the third-place final.
   const deciders = tournament.matches.filter((m) => m.slot === 'FINAL' || m.slot === 'THIRD');
   const knockoutDone = deciders.length > 0 && deciders.every(isPlayed);
@@ -117,23 +142,53 @@ export function TournamentPlay({
         <QualifyPanel tournament={tournament} views={views} names={names} />
       )}
       <ScoreDialog
-        scoring={scoring}
+        scoring={confirming ? null : scoring}
         names={names}
         busy={busy}
+        allowClear={manage}
         onScore={(framesA, framesB) =>
-          setResult.mutate(
-            { matchId: scoring!.match.id, framesA, framesB },
-            { onSuccess: close, onError },
-          )
+          manage ? save(framesA, framesB) : setConfirming({ framesA, framesB })
         }
         onClear={() => clearResult.mutate(scoring!.match.id, { onSuccess: close, onError })}
         onClose={close}
       />
+      {scoring && confirming && (
+        <ConfirmDialog
+          open
+          message={confirmMessage(scoring, confirming, plainNames)}
+          confirmLabel={t.yes}
+          cancelLabel={t.score.back}
+          onConfirm={() => {
+            if (!busy) save(confirming.framesA, confirming.framesB);
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+      <Toast message={toast} onDone={() => setToast(null)} />
     </>
   );
 }
 
 const poolAnchor = (poolId: number) => `pool-${poolId}`;
+
+/** The API's answer when a player tries to change a result that's already in. */
+const isLocked = (error: Error) => error instanceof ApiError && error.code === 'result_locked';
+
+/** "… August 2 – 1 Oskar?", from the side of the player who was tapped, like the score dialog. */
+function confirmMessage(
+  { match, player }: Scoring,
+  { framesA, framesB }: { framesA: number; framesB: number },
+  names: Map<number, string>,
+): string {
+  const isA = match.playerAId === player;
+  const opponent = isA ? match.playerBId! : match.playerAId!;
+  return t.score.confirm(
+    names.get(player)!,
+    isA ? framesA : framesB,
+    isA ? framesB : framesA,
+    names.get(opponent)!,
+  );
+}
 
 /** One button per pool; a tap scrolls straight to that pool. */
 function PoolLinks({ tournament }: { tournament: Tournament }) {

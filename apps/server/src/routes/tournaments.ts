@@ -6,7 +6,7 @@ import {
   updatePools,
   weekNumber,
 } from '@franks/core';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { newJoinCode, replaceJoinCode } from '../auth/playerSessions.js';
 import { requireAdmin, requireScorer } from '../auth/plugin.js';
@@ -460,11 +460,14 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
    * - A pool result after the pools have closed may not change who qualified.
    * - In a concluded tournament results can be corrected but not cleared, and placements and
    *   points are rewritten. Bigger changes need the tournament reopened.
+   * - Players (`byAdmin` false) may only enter a result in a match that has none. Correcting or
+   *   clearing it is for the admins. If two players enter the same match at once, the first wins.
    */
   async function applyResult(
     id: number,
     matchId: number,
     next: { framesA: number; framesB: number } | null,
+    byAdmin: boolean,
     reply: FastifyReply,
   ) {
     const found = await scorableMatch(id, matchId);
@@ -478,6 +481,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         return reply.code(400).send({ error: 'invalid_score' });
       }
     }
+    const played = found.match.framesA !== null && found.match.framesB !== null;
+    if (!byAdmin && (next === null || played)) {
+      return reply.code(409).send({ error: 'result_locked' });
+    }
     const knockout = found.match.stage !== 'pool';
     const concluded = found.status === 'concluded';
     const before = (await tournamentDetail(db, id))!;
@@ -490,25 +497,32 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     if (!knockout && found.status !== 'pools' && !qualifiersUnchanged(before, matchId, next)) {
       return reply.code(409).send({ error: 'would_change_qualification' });
     }
-    await db.transaction(async (tx) => {
-      await tx
+    const saved = await db.transaction(async (tx) => {
+      const updated = await tx
         .update(matches)
         .set({
           framesA: next?.framesA ?? null,
           framesB: next?.framesB ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(matches.id, matchId));
+        // A player's result only goes in if nobody has entered one since the check above.
+        .where(
+          byAdmin ? eq(matches.id, matchId) : and(eq(matches.id, matchId), isNull(matches.framesA)),
+        )
+        .returning({ id: matches.id });
+      if (updated.length === 0) return false;
       if (knockout) await syncBracket(tx, before);
       if (concluded) await writeResults(tx, (await tournamentDetail(tx, id))!);
+      return true;
     });
+    if (!saved) return reply.code(409).send({ error: 'result_locked' });
     events.tournamentChanged(id);
     return tournamentDetail(db, id);
   }
 
   /**
    * Enters or corrects a result. Frames are the match's player A and B, in that order. Players
-   * who joined with the code may do this too.
+   * who joined with the code may enter a result in a match that has none.
    */
   app.put<{ Params: { id: number; matchId: number }; Body: { framesA: number; framesB: number } }>(
     '/tournaments/:id/matches/:matchId/result',
@@ -527,14 +541,22 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         },
       },
     },
-    (request, reply) => applyResult(request.params.id, request.params.matchId, request.body, reply),
+    (request, reply) =>
+      applyResult(
+        request.params.id,
+        request.params.matchId,
+        request.body,
+        request.admin !== null,
+        reply,
+      ),
   );
 
-  /** Clears a result entered by mistake, so the match counts as not played. Players too. */
+  /** Clears a result entered by mistake, so the match counts as not played. Admins only. */
   app.delete<{ Params: { id: number; matchId: number } }>(
     '/tournaments/:id/matches/:matchId/result',
     { preHandler: requireScorer, schema: { params: matchParams } },
-    (request, reply) => applyResult(request.params.id, request.params.matchId, null, reply),
+    (request, reply) =>
+      applyResult(request.params.id, request.params.matchId, null, request.admin !== null, reply),
   );
 
   /**

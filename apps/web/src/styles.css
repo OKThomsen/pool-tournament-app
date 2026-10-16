@@ -1646,3 +1646,35 @@ button.match-side:hover {
 .player-handicap {
   flex: none;
 }
+
+/* A short message that fades away by itself (Toast.tsx), e.g. "Resultatet er låst" on /play. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  background: var(--header-bg);
+  color: var(--header-text);
+  box-shadow: var(--shadow-raised);
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: toast 2.8s ease-in-out forwards;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

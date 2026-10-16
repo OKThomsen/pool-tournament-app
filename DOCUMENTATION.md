@@ -160,7 +160,12 @@ confirmation) saves the results and opens the tournament's public page.
 progress, the header links to it ("Spil", "Play" in English; not shown to admins). It asks for the
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
-the same `ScoreDialog`, but there is no drawing, qualifying or concluding. At the top, one button
+the same `ScoreDialog`, but there is no drawing, qualifying or concluding. Choosing a score asks
+"Er du sikker på, at du vil indtaste resultatet: August 2 – 1 Oskar?" (Ja / Tilbage, from the
+tapped player's side). A match with a result can't be opened: a tap shows "Resultatet er låst"
+in a message that fades away by itself (`components/Toast.tsx`), and there's no "Ryd resultat".
+When another player got there first, the same kind of message says "Resultatet er allerede
+indtastet" and the page fetches their result. At the top, one button
 per pool ("Pulje A", "Pulje B" …, `poolLinks`) jumps straight to that pool, so a player in pool D
 doesn't have to scroll past the others (or past the bracket in the knockout). "Forlad" leaves. When
 the admin makes a new code, or the tournament is concluded or cancelled, the page goes back to the
@@ -334,8 +339,9 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 
 Every tournament gets a random 6-digit **join code** when it's created. Only admins see it (on
 the tournament page; it's kept out of the public detail and off `/live`, since people outside
-the tournament are in the bar too). Players enter it on `/play` and can then enter, correct and
-clear results in that tournament's pools and knockout, and nothing else. This runs on trust
+the tournament are in the bar too). Players enter it on `/play` and can then enter results in that
+tournament's pools and knockout, and nothing else. A player can only enter a result in a match that
+has none: once it's entered, only an admin can correct or clear it. This runs on trust
 ("scouts honor"): players are anonymous, and anyone with the code can score any match.
 
 | Route | Who | What |
@@ -349,7 +355,10 @@ clear results in that tournament's pools and knockout, and nothing else. This ru
   code. The `player` cookie is separate from the admin's `session` cookie.
 - `request.player` is set by `sessionPlugin` next to `request.admin`. The result routes use
   `requireScorer` (`apps/server/src/auth/plugin.ts`): an admin, or a player who joined this
-  tournament. Corrections in a concluded tournament stay with the admins.
+  tournament. For a player, `PUT …/result` on a match that already has a result, and every
+  `DELETE …/result`, is 409 `result_locked`. The update only goes in while the match has no
+  result, so when two players enter the same match at once, the first one counts and the second
+  gets `result_locked`. Corrections in a concluded tournament stay with the admins.
 
 ### Players API
 
@@ -646,3 +655,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-15 | The pool race length is chosen per pool (2–5), e.g. race to 3 for a pool of 3 next to pools of 4 playing race to 2. |
 | 2026-10-15 | On /live, /play and the admin's tournament pages a player's handicap follows their name in parentheses ("Martin Johansen(-1)"), not in a column of its own. The public result pages under Turneringer show names only. |
 | 2026-10-15 | Seeding follows the workbook's Qualifier Seeding: pool winners first, then runners-up (each by wins → set score), and players from the same pool are kept apart in the first round, the semifinals too when they are the first round. |
+| 2026-10-16 | Players on `/play` can enter a result only in a match without one, after confirming it; correcting or clearing it is for logged-in admins. With two at once, the first result counts. |
