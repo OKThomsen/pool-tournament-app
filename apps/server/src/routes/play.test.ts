@@ -133,25 +133,53 @@ describe('POST /api/play/join', () => {
 });
 
 describe('scoring as a player', () => {
-  it('enters, corrects and clears a pool result', async () => {
+  it('enters a pool result, but only an admin can change or clear it', async () => {
     const t = await started();
     const player = await joinAsPlayer(t.id);
     const match = t.matches[0]!;
-    const put = (framesA: number, framesB: number) =>
+    const put = (as: Record<string, string>, framesA: number, framesB: number) =>
       app.inject({
         method: 'PUT',
         url: resultUrl(t.id, match.id),
-        cookies: player,
+        cookies: as,
         payload: { framesA, framesB },
       });
-    expect((await put(2, 1)).json().matches[0]).toMatchObject({ framesA: 2, framesB: 1 });
-    expect((await put(0, 2)).json().matches[0]).toMatchObject({ framesA: 0, framesB: 2 });
-    const cleared = await app.inject({
-      method: 'DELETE',
-      url: resultUrl(t.id, match.id),
-      cookies: player,
+    const clear = (as: Record<string, string>) =>
+      app.inject({ method: 'DELETE', url: resultUrl(t.id, match.id), cookies: as });
+
+    expect((await put(player, 2, 1)).json().matches[0]).toMatchObject({ framesA: 2, framesB: 1 });
+    for (const response of [await put(player, 0, 2), await clear(player)]) {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error).toBe('result_locked');
+    }
+    expect((await put(cookies, 0, 2)).json().matches[0]).toMatchObject({ framesA: 0, framesB: 2 });
+    expect((await clear(cookies)).json().matches[0]).toMatchObject({
+      framesA: null,
+      framesB: null,
     });
-    expect(cleared.json().matches[0]).toMatchObject({ framesA: null, framesB: null });
+    // Once an admin has cleared it, a player may enter it again.
+    expect((await put(player, 2, 0)).statusCode).toBe(200);
+  });
+
+  it('keeps the first result when two players enter the same match at once', async () => {
+    const t = await started();
+    const [first, second] = [await joinAsPlayer(t.id), await joinAsPlayer(t.id)];
+    const match = t.matches[0]!;
+    const responses = await Promise.all(
+      [first, second].map((player, i) =>
+        app.inject({
+          method: 'PUT',
+          url: resultUrl(t.id, match.id),
+          cookies: player,
+          payload: i === 0 ? { framesA: 2, framesB: 0 } : { framesA: 0, framesB: 2 },
+        }),
+      ),
+    );
+    const codes = responses.map((r) => r.statusCode).sort();
+    expect(codes).toEqual([200, 409]);
+    const winner = responses.find((r) => r.statusCode === 200)!.json().matches[0];
+    const detail = (await app.inject({ url: `/api/tournaments/${t.id}` })).json();
+    expect(detail.matches[0]).toMatchObject({ framesA: winner.framesA, framesB: winner.framesB });
   });
 
   it("can't score another tournament", async () => {

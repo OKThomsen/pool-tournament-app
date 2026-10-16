@@ -526,6 +526,8 @@ describe('concluding', () => {
       });
 
     expect((await playerScore(bySlot(k, 'SF1'))).statusCode).toBe(200);
+    // Only an admin can change it once it's entered.
+    expect((await playerScore(bySlot(k, 'SF1'))).json().error).toBe('result_locked');
     let done = k;
     for (const slot of ['SF2', 'THIRD', 'FINAL']) {
       done = (await score(done, bySlot(done, slot), 2, 0)).json();
