@@ -78,6 +78,13 @@
       "when": 1792087666041,
       "tag": "0010_race_per_pool",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792235395345,
+      "tag": "0011_historical_tournaments",
+      "breakpoints": true
     }
   ]
 }

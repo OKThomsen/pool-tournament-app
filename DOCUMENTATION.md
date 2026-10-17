@@ -417,7 +417,8 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `PUT /api/tournaments/:id/knockout/race` | admin | `{ stage: "QF" \| "SF" \| "THIRD" \| "FINAL", raceTo }`: the race length for one round. Only during the knockout (409 `not_in_knockout`), and only until the round has a result (409 `round_started`). 400 `no_such_round` for a round this knockout doesn't have. |
 | `PUT /api/tournaments/:id/knockout/swap` | admin | `{ playerId, otherId }`: the admin's drag and drop in the knockout's first round (quarterfinals, semifinals, or the final only). Swaps the two players, or, when `otherId` is in the tournament but not in the knockout, puts them in `playerId`'s place and seed (`swapInFirstRound`). Only matches without a result can change (409 `match_played`); later rounds follow (`syncBracket`). 409 `not_in_knockout`, 400 `unknown_player` / `not_in_first_round`. |
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
-| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress. |
+| `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress, 409 `historical` for an old tournament (it has no knockout). |
+| `POST /api/tournaments/historical` | admin | "Indtast gammel turnering": `{ date, format, knockoutSize: 2 \| 4 \| 8, playerIds }`, the players best first (below) → 201, a tournament with `historical: true` that is `concluded` at once, with no pools, matches, seeds or join code. Allowed while another tournament is in progress. 400 `date_in_future`, `too_few_players` (fewer than the places to fill), `unknown_player`. |
 | `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
 
 A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
@@ -440,7 +441,17 @@ same winner is always allowed. Pool results are closed once the knockout starts 
 `stage_closed`).
 
 The tournament detail also has `seeds` (player ids, best first; empty before the knockout) and,
-per pool, `tiebreak`.
+per pool, `tiebreak`, and `historical` (an old tournament entered afterwards, below).
+
+**Old tournaments** (`historical`). Tournaments played before the app are entered with their
+placings only: the players come best first, filling 1st, 2nd, 3rd, 4th and, with quarterfinals,
+the four 5–8 places (`placementsInOrder` in core); everyone after them gets participation. Every
+place must be filled. Points come from `points_table` like any other tournament, so an old
+tournament gives points in the season its date is in (none in the off-season), and counts in the
+statistics on Spillere and Sæson from its knockout size (`knockout_size`: 8 quarterfinals, 4
+semifinals, 2 the final only). Pool wins aren't known and are stored as 0; the handicap snapshot
+is the players' handicaps when it's entered. It can't be reopened (there is no knockout to go back
+to), but it can be deleted.
 
 ### Live updates
 
@@ -496,7 +507,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `membership_periods` | When a player was a member: start, end (null while active). |
-| `tournaments` | Date, week, format (8/9/10-ball), knockout size (4/8), status (draft → pools → knockout → concluded), join code for `/play`. |
+| `tournaments` | Date, week, format (8/9/10-ball), knockout size (2/4/8), status (draft → pools → knockout → concluded), join code for `/play`, `historical` (an old tournament entered with its placings only). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) with their race length (`race_to`, 2 to 5), and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
@@ -530,7 +541,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `qualification.ts` | `qualifyFromPools`, `qualifyForFinal`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
-| `placements.ts` | `placements`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings and season points. |
+| `placements.ts` | `placements`, `placementsInOrder`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings (from the bracket, or for an old tournament from the order entered) and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
 
 ### Rules as implemented
@@ -609,7 +620,8 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Placements**: 1st/2nd from the final, 3rd/4th from the third-place final, quarterfinal
   losers share 5–8, everyone else gets participation. Points: 10/7/5/4/2/1. With the final
   only, 3rd and 4th are the next two in the pool ranking (wins → set score → head-to-head →
-  admin), and 5th–6th get participation.
+  admin), and 5th–6th get participation. Each player gets one placement, and only its points:
+  1st gets 10, not 10 + 1 for taking part. Without quarterfinals nobody is 5–8.
 
 ## Decisions log
 
@@ -656,3 +668,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-15 | On /live, /play and the admin's tournament pages a player's handicap follows their name in parentheses ("Martin Johansen(-1)"), not in a column of its own. The public result pages under Turneringer show names only. |
 | 2026-10-15 | Seeding follows the workbook's Qualifier Seeding: pool winners first, then runners-up (each by wins → set score), and players from the same pool are kept apart in the first round, the semifinals too when they are the first round. |
 | 2026-10-16 | Players on `/play` can enter a result only in a match without one, after confirming it; correcting or clearing it is for logged-in admins. With two at once, the first result counts. |
+| 2026-10-17 | Admins can enter old tournaments from before the app with their placings only: date, format, knockout (quarterfinals, semifinals or the final only), 1st–4th, 5–8 with quarterfinals, then the other participants. Every place must be filled. Points as usual (10/7/5/4/2/1, member bonus still 10), in the season of the date; statistics from the knockout. No pools or brackets are shown. |

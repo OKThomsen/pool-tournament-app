@@ -1,0 +1,1 @@
+ALTER TABLE "tournaments" ADD COLUMN "historical" boolean DEFAULT false NOT NULL;

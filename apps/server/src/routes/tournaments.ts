@@ -1,8 +1,11 @@
 import {
   assertValidScore,
   drawPools,
+  ENTERED_PLACEMENTS,
   MIN_PLAYERS_PER_POOL,
+  placementsInOrder,
   poolSizes,
+  todayInDenmark,
   updatePools,
   weekNumber,
 } from '@franks/core';
@@ -36,7 +39,7 @@ import {
   syncBracket,
 } from '../tournaments/knockout.js';
 import { deletePoolMatches, savePools, syncPoolMatches } from '../tournaments/pools.js';
-import { writeResults } from '../tournaments/results.js';
+import { loadPointsTable, writeResults } from '../tournaments/results.js';
 
 const idParams = {
   type: 'object',
@@ -68,6 +71,29 @@ const entryBody = {
 interface Entry {
   date: string;
   format: GameFormat;
+  playerIds: number[];
+}
+
+/**
+ * "Indtast gammel turnering": an old tournament's date, format, knockout and players, best first
+ * (1st, 2nd, 3rd, 4th, the four 5–8 with quarterfinals, then everyone else).
+ */
+const historicalBody = {
+  type: 'object',
+  required: ['date', 'format', 'knockoutSize', 'playerIds'],
+  additionalProperties: false,
+  properties: {
+    date: { type: 'string', format: 'date' },
+    format: { type: 'string', enum: formats },
+    knockoutSize: { type: 'integer', enum: [2, 4, 8] },
+    playerIds: { ...playerIdList, maxItems: 64 },
+  },
+} as const;
+
+interface HistoricalEntry {
+  date: string;
+  format: GameFormat;
+  knockoutSize: 2 | 4 | 8;
   playerIds: number[];
 }
 
@@ -154,6 +180,73 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         }
         throw error;
       }
+    },
+  );
+
+  /**
+   * "Indtast gammel turnering": saves an old tournament that was played before the app, from its
+   * placings alone. It is concluded at once, with no pools, matches or join code, and its results
+   * give points like any other tournament in the season its date is in. Pool wins aren't known
+   * and are stored as 0; the handicap snapshot is the players' handicaps now.
+   */
+  app.post<{ Body: HistoricalEntry }>(
+    '/tournaments/historical',
+    { preHandler: requireAdmin, schema: { body: historicalBody } },
+    async (request, reply) => {
+      const { date, format, knockoutSize, playerIds } = request.body;
+      if (date > todayInDenmark()) return reply.code(400).send({ error: 'date_in_future' });
+      if (playerIds.length < ENTERED_PLACEMENTS[knockoutSize].length) {
+        return reply.code(400).send({ error: 'too_few_players' });
+      }
+      const entrants = await db
+        .select({
+          id: players.id,
+          baseHandicap: players.baseHandicap,
+          frameHandicap: players.frameHandicap,
+        })
+        .from(players)
+        .where(inArray(players.id, playerIds));
+      if (entrants.length !== playerIds.length) {
+        return reply.code(400).send({ error: 'unknown_player' });
+      }
+
+      const table = await loadPointsTable(db);
+      const placed = placementsInOrder(playerIds.map(String), knockoutSize);
+      const id = await db.transaction(async (tx) => {
+        const [tournament] = await tx
+          .insert(tournaments)
+          .values({
+            date,
+            week: weekNumber(date),
+            format,
+            knockoutSize,
+            status: 'concluded',
+            historical: true,
+            concludedAt: new Date(),
+          })
+          .returning({ id: tournaments.id });
+        const tournamentId = tournament!.id;
+        await tx
+          .insert(tournamentPlayers)
+          .values(playerIds.map((playerId) => ({ tournamentId, playerId })));
+        await tx.insert(results).values(
+          entrants.map((player) => {
+            const placement = placed.get(String(player.id))!;
+            return {
+              tournamentId,
+              playerId: player.id,
+              placement,
+              points: table[placement],
+              matchesWon: 0,
+              baseHandicap: player.baseHandicap,
+              frameHandicap: player.frameHandicap,
+            };
+          }),
+        );
+        return tournamentId;
+      });
+      events.tournamentChanged(id);
+      return reply.code(201).send(await tournamentDetail(db, id));
     },
   );
 
@@ -775,6 +868,8 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       if (tournament.status !== 'concluded') {
         return reply.code(409).send({ error: 'not_concluded' });
       }
+      // An old tournament has no knockout to go back to.
+      if (tournament.historical) return reply.code(409).send({ error: 'historical' });
       try {
         await db.transaction(async (tx) => {
           await tx
