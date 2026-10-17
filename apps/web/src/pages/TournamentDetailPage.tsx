@@ -20,7 +20,8 @@ import {
 
 /**
  * Turneringer/Turnering: a tournament's full result — final placings, the knockout and the
- * pools. Admins can correct results here; placements and points update at once.
+ * pools. Admins can correct results here; placements and points update at once. An old
+ * tournament entered afterwards has its placings only.
  */
 export function TournamentDetailPage() {
   const id = Number(useParams().id);
@@ -69,6 +70,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
   const close = () => setScoring(null);
+  const old = tournament.historical;
 
   const error = setResult.error ?? reopen.error ?? remove.error;
   const message =
@@ -81,6 +83,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
 
   return (
     <>
+      {old && <p className="muted">{t.old.entered}</p>}
       <h2>{t.detail.placings}</h2>
       <div className="table-scroll">
         <table className="placings">
@@ -89,7 +92,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
               <th>{t.detail.placement}</th>
               <th>{t.players.name}</th>
               <th>{t.detail.points}</th>
-              <th>{t.detail.poolWins}</th>
+              {!old && <th>{t.detail.poolWins}</th>}
             </tr>
           </thead>
           <tbody>
@@ -98,14 +101,26 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
                 <td>{t.placements[result.placement]}</td>
                 <td>{names.get(result.playerId)}</td>
                 <td>{result.points}</td>
-                <td>{result.matchesWon}</td>
+                {!old && <td>{result.matchesWon}</td>}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {admin && (
+      {admin && old && (
+        <p className="muted">
+          <button
+            type="button"
+            className="link"
+            disabled={remove.isPending}
+            onClick={() => setConfirm('delete')}
+          >
+            {t.detail.delete}
+          </button>
+        </p>
+      )}
+      {admin && !old && (
         <p className="muted">
           {t.detail.correctHelp}{' '}
           <button type="button" className="link" onClick={() => setConfirm('reopen')}>
@@ -128,19 +143,23 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
         </p>
       )}
 
-      <h2>{t.knockout.title}</h2>
-      <Bracket tournament={tournament} names={names} onPlayerClick={score} />
-      <h2>{t.stages.pools}</h2>
-      {tournament.pools.map((pool) => (
-        <div key={pool.id} className="pool-block">
-          <PoolTable
-            view={poolView(tournament, pool)}
-            names={names}
-            slots={slots}
-            onCellClick={score}
-          />
-        </div>
-      ))}
+      {!old && (
+        <>
+          <h2>{t.knockout.title}</h2>
+          <Bracket tournament={tournament} names={names} onPlayerClick={score} />
+          <h2>{t.stages.pools}</h2>
+          {tournament.pools.map((pool) => (
+            <div key={pool.id} className="pool-block">
+              <PoolTable
+                view={poolView(tournament, pool)}
+                names={names}
+                slots={slots}
+                onCellClick={score}
+              />
+            </div>
+          ))}
+        </>
+      )}
 
       <ScoreDialog
         scoring={scoring}

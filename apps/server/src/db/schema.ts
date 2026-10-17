@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   index,
@@ -73,6 +74,11 @@ export const tournaments = pgTable(
     /** 4 (semifinals) or 8 (quarterfinals); chosen when the pools are complete. */
     knockoutSize: integer('knockout_size'),
     status: tournamentStatus('status').notNull().default('draft'),
+    /**
+     * An old tournament entered afterwards ("Indtast gammel turnering"): only its placings are
+     * known, so it has no pools, matches or seeds and is concluded from the start.
+     */
+    historical: boolean('historical').notNull().default(false),
     /**
      * The 6-digit code players enter on /play to score matches. Only admins see it. Null once
      * the tournament is concluded.

@@ -8,7 +8,7 @@ import {
   knockoutSlots,
   swapInFirstRound,
 } from './knockout.js';
-import { DEFAULT_POINTS_TABLE, placements, pointsFor } from './placements.js';
+import { DEFAULT_POINTS_TABLE, placements, placementsInOrder, pointsFor } from './placements.js';
 import { seededRng } from './random.js';
 import { seedQualifiers } from './seeding.js';
 
@@ -297,5 +297,46 @@ describe('swapInFirstRound', () => {
     });
     expect(bracket.find((m) => m.id === 'FINAL')).toMatchObject({ playerA: 'S1', playerB: 'S2' });
     expect(bracket.find((m) => m.id === 'THIRD')).toMatchObject({ playerA: 'S3', playerB: 'S4' });
+  });
+});
+
+describe('placementsInOrder (old tournaments)', () => {
+  const players = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+  it('fills 1st–4th and four 5–8 places with quarterfinals, then participation', () => {
+    const result = placementsInOrder(players, 8);
+    expect([...result.values()]).toEqual([
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '5-8',
+      '5-8',
+      '5-8',
+      '5-8',
+      'participation',
+      'participation',
+    ]);
+    expect(result.get('J')).toBe('participation');
+  });
+
+  it('has no 5–8 places with semifinals or the final only', () => {
+    for (const size of [4, 2] as const) {
+      const result = placementsInOrder(players.slice(0, 6), size);
+      expect([...result.values()]).toEqual([
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        'participation',
+        'participation',
+      ]);
+    }
+  });
+
+  it('needs every place filled', () => {
+    expect(() => placementsInOrder(players.slice(0, 7), 8)).toThrow();
+    expect(() => placementsInOrder(players.slice(0, 3), 4)).toThrow();
+    expect(placementsInOrder(players.slice(0, 4), 2).size).toBe(4);
   });
 });

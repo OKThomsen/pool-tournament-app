@@ -11,13 +11,7 @@ import { currentBracket, poolOrder, standingsByPool } from './knockout.js';
  * taken the first time and kept when a correction rewrites the results.
  */
 export async function writeResults(db: Executor, detail: TournamentDetail): Promise<void> {
-  // The points table in the database, with the workbook's defaults for any missing row.
-  const table: PointsTable = {
-    ...DEFAULT_POINTS_TABLE,
-    ...Object.fromEntries(
-      (await db.select().from(pointsTable)).map((row) => [row.placement, row.points]),
-    ),
-  };
+  const table = await loadPointsTable(db);
   const placed = placements(
     detail.players.map((p) => String(p.id)),
     currentBracket(detail),
@@ -52,4 +46,14 @@ export async function writeResults(db: Executor, detail: TournamentDetail): Prom
         matchesWon: sql`excluded.matches_won`,
       },
     });
+}
+
+/** The points table in the database, with the workbook's defaults for any missing row. */
+export async function loadPointsTable(db: Executor): Promise<PointsTable> {
+  return {
+    ...DEFAULT_POINTS_TABLE,
+    ...Object.fromEntries(
+      (await db.select().from(pointsTable)).map((row) => [row.placement, row.points]),
+    ),
+  };
 }

@@ -15,7 +15,7 @@ import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
 import { useCreateTournament, useOngoingTournament, type GameFormat } from '../tournaments';
 
-const FORMATS: GameFormat[] = ['8-ball', '9-ball', '10-ball'];
+export const FORMATS: GameFormat[] = ['8-ball', '9-ball', '10-ball'];
 
 /** How many matches "Tilføj spiller" lists at most. */
 const MAX_RESULTS = 10;
@@ -187,7 +187,13 @@ export function EntryForm({
  * exactly, "Tilføj ny spiller" opens a form for the new player (handicaps, Medlem), which
  * creates them and adds them in one step.
  */
-function PlayerSearch({ excluded, onAdd }: { excluded: Player[]; onAdd: (p: Player) => void }) {
+export function PlayerSearch({
+  excluded,
+  onAdd,
+}: {
+  excluded: Player[];
+  onAdd: (p: Player) => void;
+}) {
   const [query, setQuery] = useState('');
   const players = usePlayers();
   const [creating, setCreating] = useState(false);

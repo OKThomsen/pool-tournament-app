@@ -53,6 +53,8 @@ export interface Tournament {
   format: GameFormat;
   status: TournamentStatus;
   knockoutSize: number | null;
+  /** An old tournament entered afterwards with its placings only: no pools, matches or seeds. */
+  historical: boolean;
   players: Entrant[];
   pools: Pool[];
   matches: Match[];
@@ -122,6 +124,17 @@ function useTournamentMutation<Input>(request: (input: Input) => Promise<Tournam
 export function useCreateTournament() {
   return useTournamentMutation((input: { date: string; format: GameFormat; playerIds: number[] }) =>
     api<Tournament>('/tournaments', { method: 'POST', body: input }),
+  );
+}
+
+/**
+ * "Indtast gammel turnering": an old tournament from its placings, players best first (1st, 2nd,
+ * 3rd, 4th, the four 5–8 with quarterfinals, then the other participants). Concluded at once.
+ */
+export function useEnterOldTournament() {
+  return useTournamentMutation(
+    (input: { date: string; format: GameFormat; knockoutSize: 2 | 4 | 8; playerIds: number[] }) =>
+      api<Tournament>('/tournaments/historical', { method: 'POST', body: input }),
   );
 }
 

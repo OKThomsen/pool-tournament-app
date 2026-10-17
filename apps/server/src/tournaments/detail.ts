@@ -23,6 +23,8 @@ export async function tournamentDetail(db: Executor, id: number) {
       format: tournaments.format,
       status: tournaments.status,
       knockoutSize: tournaments.knockoutSize,
+      /** Entered afterwards with its placings only: no pools, matches or seeds. */
+      historical: tournaments.historical,
     })
     .from(tournaments)
     .where(eq(tournaments.id, id));

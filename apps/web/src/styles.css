@@ -557,6 +557,11 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* A link styled as a secondary button, like "Indtast gammel turnering". */
+.button.secondary {
+  text-decoration: none;
+}
+
 .secondary:hover:not(:disabled) {
   border-color: var(--accent-hover);
   background: var(--accent);
@@ -782,6 +787,20 @@ th[aria-sort] .sort-arrow {
   margin-bottom: 0;
 }
 
+/* A page title with an admin button on the right (Turneringer). */
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.page-heading h1 {
+  margin-bottom: 0;
+}
+
 .table-search {
   width: 100%;
   max-width: 420px;
@@ -869,6 +888,44 @@ table.clickable tbody tr:hover {
 
 .entrants {
   margin: 16px 0;
+}
+
+/* ---------- Indtast gammel turnering ---------- */
+
+/* One row per place: the place, then the player or a search for one. */
+.old-places {
+  display: grid;
+  gap: 8px;
+  max-width: 520px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.old-places li {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.old-place {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.old-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: var(--surface-muted);
+  font-weight: 600;
 }
 
 /* ---------- Drawn pools (drag to swap) ---------- */

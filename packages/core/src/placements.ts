@@ -56,3 +56,28 @@ export function placements(
 export function pointsFor(placement: Placement, table: PointsTable = DEFAULT_POINTS_TABLE): number {
   return table[placement];
 }
+
+/** The placings an old tournament is entered with, best first, for each knockout size. */
+export const ENTERED_PLACEMENTS: Record<2 | 4 | 8, readonly Placement[]> = {
+  // Final only: 3rd and 4th came from the pool ranking.
+  2: ['1st', '2nd', '3rd', '4th'],
+  4: ['1st', '2nd', '3rd', '4th'],
+  8: ['1st', '2nd', '3rd', '4th', '5-8', '5-8', '5-8', '5-8'],
+};
+
+/**
+ * The placements of an old tournament entered afterwards, without its pools or matches: the
+ * players come best first, filling 1st, 2nd, 3rd, 4th and, with quarterfinals, the four 5–8
+ * places; everyone after that gets participation. Throws when there are too few players to fill
+ * every place.
+ */
+export function placementsInOrder(
+  players: readonly PlayerId[],
+  knockoutSize: 2 | 4 | 8,
+): Map<PlayerId, Placement> {
+  const places = ENTERED_PLACEMENTS[knockoutSize];
+  if (players.length < places.length) {
+    throw new Error(`Needs at least ${places.length} players`);
+  }
+  return new Map(players.map((player, i) => [player, places[i] ?? 'participation']));
+}
