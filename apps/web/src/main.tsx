@@ -17,6 +17,7 @@ import { PlayPage } from './pages/PlayPage';
 import { PlayersPage } from './pages/PlayersPage';
 import { SeasonPage } from './pages/SeasonPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { OldTournamentPage } from './pages/OldTournamentPage';
 import { TournamentDetailPage } from './pages/TournamentDetailPage';
 import { TournamentsPage } from './pages/TournamentsPage';
 // Self-hosted fonts (no requests to Google): Barlow for text, Barlow Condensed for headings
@@ -60,6 +61,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="play" element={<PlayPage />} />
               <Route path="admin" element={<RequireAdmin />}>
                 <Route path="turnering/ny" element={<CreateTournamentPage />} />
+                <Route path="turnering/gammel" element={<OldTournamentPage />} />
                 <Route path="turnering/:id" element={<OngoingTournamentPage />} />
                 <Route path="turnering/:id/rediger" element={<EditTournamentPage />} />
               </Route>

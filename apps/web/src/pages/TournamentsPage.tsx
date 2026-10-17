@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { useSession } from '../auth';
 import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
 import { formatDate } from '../format';
 import { t } from '../strings';
@@ -20,16 +21,24 @@ function matches(row: TournamentSummary, query: string) {
 
 /**
  * Turneringer: concluded tournaments, newest first. A row opens the tournament. Every column
- * sorts, and the search finds a winner or a date.
+ * sorts, and the search finds a winner or a date. Admins get "Indtast gammel turnering".
  */
 export function TournamentsPage() {
   const tournaments = useConcludedTournaments();
   const navigate = useNavigate();
+  const admin = useSession();
   const view = useTableView('view:turneringer', tournaments.data ?? [], COLUMNS, matches);
 
   return (
     <section className="panel">
-      <h1>{t.tournaments.title}</h1>
+      <div className="page-heading">
+        <h1>{t.tournaments.title}</h1>
+        {admin && (
+          <Link to="/admin/turnering/gammel" className="button secondary">
+            {t.tournaments.enterOld}
+          </Link>
+        )}
+      </div>
       {tournaments.isPending ? (
         <p>{t.loading}</p>
       ) : tournaments.isError ? (

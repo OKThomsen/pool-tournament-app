@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -177,6 +177,16 @@ placings, the bracket and the pools. Logged-in admins can click any result there
 (placings and points update at once), or "Genåbn turnering" for bigger changes. "Slet turnering"
 (after a confirmation that says it can't be undone) deletes the tournament for good: it leaves
 Turneringer, and the players lose its points on the leaderboards and its counts on Spillere.
+
+When logged in, Turneringer has "Indtast gammel turnering" on the right of the title, which opens
+`/admin/turnering/gammel` (`OldTournamentPage.tsx`) for a tournament played before the app: date
+(not in the future), format, "Slutspil" (Kvartfinaler, Semifinaler or Kun finale), then one field
+per place, 1st to 4th and, with quarterfinals, four 5.–8., each a "Tilføj spiller" search
+(`PlayerSearch` from Ny Turnering, with "Tilføj ny spiller"). "Øvrige deltagere" lists everyone
+else. "Færdiggør" stays disabled until every place is filled, and opens the tournament's page. A
+switch to semifinals or the final only moves the players in 5.–8. to the participants. The page
+of an old tournament says it was entered afterwards and shows the placings only (no pool wins,
+bracket or pools), with "Slet turnering" but not "Genåbn turnering".
 
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).

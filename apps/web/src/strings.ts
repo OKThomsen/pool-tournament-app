@@ -31,6 +31,15 @@ const da = {
     participants: 'Antal deltagere',
     format: 'Format',
     none: 'Ingen afsluttede turneringer endnu.',
+    enterOld: 'Indtast gammel turnering',
+  },
+  old: {
+    title: 'Indtast gammel turnering',
+    help: 'Kun placeringerne gemmes, uden puljer og slutspil. Turneringen giver point i den sæson, datoen ligger i.',
+    others: 'Øvrige deltagere',
+    fillAll: 'Udfyld alle placeringer først.',
+    dateInFuture: 'Datoen kan ikke ligge i fremtiden.',
+    entered: 'Indtastet bagefter med placeringerne alene.',
   },
   detail: {
     inProgress: 'Turneringen er i gang.',
@@ -273,6 +282,15 @@ const en: Strings = {
     participants: 'Players',
     format: 'Format',
     none: 'No finished tournaments yet.',
+    enterOld: 'Enter old tournament',
+  },
+  old: {
+    title: 'Enter old tournament',
+    help: 'Only the placings are saved, without pools or knockout. The tournament gives points in the season its date is in.',
+    others: 'Other participants',
+    fillAll: 'Fill in every place first.',
+    dateInFuture: 'The date can’t be in the future.',
+    entered: 'Entered afterwards, with the placings only.',
   },
   detail: {
     inProgress: 'This tournament is in progress.',
