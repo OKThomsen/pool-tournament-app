@@ -1,11 +1,17 @@
 import { todayInDenmark } from '@franks/core';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAdmin } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
 import { isUniqueViolation } from '../db/errors.js';
 import { players, results, tournamentPlayers, tournaments } from '../db/schema.js';
-import { currentSeason, memberSince, seasonPointsIn, setMembership } from '../db/seasons.js';
+import {
+  countsInStats,
+  currentSeason,
+  memberSince,
+  seasonPointsIn,
+  setMembership,
+} from '../db/seasons.js';
 
 const handicap = { type: 'integer', minimum: -20, maximum: 20 } as const;
 const name = { type: 'string', minLength: 1, maxLength: 60, pattern: '\\S' } as const;
@@ -56,7 +62,7 @@ async function findPlayer(db: Executor, id: number) {
 export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
   /**
    * Every player with this season's points (null in the off-season) and all-time statistics from
-   * concluded tournaments. Wins = tournaments won, semifinals = reached the semifinals,
+   * concluded tournaments, leaving out "For sjov kamp" tournaments. Wins = tournaments won, semifinals = reached the semifinals,
    * quarterfinals = played in one.
    */
   app.get('/players', async () => {
@@ -77,7 +83,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
         ))::int`,
       })
       .from(players)
-      .leftJoin(results, eq(results.playerId, players.id))
+      .leftJoin(results, and(eq(results.playerId, players.id), countsInStats()))
       .leftJoin(tournaments, eq(tournaments.id, results.tournamentId))
       .groupBy(players.id)
       .orderBy(sql`lower(${players.name})`);

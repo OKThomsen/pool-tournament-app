@@ -55,6 +55,8 @@ export interface Tournament {
   knockoutSize: number | null;
   /** An old tournament entered afterwards with its placings only: no pools, matches or seeds. */
   historical: boolean;
+  /** "For sjov kamp": played and listed as usual, but left out of every statistic. */
+  forFun: boolean;
   players: Entrant[];
   pools: Pool[];
   matches: Match[];
@@ -82,6 +84,7 @@ export interface TournamentSummary {
   /** Null for a tournament in the off-season. */
   season: string | null;
   format: GameFormat;
+  forFun: boolean;
   winner: string | null;
   participants: number;
 }
@@ -121,8 +124,16 @@ function useTournamentMutation<Input>(request: (input: Input) => Promise<Tournam
   });
 }
 
+/** What Ny Turnering and "Rediger spillere" send. */
+export interface TournamentEntry {
+  date: string;
+  format: GameFormat;
+  playerIds: number[];
+  forFun: boolean;
+}
+
 export function useCreateTournament() {
-  return useTournamentMutation((input: { date: string; format: GameFormat; playerIds: number[] }) =>
+  return useTournamentMutation((input: TournamentEntry) =>
     api<Tournament>('/tournaments', { method: 'POST', body: input }),
   );
 }
@@ -138,10 +149,17 @@ export function useEnterOldTournament() {
   );
 }
 
-/** "Rediger spillere": date, format and players, until the knockout starts. */
+/** "Rediger spillere": date, format, players and "For sjov kamp", until the knockout starts. */
 export function useEditTournament(id: number) {
-  return useTournamentMutation((input: { date: string; format: GameFormat; playerIds: number[] }) =>
+  return useTournamentMutation((input: TournamentEntry) =>
     api<Tournament>(`/tournaments/${id}`, { method: 'PUT', body: input }),
+  );
+}
+
+/** "For sjov kamp" on or off, at any time, also after the tournament is concluded. */
+export function useSetForFun(id: number) {
+  return useTournamentMutation((forFun: boolean) =>
+    api<Tournament>(`/tournaments/${id}/for-fun`, { method: 'PUT', body: { forFun } }),
   );
 }
 

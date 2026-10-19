@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Bracket } from '../components/Bracket';
+import { ForFunTag } from '../components/ForFun';
 import { LiveStage } from '../components/LiveStage';
 import { PoolTable, UpNext } from '../components/PoolTable';
 import { NoSeason } from '../components/NoSeason';
@@ -51,6 +52,12 @@ function LiveTournament({ id }: { id: number }) {
     <>
       <LiveHeader>
         {t.tournaments.one} {formatDate(data.date)} · {data.format}
+        {data.forFun && (
+          <>
+            {' '}
+            <ForFunTag />
+          </>
+        )}
       </LiveHeader>
       {data.status === 'draft' ? (
         <p className="live-message">{t.live.drawing}</p>

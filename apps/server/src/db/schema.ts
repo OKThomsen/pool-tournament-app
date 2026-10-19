@@ -80,6 +80,11 @@ export const tournaments = pgTable(
      */
     historical: boolean('historical').notNull().default(false),
     /**
+     * "For sjov kamp": played and saved like any other tournament, but left out of every
+     * statistic (season points, Deltagelse, wins, semifinals, quarterfinals).
+     */
+    forFun: boolean('for_fun').notNull().default(false),
+    /**
      * The 6-digit code players enter on /play to score matches. Only admins see it. Null once
      * the tournament is concluded.
      */

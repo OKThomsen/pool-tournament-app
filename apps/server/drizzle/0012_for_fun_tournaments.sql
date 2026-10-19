@@ -1,0 +1,1 @@
+ALTER TABLE "tournaments" ADD COLUMN "for_fun" boolean DEFAULT false NOT NULL;

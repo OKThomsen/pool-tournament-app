@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useSession } from '../auth';
+import { ForFunTag } from '../components/ForFun';
 import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
 import { formatDate } from '../format';
 import { t } from '../strings';
@@ -21,7 +22,8 @@ function matches(row: TournamentSummary, query: string) {
 
 /**
  * Turneringer: concluded tournaments, newest first. A row opens the tournament. Every column
- * sorts, and the search finds a winner or a date. Admins get "Indtast gammel turnering".
+ * sorts, and the search finds a winner or a date. A "For sjov kamp" is marked next to its date.
+ * Admins get "Indtast gammel turnering".
  */
 export function TournamentsPage() {
   const tournaments = useConcludedTournaments();
@@ -69,6 +71,12 @@ export function TournamentsPage() {
                       <a href={`/turneringer/${row.id}`} onClick={(e) => e.preventDefault()}>
                         {formatDate(row.date)}
                       </a>
+                      {row.forFun && (
+                        <>
+                          {' '}
+                          <ForFunTag />
+                        </>
+                      )}
                     </td>
                     <td>{row.winner}</td>
                     <td>{row.participants}</td>

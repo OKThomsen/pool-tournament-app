@@ -61,7 +61,12 @@ function EditForm({ tournament }: { tournament: Tournament }) {
     <>
       <EntryForm
         title={t.create.editTitle}
-        initial={{ date: tournament.date, format: tournament.format, entrants }}
+        initial={{
+          date: tournament.date,
+          format: tournament.format,
+          forFun: tournament.forFun,
+          entrants,
+        }}
         busy={edit.isPending}
         error={edit.error && t.saveFailed}
         notice={(playerIds) => describe(consequences(tournament, playerIds))}

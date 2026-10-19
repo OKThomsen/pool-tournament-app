@@ -188,6 +188,13 @@ switch to semifinals or the final only moves the players in 5.–8. to the parti
 of an old tournament says it was entered afterwards and shows the placings only (no pool wins,
 bracket or pools), with "Slet turnering" but not "Genåbn turnering".
 
+Ny Turnering (and "Rediger spillere") has a **"For sjov kamp"** checkbox ("Just for fun") under the
+date and format, for a tournament that is played as usual but counts in no statistic (Tournaments
+API → For sjov kamp). On the tournament's admin page, and on its public page for logged-in admins,
+the same checkbox switches it at any time, concluded or not (`components/ForFun.tsx`, not for old
+tournaments). Everyone else sees a "For sjov kamp" tag there with what it means; Turneringer and
+`/live` show the tag next to the date. A fun tournament's placings have no Point column.
+
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 
@@ -374,7 +381,7 @@ has none: once it's entered, only an admin can correct or clear it. This runs on
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments: `participation`, `wins` (tournaments won), `semifinals` (reached; a final-only tournament has none, so it doesn't count), `quarterfinals` (played in one). |
+| `GET /api/players` | public | Every player, by name, with `member` (has an active membership), `memberSince`, `seasonPoints` for the current season (null in the off-season) and all-time statistics from concluded tournaments (not "For sjov kamp", below): `participation`, `wins` (tournaments won), `semifinals` (reached; a final-only tournament has none, so it doesn't count), `quarterfinals` (played in one). |
 | `GET /api/players/:id` | public | One player. |
 | `POST /api/players` | admin | "Tilføj ny spiller": `{ name, baseHandicap?, frameHandicap?, member?, memberSince? }` → 201. |
 | `PATCH /api/players/:id` | admin | Change name, handicaps and/or membership. A handicap change sets `lastAdjusted` to today (Danish time). `member: true` starts a membership (`memberSince`, default today; on an active one it moves the start), `member: false` ends it today. `memberSince` can't be in the future (400 `member_since_in_future`) or come without `member: true` (400 `member_since_without_member`). |
@@ -399,7 +406,7 @@ points.
 | Route | Who | What |
 |---|---|---|
 | `GET /api/seasons/current` | public | `{ season, next, standings }`. `season` is `{ label, start, end }` for the season today is in, or null in the off-season; `next` is the season after today. `standings` (empty in the off-season) lists everyone with at least 1 season point (from playing in the season or the member bonus; players with 0 points are left out here but still listed on Spillere), by points (then name): `rank` (shared when level on points), `playerId`, `name`, `member` (earns the bonus), `points`, `participation`, `wins`, `semifinals`, `quarterfinals`, all counted within the season. |
-| `GET /api/seasons` | public | Every season with a concluded tournament, plus the current one, newest first: `[{ label, start, end }]`. |
+| `GET /api/seasons` | public | Every season with a concluded tournament that counts (not "For sjov kamp"), plus the current one, newest first: `[{ label, start, end }]`. |
 | `GET /api/seasons/:id` | public | One season by its label with a dash (`1-2026` for 1/2026): `{ season, standings }`, the standings as above. 404 `not_found` for anything that isn't a season. |
 
 ### Tournaments API
@@ -413,9 +420,10 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season (null in the off-season), format, status, knockout size, `players` (with handicaps and Medlem on the tournament's date), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
 | `GET /api/tournaments/:id/code` | admin | `{ code }`: the join code for `/play` (null once concluded). |
 | `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
-| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
-| `PUT /api/tournaments/:id` | admin | "Rediger spillere": `{ date, format, playerIds }`, in `draft` or `pools` (409 `pools_closed` once the knockout has started; 400 `too_few_players` / `unknown_player` as when creating). Players who leave are taken out of their pool with all their matches, so they get no result at all. Newcomers go into the smallest pool (`updatePools`). When the new count needs another number of pools (`poolSizes`), or a pool would get too small, every pool is drawn again and every pool result is deleted. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds, forFun? }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
+| `PUT /api/tournaments/:id` | admin | "Rediger spillere": `{ date, format, playerIds, forFun? }` (`forFun` left as it is when omitted), in `draft` or `pools` (409 `pools_closed` once the knockout has started; 400 `too_few_players` / `unknown_player` as when creating). Players who leave are taken out of their pool with all their matches, so they get no result at all. Newcomers go into the smallest pool (`updatePools`). When the new count needs another number of pools (`poolSizes`), or a pool would get too small, every pool is drawn again and every pool result is deleted. |
 | `PUT /api/tournaments/:id/pools` | admin | `{ pools: playerId[][] }` saves the admin's swaps and moves, in `draft` or `pools` (409 `pools_closed`). Every entrant exactly once, pools of at least 2. Pool rows keep their ids. During the pools, each pool's matches follow its players (`syncPoolMatches`): a result stays while both its players are still in that pool, matches with a player who left the pool are deleted, new pairings are added with their pool's race length, and the play order is rebuilt. A pool whose players changed loses its `tiebreak`. |
+| `PUT /api/tournaments/:id/for-fun` | admin | `{ forFun }`: "For sjov kamp" on or off, in any status, concluded too. 409 `historical` for an old tournament. |
 | `POST /api/tournaments/:id/randomize` | admin | "Randomize": draws every pool again (`poolSizes` + `drawPools`), in `draft` or `pools`. Every pool match and result is deleted; during the pools new matches are created. Each pool (A, B …) keeps its race length. |
 | `POST /api/tournaments/:id/start` | admin | "Gå til turnering", draft only, no body. Creates every pool match in play order (`roundRobinRounds` + `playOrder`) with its pool's race length and moves to `pools`. Players and pools can still change afterwards (above). |
 | `PUT /api/tournaments/:id/pools/:poolId/race` | admin | `{ raceTo }` (2 to 5, else 400): one pool's race length (`pools.race_to`, returned as the pool's `raceTo`), in `draft` or `pools` (409 `pools_closed`). During the pools also its matches', and only while that pool has no result (409 `round_started`). |
@@ -429,7 +437,7 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress, 409 `historical` for an old tournament (it has no knockout). |
 | `POST /api/tournaments/historical` | admin | "Indtast gammel turnering": `{ date, format, knockoutSize: 2 \| 4 \| 8, playerIds }`, the players best first (below) → 201, a tournament with `historical: true` that is `concluded` at once, with no pools, matches, seeds or join code. Allowed while another tournament is in progress. 400 `date_in_future`, `too_few_players` (fewer than the places to fill), `unknown_player`. |
-| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `winner` (name), `participants`. |
+| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `forFun`, `winner` (name), `participants`. |
 
 A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
 from the third-place final, quarterfinal losers 5–8, the rest participation), **points** from
@@ -462,6 +470,15 @@ statistics on Spillere and Sæson from its knockout size (`knockout_size`: 8 qua
 semifinals, 2 the final only). Pool wins aren't known and are stored as 0; the handicap snapshot
 is the players' handicaps when it's entered. It can't be reopened (there is no knockout to go back
 to), but it can be deleted.
+
+**For sjov kamp** (`forFun`). A tournament played for fun runs like any other (pools, knockout,
+/play, corrections, concluding) and is listed under Turneringer with its placings, but it counts
+in no statistic: not in season points, the season standings, the list of seasons, or Deltagelse,
+Wins, Semifinals and Quarterfinals on Spillere. Its `results` rows are written as usual; the
+statistics queries leave them out when they're read (`countsInStats` and `seasonPointsIn` in
+`apps/server/src/db/seasons.ts`, `standings` in `routes/seasons.ts`), so switching it on or off
+later needs no recomputing. It is set on Ny Turnering and can be switched on the tournament's
+admin page at any time. Old tournaments can't be for fun.
 
 ### Live updates
 
@@ -517,7 +534,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `membership_periods` | When a player was a member: start, end (null while active). |
-| `tournaments` | Date, week, format (8/9/10-ball), knockout size (2/4/8), status (draft → pools → knockout → concluded), join code for `/play`, `historical` (an old tournament entered with its placings only). |
+| `tournaments` | Date, week, format (8/9/10-ball), knockout size (2/4/8), status (draft → pools → knockout → concluded), join code for `/play`, `historical` (an old tournament entered with its placings only), `for_fun` ("For sjov kamp": left out of the statistics). |
 | `tournament_players` | Who entered a tournament. |
 | `pools`, `pool_members` | Pools (A, B, …) with their race length (`race_to`, 2 to 5), and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
@@ -679,3 +696,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-15 | Seeding follows the workbook's Qualifier Seeding: pool winners first, then runners-up (each by wins → set score), and players from the same pool are kept apart in the first round, the semifinals too when they are the first round. |
 | 2026-10-16 | Players on `/play` can enter a result only in a match without one, after confirming it; correcting or clearing it is for logged-in admins. With two at once, the first result counts. |
 | 2026-10-17 | Admins can enter old tournaments from before the app with their placings only: date, format, knockout (quarterfinals, semifinals or the final only), 1st–4th, 5–8 with quarterfinals, then the other participants. Every place must be filled. Points as usual (10/7/5/4/2/1, member bonus still 10), in the season of the date; statistics from the knockout. No pools or brackets are shown. |
+| 2026-10-19 | "For sjov kamp": a checkbox on Ny Turnering for a tournament that is played and listed under Turneringer as usual, but counts in no statistic (season points, standings, Deltagelse, Wins, Semifinals, Quarterfinals). The admin can switch it later, also after concluding. Not offered for old tournaments. |
