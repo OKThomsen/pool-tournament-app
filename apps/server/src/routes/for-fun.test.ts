@@ -136,7 +136,9 @@ describe('For sjov kamp', () => {
     expect(detail.results).toHaveLength(8);
     expect(detail.results[0]).toMatchObject({ playerId: playerIds[0], placement: '1st' });
     const list = (await app.inject({ url: '/api/tournaments' })).json();
-    expect(list).toEqual([expect.objectContaining({ id: fun.id, forFun: true, winner: 'Spiller 1' })]);
+    expect(list).toEqual([
+      expect.objectContaining({ id: fun.id, forFun: true, winner: 'Spiller 1' }),
+    ]);
   });
 
   it('gives no one a place on the season standings or a season of its own', async () => {
