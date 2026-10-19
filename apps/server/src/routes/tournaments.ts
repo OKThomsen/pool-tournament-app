@@ -56,7 +56,10 @@ const playerIdList = {
 const formats = ['8-ball', '9-ball', '10-ball'] as const;
 type GameFormat = (typeof formats)[number];
 
-/** Date, format and players: what CreateTurnering sends, and "Rediger spillere" afterwards. */
+/**
+ * Date, format, players and "For sjov kamp": what CreateTurnering sends, and "Rediger spillere"
+ * afterwards. `forFun` defaults to false on create and is left as it is when an edit omits it.
+ */
 const entryBody = {
   type: 'object',
   required: ['date', 'format', 'playerIds'],
@@ -65,6 +68,7 @@ const entryBody = {
     date: { type: 'string', format: 'date' },
     format: { type: 'string', enum: formats },
     playerIds: { ...playerIdList, maxItems: 64 },
+    forFun: { type: 'boolean' },
   },
 } as const;
 
@@ -72,6 +76,7 @@ interface Entry {
   date: string;
   format: GameFormat;
   playerIds: number[];
+  forFun?: boolean;
 }
 
 /**
@@ -151,7 +156,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     '/tournaments',
     { preHandler: requireAdmin, schema: { body: entryBody } },
     async (request, reply) => {
-      const { date, format, playerIds } = request.body;
+      const { date, format, playerIds, forFun = false } = request.body;
       const error = await entryError(db, playerIds);
       if (error) return reply.code(400).send({ error });
 
@@ -163,6 +168,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
               date,
               week: weekNumber(date),
               format,
+              forFun,
               joinCode: newJoinCode(),
             })
             .returning({ id: tournaments.id });
@@ -311,7 +317,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     { preHandler: requireAdmin, schema: { params: idParams, body: entryBody } },
     async (request, reply) => {
       const { id } = request.params;
-      const { date, format, playerIds } = request.body;
+      const { date, format, playerIds, forFun } = request.body;
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (!poolsOpen(detail.status)) return reply.code(409).send({ error: 'pools_closed' });
@@ -328,7 +334,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       await db.transaction(async (tx) => {
         await tx
           .update(tournaments)
-          .set({ date, week: weekNumber(date), format })
+          .set({ date, week: weekNumber(date), format, forFun })
           .where(eq(tournaments.id, id));
         if (leaving.length > 0) {
           await tx
@@ -354,6 +360,39 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
         );
         if (playing) await syncPoolMatches(tx, id);
       });
+      events.tournamentChanged(id);
+      return tournamentDetail(db, id);
+    },
+  );
+
+  /**
+   * "For sjov kamp" on or off, at any time, also after the tournament is concluded. The statistics
+   * leave fun tournaments out when they're read, so nothing needs recomputing. Not for an old
+   * tournament (409 `historical`).
+   */
+  app.put<{ Params: { id: number }; Body: { forFun: boolean } }>(
+    '/tournaments/:id/for-fun',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['forFun'],
+          additionalProperties: false,
+          properties: { forFun: { type: 'boolean' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
+      if (!tournament) return reply.code(404).send({ error: 'not_found' });
+      if (tournament.historical) return reply.code(409).send({ error: 'historical' });
+      await db
+        .update(tournaments)
+        .set({ forFun: request.body.forFun })
+        .where(eq(tournaments.id, id));
       events.tournamentChanged(id);
       return tournamentDetail(db, id);
     },

@@ -61,7 +61,18 @@ export function inSeason(season: Season, date: AnyPgColumn = tournaments.date): 
   return sql<boolean>`${qualified(date)} between ${season.start}::date and ${season.end}::date`;
 }
 
-/** Points from the season's concluded tournaments, plus the member bonus. */
+/**
+ * Whether a result's tournament counts in the statistics: every tournament except a "For sjov
+ * kamp" (`for_fun`).
+ */
+export function countsInStats(tournamentId: AnyPgColumn = results.tournamentId): SQL<boolean> {
+  return sql<boolean>`${qualified(tournamentId)} in (
+    select ${qualified(tournaments.id)} from ${tournaments}
+    where not ${qualified(tournaments.forFun)}
+  )`;
+}
+
+/** Points from the season's concluded tournaments (not the fun ones), plus the member bonus. */
 export function seasonPointsIn(season: Season, playerId: AnyPgColumn): SQL<number> {
   return sql<number>`(
     coalesce((
@@ -69,6 +80,7 @@ export function seasonPointsIn(season: Season, playerId: AnyPgColumn): SQL<numbe
       join ${tournaments} on ${qualified(tournaments.id)} = ${qualified(results.tournamentId)}
       where ${qualified(results.playerId)} = ${qualified(playerId)}
         and ${inSeason(season)}
+        and not ${qualified(tournaments.forFun)}
     ), 0)
     + case when ${earnsBonusIn(season, playerId)} then ${MEMBER_BONUS} else 0 end
   )::int`;

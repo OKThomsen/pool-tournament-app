@@ -25,6 +25,8 @@ export async function tournamentDetail(db: Executor, id: number) {
       knockoutSize: tournaments.knockoutSize,
       /** Entered afterwards with its placings only: no pools, matches or seeds. */
       historical: tournaments.historical,
+      /** "For sjov kamp": left out of every statistic. */
+      forFun: tournaments.forFun,
     })
     .from(tournaments)
     .where(eq(tournaments.id, id));
@@ -155,6 +157,7 @@ export async function concludedTournaments(db: Executor) {
       date: tournaments.date,
       week: tournaments.week,
       format: tournaments.format,
+      forFun: tournaments.forFun,
       winner: sql<string | null>`(
         select ${players.name} from ${results}
         join ${players} on ${qualified(players.id)} = ${qualified(results.playerId)}

@@ -13,12 +13,13 @@ import { currentSeason, earnsBonusIn, inSeason, qualified, seasonPointsIn } from
 
 /**
  * The season's standings: everyone with at least 1 point this season (from playing in it or the
- * member bonus), by points. Players level on points share a rank. Players with 0 points are left
+ * member bonus), by points. "For sjov kamp" tournaments don't count. Players level on points share a rank. Players with 0 points are left
  * out here but are still listed on Spillere.
  */
 async function standings(db: Database, season: Season) {
   const played = sql`${qualified(results.tournamentId)} in (
-    select ${qualified(tournaments.id)} from ${tournaments} where ${inSeason(season)}
+    select ${qualified(tournaments.id)} from ${tournaments}
+    where ${inSeason(season)} and not ${qualified(tournaments.forFun)}
   )`;
   const member = earnsBonusIn(season, players.id);
   const points = seasonPointsIn(season, players.id);
@@ -68,14 +69,14 @@ export const seasonRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
   });
 
   /**
-   * Every season with a concluded tournament, plus the current one, newest first: the choices
-   * on Sæson.
+   * Every season with a concluded tournament that counts (not "For sjov kamp"), plus the
+   * current one, newest first: the choices on Sæson.
    */
   app.get('/seasons', async () => {
     const dates = await db
       .selectDistinct({ date: tournaments.date })
       .from(tournaments)
-      .where(eq(tournaments.status, 'concluded'));
+      .where(and(eq(tournaments.status, 'concluded'), eq(tournaments.forFun, false)));
     const byLabel = new Map<string, Season>();
     for (const season of [currentSeason(), ...dates.map((row) => seasonForDate(row.date))]) {
       if (season) byLabel.set(season.label, season);
