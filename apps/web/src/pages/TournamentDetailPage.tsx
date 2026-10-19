@@ -4,6 +4,7 @@ import { ApiError } from '../api';
 import { useSession } from '../auth';
 import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { formatDate } from '../format';
@@ -21,7 +22,7 @@ import {
 /**
  * Turneringer/Turnering: a tournament's full result — final placings, the knockout and the
  * pools. Admins can correct results here; placements and points update at once. An old
- * tournament entered afterwards has its placings only.
+ * tournament entered afterwards has its placings only. A "For sjov kamp" shows no points.
  */
 export function TournamentDetailPage() {
   const id = Number(useParams().id);
@@ -45,6 +46,7 @@ export function TournamentDetailPage() {
         {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
         {t.create.count(data.players.length)}
       </p>
+      <ForFunSetting tournament={data} admin={Boolean(admin)} />
       {data.status === 'concluded' ? (
         <Concluded tournament={data} admin={Boolean(admin)} />
       ) : (
@@ -71,6 +73,8 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
   const close = () => setScoring(null);
   const old = tournament.historical;
+  // A fun tournament's points count nowhere, so they aren't shown.
+  const points = !tournament.forFun;
 
   const error = setResult.error ?? reopen.error ?? remove.error;
   const message =
@@ -91,7 +95,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
             <tr>
               <th>{t.detail.placement}</th>
               <th>{t.players.name}</th>
-              <th>{t.detail.points}</th>
+              {points && <th>{t.detail.points}</th>}
               {!old && <th>{t.detail.poolWins}</th>}
             </tr>
           </thead>
@@ -100,7 +104,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
               <tr key={result.playerId} className={`placement-${result.placement}`}>
                 <td>{t.placements[result.placement]}</td>
                 <td>{names.get(result.playerId)}</td>
-                <td>{result.points}</td>
+                {points && <td>{result.points}</td>}
                 {!old && <td>{result.matchesWon}</td>}
               </tr>
             ))}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ForFunSetting } from '../components/ForFun';
 import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
 import { RaceToInput } from '../components/RaceToInput';
@@ -47,6 +48,7 @@ export function OngoingTournamentPage() {
         {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
         {t.create.count(data.players.length)}
       </p>
+      <ForFunSetting tournament={data} admin />
       <JoinCode tournamentId={data.id} />
       {data.status === 'draft' && <DraftPools tournament={data} />}
       {data.status === 'pools' && <PoolPlay tournament={data} />}

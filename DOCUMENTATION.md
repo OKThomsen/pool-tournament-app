@@ -188,6 +188,13 @@ switch to semifinals or the final only moves the players in 5.–8. to the parti
 of an old tournament says it was entered afterwards and shows the placings only (no pool wins,
 bracket or pools), with "Slet turnering" but not "Genåbn turnering".
 
+Ny Turnering (and "Rediger spillere") has a **"For sjov kamp"** checkbox ("Just for fun") under the
+date and format, for a tournament that is played as usual but counts in no statistic (Tournaments
+API → For sjov kamp). On the tournament's admin page, and on its public page for logged-in admins,
+the same checkbox switches it at any time, concluded or not (`components/ForFun.tsx`, not for old
+tournaments). Everyone else sees a "For sjov kamp" tag there with what it means; Turneringer and
+`/live` show the tag next to the date. A fun tournament's placings have no Point column.
+
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 

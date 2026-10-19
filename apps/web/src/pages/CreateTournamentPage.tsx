@@ -13,14 +13,22 @@ import {
 import { matchesWordStart } from '../components/TableView';
 import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
-import { useCreateTournament, useOngoingTournament, type GameFormat } from '../tournaments';
+import {
+  useCreateTournament,
+  useOngoingTournament,
+  type GameFormat,
+  type TournamentEntry,
+} from '../tournaments';
 
 export const FORMATS: GameFormat[] = ['8-ball', '9-ball', '10-ball'];
 
 /** How many matches "Tilføj spiller" lists at most. */
 const MAX_RESULTS = 10;
 
-/** CreateTurnering: pick date, format and players, then "Færdiggør" draws the pools. */
+/**
+ * CreateTurnering: pick date, format and players (and "For sjov kamp" for a tournament that
+ * doesn't count), then "Færdiggør" draws the pools.
+ */
 export function CreateTournamentPage() {
   const navigate = useNavigate();
   const ongoing = useOngoingTournament();
@@ -40,7 +48,7 @@ export function CreateTournamentPage() {
   return (
     <EntryForm
       title={t.nav.newTournament}
-      initial={{ date: todayInDenmark(), format: '8-ball', entrants: [] }}
+      initial={{ date: todayInDenmark(), format: '8-ball', forFun: false, entrants: [] }}
       busy={createTournament.isPending}
       error={
         error &&
@@ -58,15 +66,11 @@ export function CreateTournamentPage() {
   );
 }
 
-export interface Entry {
-  date: string;
-  format: GameFormat;
-  playerIds: number[];
-}
+export type Entry = TournamentEntry;
 
 interface EntryFormProps {
   title: string;
-  initial: { date: string; format: GameFormat; entrants: Player[] };
+  initial: { date: string; format: GameFormat; forFun: boolean; entrants: Player[] };
   busy: boolean;
   error?: string | null;
   /** What saving will do, shown above the buttons (for an existing tournament). */
@@ -76,7 +80,7 @@ interface EntryFormProps {
 }
 
 /**
- * Date, format and the player list, with "Færdiggør" and "Annuller". Used to create a tournament
+ * Date, format, "For sjov kamp" and the player list, with "Færdiggør" and "Annuller". Used to create a tournament
  * and, with "Rediger spillere", to change one until the knockout starts.
  */
 export function EntryForm({
@@ -90,6 +94,7 @@ export function EntryForm({
 }: EntryFormProps) {
   const [date, setDate] = useState(initial.date);
   const [format, setFormat] = useState<GameFormat>(initial.format);
+  const [forFun, setForFun] = useState(initial.forFun);
   const [entrants, setEntrants] = useState<Player[]>(initial.entrants);
 
   const sizes = poolSizes(entrants.length);
@@ -102,7 +107,7 @@ export function EntryForm({
 
   const finish = (event: FormEvent) => {
     event.preventDefault();
-    onSubmit({ date, format, playerIds });
+    onSubmit({ date, format, playerIds, forFun });
   };
 
   return (
@@ -122,6 +127,11 @@ export function EntryForm({
           </select>
         </label>
       </div>
+      <label className="checkbox for-fun">
+        <input type="checkbox" checked={forFun} onChange={(e) => setForFun(e.target.checked)} />
+        {t.forFun.label}
+      </label>
+      {forFun && <p className="muted">{t.forFun.help}</p>}
 
       <PlayerSearch excluded={entrants} onAdd={add} />
 

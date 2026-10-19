@@ -357,6 +357,28 @@ table,
   font-weight: 600;
 }
 
+/* "For sjov kamp": a small mark next to a tournament's date, and its setting under the title. */
+.tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.8em;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.for-fun {
+  margin: 8px 0 16px;
+}
+
+.for-fun p {
+  margin: 4px 0 0;
+}
+
 .notice {
   margin: 16px 0;
   padding: 16px;

@@ -41,6 +41,10 @@ const da = {
     dateInFuture: 'Datoen kan ikke ligge i fremtiden.',
     entered: 'Indtastet bagefter med placeringerne alene.',
   },
+  forFun: {
+    label: 'For sjov kamp',
+    help: 'Spilles og gemmes som andre turneringer, men tæller ikke med i point eller statistik.',
+  },
   detail: {
     inProgress: 'Turneringen er i gang.',
     followLive: 'Følg den live',
@@ -291,6 +295,10 @@ const en: Strings = {
     fillAll: 'Fill in every place first.',
     dateInFuture: 'The date can’t be in the future.',
     entered: 'Entered afterwards, with the placings only.',
+  },
+  forFun: {
+    label: 'Just for fun',
+    help: 'Played and saved like any other tournament, but doesn’t count towards points or statistics.',
   },
   detail: {
     inProgress: 'This tournament is in progress.',
