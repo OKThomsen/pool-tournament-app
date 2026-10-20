@@ -75,6 +75,8 @@ lists the current season and every earlier season with a concluded tournament; a
 opens at `/saeson/1-2026` (the label with a dash) and is marked "Afsluttet".
 In the off-season it, the frontpage leaderboard and `/live` say there's no current season and
 when the next one starts (`components/NoSeason.tsx`).
+The frontpage (`FrontPage.tsx`) says when the club meets (every Wednesday: training 17–18:30
+for members, tournaments from 19:00) and the address, which links to Google Maps.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 

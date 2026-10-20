@@ -4,6 +4,9 @@ import { NoSeason } from '../components/NoSeason';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
 
+const ADDRESS = 'Pantheonsgade 2, 5000 Odense';
+const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
+
 /** Info about the club, with the current season's leaderboard on the side. */
 export function FrontPage() {
   return (
@@ -11,8 +14,17 @@ export function FrontPage() {
       <section className="panel hero">
         <img className="wordmark" src="/brand/wordmark.png" alt={t.brand} />
         <h1>{t.frontpage.title}</h1>
-        {/* The club's own text goes here; the wireframe only has placeholder copy. */}
-        <p>{t.placeholder}</p>
+        <div className="club-info">
+          <h2>{t.frontpage.when}</h2>
+          <p>{t.frontpage.training}</p>
+          <p>{t.frontpage.tournaments}</p>
+          <p>
+            {t.frontpage.address}:{' '}
+            <a href={MAPS_URL} target="_blank" rel="noreferrer">
+              {ADDRESS}
+            </a>
+          </p>
+        </div>
       </section>
       <Leaderboard />
     </div>
