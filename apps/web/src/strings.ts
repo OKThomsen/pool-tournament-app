@@ -21,6 +21,10 @@ const da = {
   frontpage: {
     title: "Frank's Poolhouse turnerings platform",
     leaderboard: 'Sæson Leaderboard',
+    when: 'Hver onsdag',
+    training: 'Træning kl. 17–18:30 (for klubmedlemmer)',
+    tournaments: 'Turneringer fra kl. 19:00',
+    address: 'Adresse',
   },
   tournaments: {
     title: 'Turneringer',
@@ -255,7 +259,6 @@ const da = {
   loadFailed: 'Kunne ikke hente data. Prøv igen.',
   saveFailed: 'Kunne ikke gemme. Prøv igen.',
   notFound: 'Siden findes ikke',
-  placeholder: 'Kommer snart',
 };
 
 export type Strings = typeof da;
@@ -276,6 +279,10 @@ const en: Strings = {
   frontpage: {
     title: "Frank's Poolhouse tournament platform",
     leaderboard: 'Season leaderboard',
+    when: 'Every Wednesday',
+    training: 'Training 17:00–18:30 (club members)',
+    tournaments: 'Tournaments from 19:00',
+    address: 'Address',
   },
   tournaments: {
     title: 'Tournaments',
@@ -510,7 +517,6 @@ const en: Strings = {
   loadFailed: 'Couldn’t load the data. Try again.',
   saveFailed: 'Couldn’t save. Try again.',
   notFound: 'Page not found',
-  placeholder: 'Coming soon',
 };
 
 export type Language = 'da' | 'en';
