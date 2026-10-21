@@ -100,8 +100,8 @@ another pool to move them (pools keep at least 2 players). Every change is saved
 touch screens a short press starts the drag, so the page still scrolls. At the bottom of each
 pool's box the admin chooses that pool's length in "Først til" (2 to 5, 2 by default; saved at
 once), the same field (`RaceToInput`) as the knockout's race lengths, so a pool of 3 can play a
-longer race than the pools of 4. The pool tables show it in their title ("Pulje C · Først til 3"),
-on /live too. "Gå til turnering" (after a confirmation that lists each pool's length) creates the
+longer race than the pools of 4. The pool tables show it in their title ("Pulje C" over "Først til
+3"), on /live too. "Gå til turnering" (after a confirmation that lists each pool's length) creates the
 pool matches; "Annuller turnering" deletes the tournament. It
 stays at the bottom of the page through pool play and the knockout. "Randomize" draws every pool
 again.
@@ -131,9 +131,10 @@ Every pool is drawn with as many rows and result columns as the largest pool (`s
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
 "…" and shown in full on hover. On a phone a pool scrolls sideways with the names and the pool's title
 pinned, so you can always see whose row a result is in. In the matrix,
-a played cell shows the row player's score, green for a win and red for a loss. The set score
-("5 W - 3 L", frames won and lost) is left of the name; wins and rank (from `poolStandings`)
-are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
+a played cell shows the row player's score, green for a win and red for a loss. The blue title
+row has the pool's name and race length over the names, and each player's set score ("5 W - 3 L",
+frames won and lost) over their column, so the set score takes no column of its own. Wins and rank
+(from `poolStandings`) are on the right, with "=" for a tie only the admin can settle. Tapping a cell opens
 `ScoreDialog`, asked from that row player's side (in August's row against Oskar, 2-0 means August
 won 2-0): one button per possible score (2-0, 2-1, 1-2, 0-2 for a race to 2), plus "Ryd
 resultat". Pools of 3 and 5 show "Up next": the next matches in schedule order that can be

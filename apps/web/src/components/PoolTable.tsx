@@ -8,7 +8,7 @@ import type { Match } from '../tournaments';
  * Column widths in em, so the grid grows with the font on /live. Result cells are squares of
  * `cell` em: the rows are as tall as the result columns are wide (see .pool-table in the CSS).
  */
-const COLUMN = { setScore: 7, name: 9, cell: 5.5, won: 5, rank: 3.5 };
+const COLUMN = { name: 9, cell: 5.5, won: 5, rank: 3.5 };
 
 interface PoolTableProps {
   view: PoolView;
@@ -24,15 +24,16 @@ interface PoolTableProps {
 
 /**
  * One pool as a matrix, like the workbook: each row is a player, read across. A played match
- * shows the row player's score, green for a win and red for a loss. The set score (frames won
- * and lost) is to the left of the name; wins and rank are on the right.
+ * shows the row player's score, green for a win and red for a loss. The blue title row has the
+ * pool's name and race length, and each player's set score (frames won and lost) above their
+ * column; wins and rank are on the right.
  */
 export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
   const ids = pool.playerIds;
   const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
   const columns = Math.max(slots, ids.length);
-  const width = COLUMN.setScore + COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
+  const width = COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
   // --width-em lets /live scale the font so the whole table fits its column.
   const style = {
     width: `${width}em`,
@@ -43,13 +44,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   return (
     <div className="table-scroll">
       <table className="pool-table" style={style}>
-        <caption>
-          <span>
-            {t.pools.pool} {pool.name} · {t.score.raceTo(pool.raceTo)}
-          </span>
-        </caption>
         <colgroup>
-          <col style={{ width: `${COLUMN.setScore}em` }} />
           <col style={{ width: `${COLUMN.name}em` }} />
           {Array.from({ length: columns }, (_, i) => (
             <col key={i} style={{ width: `${COLUMN.cell}em` }} />
@@ -58,8 +53,26 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
           <col style={{ width: `${COLUMN.rank}em` }} />
         </colgroup>
         <thead>
+          <tr className="pool-title">
+            <th className="pool-name">
+              {t.pools.pool} {pool.name}
+              <small>{t.score.raceTo(pool.raceTo)}</small>
+            </th>
+            {ids.map((id) => {
+              const row = standings.get(id)!;
+              return (
+                <th key={id} className="set-score" title={t.pools.setScore}>
+                  {row.framesFor} W - {row.framesAgainst} L
+                </th>
+              );
+            })}
+            {padding.map((i) => (
+              <th key={`pad-${i}`} />
+            ))}
+            <th />
+            <th />
+          </tr>
           <tr>
-            <th className="set-score">{t.pools.setScore}</th>
             <th>{t.players.name}</th>
             {ids.map((id) => (
               <th key={id} className="opponent" title={names.get(id)}>
@@ -78,9 +91,6 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
             const row = standings.get(rowId)!;
             return (
               <tr key={rowId}>
-                <td className="set-score">
-                  {row.framesFor} W - {row.framesAgainst} L
-                </td>
                 <th scope="row" title={names.get(rowId)}>
                   <PlayerName label={names.get(rowId)} />
                 </th>
@@ -122,7 +132,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
           })}
           {padding.map((i) => (
             <tr key={`pad-${i}`} className="empty-row">
-              {Array.from({ length: columns + 4 }, (_, j) => (
+              {Array.from({ length: columns + 3 }, (_, j) => (
                 <td key={j} className="empty" />
               ))}
             </tr>
