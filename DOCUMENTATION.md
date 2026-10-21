@@ -136,7 +136,11 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
-"…" and shown in full on hover. On a phone a pool scrolls sideways with the names and the pool's title
+"…" and shown in full on hover. On phones (up to 600px wide) the matrix is compact
+(`COMPACT_COLUMN`): the players are numbered 1–5, the result columns are headed by those numbers
+instead of names, the set score is stacked ("5W" over "3L"), "Vundne" becomes "V", and the font
+shrinks (down to 0.65rem) until the pool fits the screen, so a pool of 5 needs no swiping on a
+360px phone. If a pool is still too wide, it scrolls sideways with the names and the pool's title
 pinned, so you can always see whose row a result is in. In the matrix,
 a played cell shows the row player's score, green for a win and red for a loss. The blue title
 row has the pool's name and race length over the names, and each player's set score ("5 W - 3 L",

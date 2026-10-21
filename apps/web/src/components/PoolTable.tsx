@@ -1,5 +1,5 @@
 import { PlayerName } from './PlayerName';
-import type { CSSProperties } from 'react';
+import { useSyncExternalStore, type CSSProperties } from 'react';
 import { isPlayed, scoreFor, type PoolView } from '../poolView';
 import { t } from '../strings';
 import type { Match } from '../tournaments';
@@ -9,6 +9,24 @@ import type { Match } from '../tournaments';
  * `cell` em: the rows are as tall as the result columns are wide (see .pool-table in the CSS).
  */
 const COLUMN = { name: 9, cell: 5.5, won: 5, rank: 3.5 };
+
+/**
+ * On phones: players are numbered, the result columns are headed by those numbers instead of
+ * names, and every column is narrower, so a pool of 5 fits the screen without swiping.
+ */
+const COMPACT_COLUMN = { name: 7.5, cell: 3, won: 2, rank: 2 };
+const PHONE = '(max-width: 600px)';
+
+function usePhone() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(PHONE);
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(PHONE).matches,
+  );
+}
 
 interface PoolTableProps {
   view: PoolView;
@@ -26,31 +44,33 @@ interface PoolTableProps {
  * One pool as a matrix, like the workbook: each row is a player, read across. A played match
  * shows the row player's score, green for a win and red for a loss. The blue title row has the
  * pool's name and race length, and each player's set score (frames won and lost) above their
- * column; wins and rank are on the right.
+ * column; wins and rank are on the right. On phones the table is compact (`COMPACT_COLUMN`).
  */
 export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
+  const compact = usePhone();
+  const column = compact ? COMPACT_COLUMN : COLUMN;
   const ids = pool.playerIds;
   const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
   const columns = Math.max(slots, ids.length);
-  const width = COLUMN.name + columns * COLUMN.cell + COLUMN.won + COLUMN.rank;
-  // --width-em lets /live scale the font so the whole table fits its column.
+  const width = column.name + columns * column.cell + column.won + column.rank;
+  // --width-em lets /live, and phones, scale the font so the whole table fits its column.
   const style = {
     width: `${width}em`,
-    '--cell': `${COLUMN.cell}em`,
+    '--cell': `${column.cell}em`,
     '--width-em': width,
   } as CSSProperties;
 
   return (
     <div className="table-scroll">
-      <table className="pool-table" style={style}>
+      <table className={compact ? 'pool-table compact' : 'pool-table'} style={style}>
         <colgroup>
-          <col style={{ width: `${COLUMN.name}em` }} />
+          <col style={{ width: `${column.name}em` }} />
           {Array.from({ length: columns }, (_, i) => (
-            <col key={i} style={{ width: `${COLUMN.cell}em` }} />
+            <col key={i} style={{ width: `${column.cell}em` }} />
           ))}
-          <col style={{ width: `${COLUMN.won}em` }} />
-          <col style={{ width: `${COLUMN.rank}em` }} />
+          <col style={{ width: `${column.won}em` }} />
+          <col style={{ width: `${column.rank}em` }} />
         </colgroup>
         <thead>
           <tr className="pool-title">
@@ -62,7 +82,15 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
               const row = standings.get(id)!;
               return (
                 <th key={id} className="set-score" title={t.pools.setScore}>
-                  {row.framesFor} W - {row.framesAgainst} L
+                  {compact ? (
+                    <>
+                      {row.framesFor}W
+                      <br />
+                      {row.framesAgainst}L
+                    </>
+                  ) : (
+                    `${row.framesFor} W - ${row.framesAgainst} L`
+                  )}
                 </th>
               );
             })}
@@ -74,25 +102,34 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
           </tr>
           <tr>
             <th>{t.players.name}</th>
-            {ids.map((id) => (
+            {ids.map((id, index) => (
               <th key={id} className="opponent" title={names.get(id)}>
-                <PlayerName label={names.get(id)} />
+                {compact ? index + 1 : <PlayerName label={names.get(id)} />}
               </th>
             ))}
             {padding.map((i) => (
               <th key={`pad-${i}`} className="opponent" />
             ))}
-            <th>{t.pools.won}</th>
+            <th title={t.pools.won}>{compact ? t.pools.wonShort : t.pools.won}</th>
             <th>#</th>
           </tr>
         </thead>
         <tbody>
-          {ids.map((rowId) => {
+          {ids.map((rowId, index) => {
             const row = standings.get(rowId)!;
             return (
               <tr key={rowId}>
                 <th scope="row" title={names.get(rowId)}>
-                  <PlayerName label={names.get(rowId)} />
+                  {compact ? (
+                    <span className="numbered">
+                      <span className="row-number">{index + 1}</span>
+                      <span className="numbered-name">
+                        <PlayerName label={names.get(rowId)} />
+                      </span>
+                    </span>
+                  ) : (
+                    <PlayerName label={names.get(rowId)} />
+                  )}
                 </th>
                 {ids.map((colId) => {
                   if (colId === rowId) return <td key={colId} className="self" />;

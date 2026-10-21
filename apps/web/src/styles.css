@@ -1285,6 +1285,49 @@ table.clickable tbody tr:hover {
   letter-spacing: normal;
 }
 
+/* Phones (PoolTable's compact layout): numbered players and narrower columns, and the font
+   shrinks until the whole pool fits the screen (60px: the page's and the box's side padding),
+   though never below 0.65rem. */
+.pool-table.compact {
+  font-size: clamp(0.65rem, calc((100vw - 60px) / var(--width-em)), 0.85rem);
+}
+
+.pool-table.compact th,
+.pool-table.compact td {
+  padding: 0 2px;
+}
+
+.pool-table.compact th[scope='row'],
+.pool-table.compact .pool-name {
+  padding: 0 4px;
+}
+
+.pool-table.compact .pool-title .set-score {
+  line-height: 1.15;
+}
+
+.pool-table.compact .opponent {
+  font-size: 0.95em;
+}
+
+.numbered {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.row-number {
+  color: var(--text-muted);
+  font-family: var(--font-display);
+}
+
+.numbered-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .pool-table .self {
   background: repeating-linear-gradient(
     -45deg,
