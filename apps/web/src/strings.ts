@@ -224,6 +224,9 @@ const da = {
     notQualified: 'Gik ikke videre',
     matchPlayed: 'Kampen har et resultat. Ryd det først.',
   },
+  adminPanel: {
+    title: 'Admin',
+  },
   joinCode: {
     label: 'Kode til /play',
     help: 'Med koden kan spillerne selv indtaste resultater på /play. Vis den kun til deltagerne.',
@@ -481,6 +484,9 @@ const en: Strings = {
       'Drag a player onto another to swap them. A player who did not advance can be dragged in to take someone’s place. Matches with a result can’t change.',
     notQualified: 'Did not advance',
     matchPlayed: 'That match has a result. Clear it first.',
+  },
+  adminPanel: {
+    title: 'Admin',
   },
   joinCode: {
     label: 'Code for /play',

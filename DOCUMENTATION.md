@@ -90,9 +90,17 @@ shows how the players will be split into pools (from `poolSizes` in `@franks/cor
 app imports straight from source via a Vite alias). If a tournament is already in progress, the
 page links to it instead.
 
-At the top of the admin's tournament page (below) is the **join code** for `/play`
-(`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a new one (after a confirmation)
-and signs out everyone using the old one, in case the code has spread beyond the players.
+**Admin panel.** On a tournament's pages the admin's tools are gathered in a panel on the right
+(`components/AdminPanel.tsx`, `AdminLayout`), which stays in view while the page scrolls; below
+1000px wide it sits above the page instead. On the tournament in progress it has, top to bottom:
+the **join code** for `/play` (`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a
+new one (after a confirmation) and signs out everyone using the old one, in case the code has
+spread beyond the players; "Rediger spillere" and, during pool play, "Rediger puljer" (both until
+the knockout starts); the "For sjov kamp" checkbox; and "Annuller turnering". On a concluded
+tournament (`/turneringer/:id`) it has how to correct results, "Genåbn turnering", "For sjov kamp"
+and "Slet turnering"; on an old tournament only "Slet turnering". The steps that move the
+tournament on ("Gå til turnering", "Afslut puljespillet", "Afslut turneringen") stay on the page,
+under what they finish.
 
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
 the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
@@ -102,9 +110,8 @@ pool's box the admin chooses that pool's length in "Først til" (2 to 5, 2 by de
 once), the same field (`RaceToInput`) as the knockout's race lengths, so a pool of 3 can play a
 longer race than the pools of 4. The pool tables show it in their title ("Pulje C" over "Først til
 3"), on /live too. "Gå til turnering" (after a confirmation that lists each pool's length) creates the
-pool matches; "Annuller turnering" deletes the tournament. It
-stays at the bottom of the page through pool play and the knockout. "Randomize" draws every pool
-again.
+pool matches; "Annuller turnering" (in the admin panel, through pool play and the knockout too)
+deletes the tournament. "Randomize" draws every pool again.
 
 Until the knockout starts, nothing is locked. "Rediger spillere" opens the player list at
 `/admin/turnering/:id/rediger` (`EditTournamentPage.tsx`, the same `EntryForm` as Ny Turnering)
@@ -177,7 +184,8 @@ code form and says why (the live update makes it check its session again).
 Turneringer (`/turneringer`, `TournamentsPage.tsx`) lists concluded tournaments (Dato, Vinder,
 Antal deltagere, Format); a row opens `/turneringer/:id` (`TournamentDetailPage.tsx`) with the
 placings, the bracket and the pools. Logged-in admins can click any result there to correct it
-(placings and points update at once), or "Genåbn turnering" for bigger changes. "Slet turnering"
+(placings and points update at once), or use "Genåbn turnering" in the admin panel for bigger
+changes. "Slet turnering" (also in the panel)
 (after a confirmation that says it can't be undone) deletes the tournament for good: it leaves
 Turneringer, and the players lose its points on the leaderboards and its counts on Spillere.
 
@@ -193,9 +201,10 @@ bracket or pools), with "Slet turnering" but not "Genåbn turnering".
 
 Ny Turnering (and "Rediger spillere") has a **"For sjov kamp"** checkbox ("Just for fun") under the
 date and format, for a tournament that is played as usual but counts in no statistic (Tournaments
-API → For sjov kamp). On the tournament's admin page, and on its public page for logged-in admins,
-the same checkbox switches it at any time, concluded or not (`components/ForFun.tsx`, not for old
-tournaments). Everyone else sees a "For sjov kamp" tag there with what it means; Turneringer and
+API → For sjov kamp). In the admin panel of the tournament's admin page, and of its public page
+for logged-in admins, the same checkbox switches it at any time, concluded or not
+(`ForFunSetting` in `components/ForFun.tsx`, not for old tournaments). When it's on, everyone sees
+a "For sjov kamp" tag under the title with what it means (`ForFunNote`); Turneringer and
 `/live` show the tag next to the date. A fun tournament's placings have no Point column.
 
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
@@ -700,3 +709,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-16 | Players on `/play` can enter a result only in a match without one, after confirming it; correcting or clearing it is for logged-in admins. With two at once, the first result counts. |
 | 2026-10-17 | Admins can enter old tournaments from before the app with their placings only: date, format, knockout (quarterfinals, semifinals or the final only), 1st–4th, 5–8 with quarterfinals, then the other participants. Every place must be filled. Points as usual (10/7/5/4/2/1, member bonus still 10), in the season of the date; statistics from the knockout. No pools or brackets are shown. |
 | 2026-10-19 | "For sjov kamp": a checkbox on Ny Turnering for a tournament that is played and listed under Turneringer as usual, but counts in no statistic (season points, standings, Deltagelse, Wins, Semifinals, Quarterfinals). The admin can switch it later, also after concluding. Not offered for old tournaments. |
+| 2026-10-21 | The admin's tools on a tournament's pages (join code, Rediger spillere/puljer, For sjov kamp, Annuller/Genåbn/Slet turnering) are gathered in an admin panel on the right, above the page on narrow screens. The steps that move the tournament on stay on the page. |

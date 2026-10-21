@@ -375,10 +375,6 @@ table,
   margin: 8px 0 16px;
 }
 
-.for-fun p {
-  margin: 4px 0 0;
-}
-
 .notice {
   margin: 16px 0;
   padding: 16px;
@@ -388,14 +384,98 @@ table,
   font-weight: 600;
 }
 
-/* The join code for /play: on the admin's tournament page, and the field on /play. */
-.join-code p {
+/* ---------- Admin panel ---------- */
+
+/* A tournament page for admins: the page on the left, the admin's tools in a panel on the
+   right that stays in view while the page scrolls. */
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 28px;
+  align-items: start;
+}
+
+.admin-main > h1:first-child {
+  margin-top: 0;
+}
+
+.admin-panel {
+  position: sticky;
+  top: 88px;
+  padding: 0 16px 16px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--surface-muted);
+}
+
+.admin-panel h2 {
+  margin: 0 -16px 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Each tool is a section of its own, divided by a line. */
+.admin-panel > :not(h2, dialog) ~ :not(dialog) {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.admin-panel > * > p {
   margin: 0 0 8px;
 }
 
+.admin-panel-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-panel-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-panel .small {
+  font-size: 0.85rem;
+}
+
+/* Cancelling or deleting a tournament can't be undone. */
+.link.danger {
+  color: var(--error);
+}
+
+.link.danger:hover:not(:disabled) {
+  color: var(--error);
+}
+
+/* Narrow screens: the panel goes above the page, its buttons side by side. */
+@media (max-width: 1000px) {
+  .admin-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-panel {
+    position: static;
+    order: -1;
+  }
+
+  .admin-panel-actions {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+/* The join code for /play: in the admin panel, and the field on /play. */
 .join-code-value {
   font-family: var(--font-display);
   font-size: 2rem;
+  line-height: 1.1;
   letter-spacing: 0.08em;
 }
 

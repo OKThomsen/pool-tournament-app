@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { useSession } from '../auth';
+import { AdminLayout } from '../components/AdminPanel';
 import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { ForFunSetting } from '../components/ForFun';
+import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { formatDate } from '../format';
@@ -21,8 +22,9 @@ import {
 
 /**
  * Turneringer/Turnering: a tournament's full result — final placings, the knockout and the
- * pools. Admins can correct results here; placements and points update at once. An old
- * tournament entered afterwards has its placings only. A "For sjov kamp" shows no points.
+ * pools. Admins can correct results here; placements and points update at once, and the admin
+ * panel has "Genåbn turnering", "For sjov kamp" and "Slet turnering". An old tournament entered
+ * afterwards has its placings only. A "For sjov kamp" shows no points.
  */
 export function TournamentDetailPage() {
   const id = Number(useParams().id);
@@ -35,39 +37,114 @@ export function TournamentDetailPage() {
   }
   if (tournament.isError) return <p className="error">{t.loadFailed}</p>;
   const data = tournament.data;
+  const concluded = data.status === 'concluded';
 
   return (
     <section className="panel">
-      <h1>
-        {t.tournaments.one} {formatDate(data.date)}
-      </h1>
-      <p className="meta">
-        {data.format} · {t.ongoing.week} {data.week} ·{' '}
-        {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
-        {t.create.count(data.players.length)}
-      </p>
-      <ForFunSetting tournament={data} admin={Boolean(admin)} />
-      {data.status === 'concluded' ? (
-        <Concluded tournament={data} admin={Boolean(admin)} />
-      ) : (
-        <p>
-          {t.detail.inProgress}{' '}
-          <Link to={admin ? `/admin/turnering/${data.id}` : '/live'}>
-            {admin ? t.create.goToRunning : t.detail.followLive}
-          </Link>
+      <AdminLayout panel={admin && concluded ? <ConcludedAdmin tournament={data} /> : undefined}>
+        <h1>
+          {t.tournaments.one} {formatDate(data.date)}
+        </h1>
+        <p className="meta">
+          {data.format} · {t.ongoing.week} {data.week} ·{' '}
+          {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
+          {t.create.count(data.players.length)}
         </p>
-      )}
+        <ForFunNote tournament={data} />
+        {concluded ? (
+          <Concluded tournament={data} admin={Boolean(admin)} />
+        ) : (
+          <p>
+            {t.detail.inProgress}{' '}
+            <Link to={admin ? `/admin/turnering/${data.id}` : '/live'}>
+              {admin ? t.create.goToRunning : t.detail.followLive}
+            </Link>
+          </p>
+        )}
+      </AdminLayout>
     </section>
+  );
+}
+
+/**
+ * The admin panel of a concluded tournament: how to correct it, "Genåbn turnering" (not for an
+ * old tournament, which has no knockout to go back to), "For sjov kamp" and "Slet turnering".
+ */
+function ConcludedAdmin({ tournament }: { tournament: Tournament }) {
+  const reopen = useReopenTournament(tournament.id);
+  const remove = useDeleteTournament(tournament.id);
+  const navigate = useNavigate();
+  const [confirm, setConfirm] = useState<'reopen' | 'delete' | null>(null);
+  const old = tournament.historical;
+
+  const error = reopen.error ?? remove.error;
+  const message =
+    error instanceof ApiError && error.code === 'tournament_in_progress'
+      ? t.detail.otherInProgress
+      : error && t.saveFailed;
+
+  return (
+    <>
+      {!old && (
+        <>
+          <p className="muted small">{t.detail.correctHelp}</p>
+          <div className="admin-panel-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={reopen.isPending}
+              onClick={() => setConfirm('reopen')}
+            >
+              {t.detail.reopen}
+            </button>
+          </div>
+          <ForFunSetting tournament={tournament} />
+        </>
+      )}
+      <div>
+        {message && (
+          <p className="error" role="alert">
+            {message}
+          </p>
+        )}
+        <button
+          type="button"
+          className="link danger"
+          disabled={remove.isPending}
+          onClick={() => setConfirm('delete')}
+        >
+          {t.detail.delete}
+        </button>
+      </div>
+      <ConfirmDialog
+        open={confirm === 'reopen'}
+        message={t.detail.confirmReopen}
+        confirmLabel={t.detail.reopen}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          setConfirm(null);
+          reopen.mutate(undefined);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        message={t.detail.confirmDelete}
+        confirmLabel={t.detail.delete}
+        cancelLabel={t.cancel}
+        onConfirm={() => {
+          setConfirm(null);
+          remove.mutate(undefined, { onSuccess: () => navigate('/turneringer') });
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+    </>
   );
 }
 
 function Concluded({ tournament, admin }: { tournament: Tournament; admin: boolean }) {
   const setResult = useSetResult(tournament.id);
-  const reopen = useReopenTournament(tournament.id);
-  const remove = useDeleteTournament(tournament.id);
-  const navigate = useNavigate();
   const [scoring, setScoring] = useState<Scoring | null>(null);
-  const [confirm, setConfirm] = useState<'reopen' | 'delete' | null>(null);
   const names = new Map(tournament.players.map((p) => [p.id, p.name]));
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
@@ -76,14 +153,12 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
   // A fun tournament's points count nowhere, so they aren't shown.
   const points = !tournament.forFun;
 
-  const error = setResult.error ?? reopen.error ?? remove.error;
+  const error = setResult.error;
   const message =
     error instanceof ApiError &&
     (error.code === 'later_match_played' || error.code === 'would_change_qualification')
       ? t.detail.needsReopen
-      : error instanceof ApiError && error.code === 'tournament_in_progress'
-        ? t.detail.otherInProgress
-        : error && t.saveFailed;
+      : error && t.saveFailed;
 
   return (
     <>
@@ -112,35 +187,6 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
         </table>
       </div>
 
-      {admin && old && (
-        <p className="muted">
-          <button
-            type="button"
-            className="link"
-            disabled={remove.isPending}
-            onClick={() => setConfirm('delete')}
-          >
-            {t.detail.delete}
-          </button>
-        </p>
-      )}
-      {admin && !old && (
-        <p className="muted">
-          {t.detail.correctHelp}{' '}
-          <button type="button" className="link" onClick={() => setConfirm('reopen')}>
-            {t.detail.reopen}
-          </button>{' '}
-          ·{' '}
-          <button
-            type="button"
-            className="link"
-            disabled={remove.isPending}
-            onClick={() => setConfirm('delete')}
-          >
-            {t.detail.delete}
-          </button>
-        </p>
-      )}
       {message && (
         <p className="error" role="alert">
           {message}
@@ -175,28 +221,6 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
         }
         onClear={close}
         onClose={close}
-      />
-      <ConfirmDialog
-        open={confirm === 'reopen'}
-        message={t.detail.confirmReopen}
-        confirmLabel={t.detail.reopen}
-        cancelLabel={t.cancel}
-        onConfirm={() => {
-          setConfirm(null);
-          reopen.mutate(undefined);
-        }}
-        onCancel={() => setConfirm(null)}
-      />
-      <ConfirmDialog
-        open={confirm === 'delete'}
-        message={t.detail.confirmDelete}
-        confirmLabel={t.detail.delete}
-        cancelLabel={t.cancel}
-        onConfirm={() => {
-          setConfirm(null);
-          remove.mutate(undefined, { onSuccess: () => navigate('/turneringer') });
-        }}
-        onCancel={() => setConfirm(null)}
       />
     </>
   );
