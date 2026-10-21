@@ -8,7 +8,7 @@ const spaced = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
 /**
  * The code players enter on /play to score matches, with "Ny kode" in case it has spread beyond
- * the players. Admin page only; never on /live.
+ * the players. In the admin panel only; never on /live.
  */
 export function JoinCode({ tournamentId }: { tournamentId: number }) {
   const code = useJoinCode(tournamentId);
@@ -16,16 +16,14 @@ export function JoinCode({ tournamentId }: { tournamentId: number }) {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="notice join-code">
-      <p>
-        {t.joinCode.label}:{' '}
-        {code.data ? (
-          <strong className="join-code-value">{spaced(code.data)}</strong>
-        ) : (
-          code.isSuccess && t.joinCode.none
-        )}
-      </p>
-      <p className="muted">{t.joinCode.help}</p>
+    <div className="join-code">
+      <p className="admin-panel-label">{t.joinCode.label}</p>
+      {code.data ? (
+        <p className="join-code-value">{spaced(code.data)}</p>
+      ) : (
+        code.isSuccess && <p>{t.joinCode.none}</p>
+      )}
+      <p className="muted small">{t.joinCode.help}</p>
       {newCode.error && (
         <p className="error" role="alert">
           {t.saveFailed}

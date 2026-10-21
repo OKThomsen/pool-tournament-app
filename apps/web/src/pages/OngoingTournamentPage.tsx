@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
+import { AdminLayout } from '../components/AdminPanel';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { ForFunSetting } from '../components/ForFun';
+import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
 import { RaceToInput } from '../components/RaceToInput';
@@ -24,10 +25,16 @@ import {
   type Tournament,
 } from '../tournaments';
 
-/** OngoingTurnering: the admin's view of the tournament in progress. */
+/**
+ * OngoingTurnering: the admin's view of the tournament in progress. The admin's tools (the join
+ * code, "Rediger spillere", "Rediger puljer", "For sjov kamp", "Annuller turnering") are in the
+ * admin panel beside it.
+ */
 export function OngoingTournamentPage() {
   const id = Number(useParams().id);
   const tournament = useTournament(id);
+  // "Rediger puljer" during pool play: the pool editor replaces the pool tables while it's on.
+  const [editingPools, setEditingPools] = useState(false);
 
   if (tournament.isPending) return <p>{t.loading}</p>;
   if (tournament.error instanceof ApiError && tournament.error.status === 404) {
@@ -38,26 +45,50 @@ export function OngoingTournamentPage() {
   const data = tournament.data;
   // A concluded tournament lives on its public page, where admins can still correct it.
   if (data.status === 'concluded') return <Navigate to={`/turneringer/${data.id}`} replace />;
+  // Players and pools can change until the knockout starts.
+  const beforeKnockout = data.status === 'draft' || data.status === 'pools';
+  const panel = (
+    <>
+      <JoinCode tournamentId={data.id} />
+      {beforeKnockout && (
+        <div className="admin-panel-actions">
+          <EditPlayersButton tournamentId={data.id} />
+          {data.status === 'pools' && (
+            <button
+              type="button"
+              className={editingPools ? 'primary' : 'secondary'}
+              onClick={() => setEditingPools(!editingPools)}
+            >
+              {editingPools ? t.ongoing.done : t.ongoing.editPools}
+            </button>
+          )}
+        </div>
+      )}
+      <ForFunSetting tournament={data} />
+      <CancelTournament tournamentId={data.id} />
+    </>
+  );
   return (
     <section className="panel">
-      <h1>
-        {t.tournaments.one} {formatDate(data.date)}
-      </h1>
-      <p className="meta">
-        {data.format} · {t.ongoing.week} {data.week} ·{' '}
-        {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
-        {t.create.count(data.players.length)}
-      </p>
-      <ForFunSetting tournament={data} admin />
-      <JoinCode tournamentId={data.id} />
-      {data.status === 'draft' && <DraftPools tournament={data} />}
-      {data.status === 'pools' && <PoolPlay tournament={data} />}
-      {data.status === 'knockout' && (
-        <>
-          <TournamentPlay tournament={data} manage />
-          <CancelTournament tournamentId={data.id} />
-        </>
-      )}
+      <AdminLayout panel={panel}>
+        <h1>
+          {t.tournaments.one} {formatDate(data.date)}
+        </h1>
+        <p className="meta">
+          {data.format} · {t.ongoing.week} {data.week} ·{' '}
+          {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
+          {t.create.count(data.players.length)}
+        </p>
+        <ForFunNote tournament={data} />
+        {data.status === 'draft' && <DraftPools tournament={data} />}
+        {data.status === 'pools' &&
+          (editingPools ? (
+            <PoolsEditor tournament={data} />
+          ) : (
+            <TournamentPlay tournament={data} manage />
+          ))}
+        {data.status === 'knockout' && <TournamentPlay tournament={data} manage />}
+      </AdminLayout>
     </section>
   );
 }
@@ -76,24 +107,18 @@ function EditPlayersButton({ tournamentId }: { tournamentId: number }) {
   );
 }
 
-/** Before "Gå til turnering": rearrange the drawn pools, then start or cancel. */
+/** Before "Gå til turnering": rearrange the drawn pools, then start. */
 function DraftPools({ tournament }: { tournament: Tournament }) {
-  const navigate = useNavigate();
   const start = useStartTournament(tournament.id);
-  const cancel = useDeleteTournament(tournament.id);
-  const [confirm, setConfirm] = useState<'start' | 'cancel' | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const races = tournament.pools
     .map((pool) => `${t.pools.pool} ${pool.name}: ${t.score.raceTo(pool.raceTo).toLowerCase()}`)
     .join(', ');
 
-  const busy = start.isPending || cancel.isPending;
   return (
     <>
-      <div className="form-actions admin-tools">
-        <EditPlayersButton tournamentId={tournament.id} />
-      </div>
       <PoolsEditor tournament={tournament} />
-      {(start.error || cancel.error) && (
+      {start.error && (
         <p className="error" role="alert">
           {t.saveFailed}
         </p>
@@ -102,67 +127,23 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
         <button
           type="button"
           className="primary"
-          disabled={busy}
-          onClick={() => setConfirm('start')}
+          disabled={start.isPending}
+          onClick={() => setConfirming(true)}
         >
           {t.ongoing.finalizeBrackets}
         </button>
-        <button type="button" className="link" disabled={busy} onClick={() => setConfirm('cancel')}>
-          {t.ongoing.cancelTournament}
-        </button>
       </div>
       <ConfirmDialog
-        open={confirm === 'start'}
+        open={confirming}
         message={t.ongoing.confirmStart(races)}
         confirmLabel={t.ongoing.finalizeBrackets}
         cancelLabel={t.cancel}
         onConfirm={() => {
-          setConfirm(null);
+          setConfirming(false);
           start.mutate();
         }}
-        onCancel={() => setConfirm(null)}
+        onCancel={() => setConfirming(false)}
       />
-      <ConfirmDialog
-        open={confirm === 'cancel'}
-        message={t.ongoing.confirmCancel}
-        confirmLabel={t.ongoing.cancelTournament}
-        cancelLabel={t.cancel}
-        onConfirm={() => {
-          setConfirm(null);
-          cancel.mutate(undefined, { onSuccess: () => navigate('/') });
-        }}
-        onCancel={() => setConfirm(null)}
-      />
-    </>
-  );
-}
-
-/**
- * The pools being played. "Rediger spillere" and "Rediger puljer" stay available until the
- * knockout: the pool editor replaces the pool tables while it is open.
- */
-function PoolPlay({ tournament }: { tournament: Tournament }) {
-  const [editing, setEditing] = useState(false);
-  return (
-    <>
-      <div className="form-actions admin-tools">
-        <EditPlayersButton tournamentId={tournament.id} />
-        <button
-          type="button"
-          className={editing ? 'primary' : 'secondary'}
-          onClick={() => setEditing(!editing)}
-        >
-          {editing ? t.ongoing.done : t.ongoing.editPools}
-        </button>
-      </div>
-      {editing ? (
-        <>
-          <PoolsEditor tournament={tournament} />
-        </>
-      ) : (
-        <TournamentPlay tournament={tournament} manage />
-      )}
-      <CancelTournament tournamentId={tournament.id} />
     </>
   );
 }
@@ -263,28 +244,26 @@ function PoolsEditor({ tournament }: { tournament: Tournament }) {
   );
 }
 
-/** "Annuller turnering" once play has started (the draft has its own, next to its buttons). */
+/** "Annuller turnering", at the bottom of the admin panel: deletes the tournament. */
 function CancelTournament({ tournamentId }: { tournamentId: number }) {
   const navigate = useNavigate();
   const cancel = useDeleteTournament(tournamentId);
   const [confirming, setConfirming] = useState(false);
   return (
-    <>
+    <div>
       {cancel.error && (
         <p className="error" role="alert">
           {t.saveFailed}
         </p>
       )}
-      <div className="form-actions">
-        <button
-          type="button"
-          className="link"
-          disabled={cancel.isPending}
-          onClick={() => setConfirming(true)}
-        >
-          {t.ongoing.cancelTournament}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="link danger"
+        disabled={cancel.isPending}
+        onClick={() => setConfirming(true)}
+      >
+        {t.ongoing.cancelTournament}
+      </button>
       <ConfirmDialog
         open={confirming}
         message={t.ongoing.confirmCancel}
@@ -296,6 +275,6 @@ function CancelTournament({ tournamentId }: { tournamentId: number }) {
         }}
         onCancel={() => setConfirming(false)}
       />
-    </>
+    </div>
   );
 }

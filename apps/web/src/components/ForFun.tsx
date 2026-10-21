@@ -6,23 +6,21 @@ export function ForFunTag() {
   return <span className="tag">{t.forFun.label}</span>;
 }
 
-/**
- * Under a tournament's title: for admins a "For sjov kamp" checkbox they can switch at any time
- * (not for an old tournament); for everyone else the mark and what it means, when it's on.
- */
-export function ForFunSetting({ tournament, admin }: { tournament: Tournament; admin: boolean }) {
-  const setForFun = useSetForFun(tournament.id);
-
-  if (!admin || tournament.historical) {
-    if (!tournament.forFun) return null;
-    return (
-      <p className="for-fun">
-        <ForFunTag /> <span className="muted">{t.forFun.help}</span>
-      </p>
-    );
-  }
+/** Under a tournament's title, for everyone: the mark and what it means, when it's on. */
+export function ForFunNote({ tournament }: { tournament: Tournament }) {
+  if (!tournament.forFun) return null;
   return (
-    <div className="for-fun">
+    <p className="for-fun">
+      <ForFunTag /> <span className="muted">{t.forFun.help}</span>
+    </p>
+  );
+}
+
+/** In the admin panel: the "For sjov kamp" checkbox, which can be switched at any time. */
+export function ForFunSetting({ tournament }: { tournament: Tournament }) {
+  const setForFun = useSetForFun(tournament.id);
+  return (
+    <div>
       <label className="checkbox">
         <input
           type="checkbox"
@@ -32,7 +30,6 @@ export function ForFunSetting({ tournament, admin }: { tournament: Tournament; a
         />
         {t.forFun.label}
       </label>
-      {tournament.forFun && <p className="muted">{t.forFun.help}</p>}
       {setForFun.error && (
         <p className="error" role="alert">
           {t.saveFailed}
