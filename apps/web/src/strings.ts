@@ -21,6 +21,7 @@ const da = {
   frontpage: {
     title: "Frank's Poolhouse turnerings platform",
     leaderboard: 'Sæson Leaderboard',
+    place: (n: number) => `${n}. plads`,
     when: 'Hver onsdag',
     training: 'Træning kl. 17–18:30 (for klubmedlemmer)',
     tournaments: 'Turneringer fra kl. 19:00',
@@ -286,6 +287,7 @@ const en: Strings = {
   frontpage: {
     title: "Frank's Poolhouse tournament platform",
     leaderboard: 'Season leaderboard',
+    place: (n: number) => `Place ${n}`,
     when: 'Every Wednesday',
     training: 'Training 17:00–18:30 (club members)',
     tournaments: 'Tournaments from 19:00',
