@@ -7,8 +7,8 @@ export const MAX_POOL_SIZE = 5;
 /** Player counts that can't be split into pools of 4–5, and how the club splits them instead. */
 const SPECIAL_SPLITS: Record<number, number[]> = {
   6: [6], // one pool, everyone plays everyone
-  7: [4, 3],
-  11: [4, 4, 3],
+  7: [7], // one pool
+  11: [5, 6],
 };
 
 /**
@@ -68,10 +68,17 @@ export function swapPlayers(
   return result;
 }
 
-/** Smallest pool the admin can leave behind when moving players around. */
+/**
+ * Fewest players a pool can be played with. The admin may leave a single player in a pool while
+ * rearranging, but the tournament can't start (or go on to the knockout) like that.
+ */
 export const MIN_PLAYERS_PER_POOL = 2;
 
-/** Moves a player to the end of another pool, changing both pools' sizes. Returns new pools. */
+/**
+ * Moves a player to the end of another pool, changing both pools' sizes. `toPool` may be one past
+ * the last pool, which starts a new pool with just this player. A pool left empty is removed, so
+ * the pools after it move up a place. Returns new pools.
+ */
 export function movePlayer(
   pools: readonly (readonly PlayerId[])[],
   player: PlayerId,
@@ -79,16 +86,51 @@ export function movePlayer(
 ): PlayerId[][] {
   const from = pools.findIndex((pool) => pool.includes(player));
   if (from === -1) throw new Error(`Player ${player} is not in any pool`);
-  if (!pools[toPool]) throw new RangeError(`There is no pool ${toPool}`);
-  if (from === toPool) return pools.map((pool) => [...pool]);
-  if (pools[from]!.length <= MIN_PLAYERS_PER_POOL) {
-    throw new RangeError(`A pool needs at least ${MIN_PLAYERS_PER_POOL} players`);
+  if (!Number.isInteger(toPool) || toPool < 0 || toPool > pools.length) {
+    throw new RangeError(`There is no pool ${toPool}`);
   }
-  return pools.map((pool, i) => {
+  if (from === toPool) return pools.map((pool) => [...pool]);
+  const result = [...pools, []].map((pool, i) => {
     if (i === from) return pool.filter((p) => p !== player);
     if (i === toPool) return [...pool, player];
     return [...pool];
   });
+  return result.filter((pool) => pool.length > 0);
+}
+
+/**
+ * Which earlier pool each new pool continues, when the admin rearranges them: the one it shares
+ * the most players with (each earlier pool continues at most once). New pools that share no
+ * players continue the earlier pools left over, in order. A pool keeps its matches, results and
+ * race length when it's continued, so removing pool B leaves pool C's results alone. Returns the
+ * earlier pool's index per new pool, or undefined for a pool that starts afresh.
+ */
+export function continuedPools(
+  previous: readonly (readonly PlayerId[])[],
+  next: readonly (readonly PlayerId[])[],
+): (number | undefined)[] {
+  const overlaps = next
+    .flatMap((pool, index) =>
+      previous.map((earlier, from) => ({
+        index,
+        from,
+        shared: pool.filter((p) => earlier.includes(p)).length,
+      })),
+    )
+    .filter((overlap) => overlap.shared > 0)
+    .sort((x, y) => y.shared - x.shared);
+  const result: (number | undefined)[] = next.map(() => undefined);
+  const taken = new Set<number>();
+  for (const { index, from } of overlaps) {
+    if (result[index] !== undefined || taken.has(from)) continue;
+    result[index] = from;
+    taken.add(from);
+  }
+  const free = previous.map((_, from) => from).filter((from) => !taken.has(from));
+  for (const index of result.keys()) {
+    if (result[index] === undefined && free.length > 0) result[index] = free.shift();
+  }
+  return result;
 }
 
 /**

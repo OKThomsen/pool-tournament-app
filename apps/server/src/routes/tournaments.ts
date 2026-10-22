@@ -257,9 +257,11 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * Saves the admin's changes to the pools (swaps, moves), until the knockout starts. Every
-   * entrant must be in exactly one pool, and each pool needs at least 2 players. Once the pools
-   * are being played, a result stays as long as both its players are still in that pool.
+   * Saves the admin's changes to the pools (swaps, moves, new and removed pools), until the
+   * knockout starts. Every entrant must be in exactly one pool, and no pool can be empty. A pool
+   * of one is allowed while the admin rearranges, but the pools can't be started or closed with
+   * it. Once the pools are being played, a result stays as long as both its players are still in
+   * that pool.
    */
   app.put<{ Params: { id: number }; Body: { pools: number[][] } }>(
     '/tournaments/:id/pools',
@@ -272,7 +274,12 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
           required: ['pools'],
           additionalProperties: false,
           properties: {
-            pools: { type: 'array', minItems: 1, maxItems: 26, items: playerIdList },
+            pools: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 26,
+              items: { ...playerIdList, minItems: 1 },
+            },
           },
         },
       },
@@ -284,9 +291,6 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       if (!poolsOpen(tournament.status)) return reply.code(409).send({ error: 'pools_closed' });
 
       const arrangement = request.body.pools;
-      if (arrangement.some((pool) => pool.length < MIN_PLAYERS_PER_POOL)) {
-        return reply.code(400).send({ error: 'pool_too_small' });
-      }
       const entrants = await db
         .select({ playerId: tournamentPlayers.playerId })
         .from(tournamentPlayers)
@@ -479,6 +483,9 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (detail.status !== 'draft') return reply.code(409).send({ error: 'not_draft' });
+      if (detail.pools.some((pool) => pool.playerIds.length < MIN_PLAYERS_PER_POOL)) {
+        return reply.code(409).send({ error: 'pool_too_small' });
+      }
 
       await db.transaction(async (tx) => {
         await syncPoolMatches(tx, id);

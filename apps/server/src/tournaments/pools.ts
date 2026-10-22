@@ -1,4 +1,4 @@
-import { playOrder, roundRobinRounds, samePairing } from '@franks/core';
+import { continuedPools, playOrder, roundRobinRounds, samePairing } from '@franks/core';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { matches, poolMembers, pools } from '../db/schema.js';
@@ -7,11 +7,12 @@ import { matches, poolMembers, pools } from '../db/schema.js';
 const poolName = (index: number) => String.fromCharCode(65 + index);
 
 /**
- * Saves the pools (player ids per pool, in order). The pool rows are kept, so their matches and
- * results and race lengths stay; pools are added or removed at the end (a new pool gets the race
- * length of the pool before it). A pool whose players changed loses the admin's tiebreak, which
- * only applied to the old line-up. Call syncPoolMatches afterwards once the pools are being
- * played.
+ * Saves the pools (player ids per pool, in order). Each pool keeps the row of the pool most of
+ * its players were in, so its matches, results and race length stay; pools with no row left are
+ * added (with the race length of the pool before them) and rows no pool uses are deleted. Then
+ * the pools are named A, B, C … in order. A pool whose players changed loses the admin's
+ * tiebreak, which only applied to the old line-up. Call syncPoolMatches afterwards once the
+ * pools are being played.
  */
 export async function savePools(db: Executor, tournamentId: number, arrangement: number[][]) {
   const existing = await db
@@ -19,17 +20,52 @@ export async function savePools(db: Executor, tournamentId: number, arrangement:
     .from(pools)
     .where(eq(pools.tournamentId, tournamentId))
     .orderBy(asc(pools.name));
-  const extra = existing.slice(arrangement.length).map((pool) => pool.id);
-  if (extra.length > 0) await db.delete(pools).where(inArray(pools.id, extra));
+  const lineUps =
+    existing.length === 0
+      ? []
+      : await db
+          .select({ poolId: poolMembers.poolId, playerId: poolMembers.playerId })
+          .from(poolMembers)
+          .where(
+            inArray(
+              poolMembers.poolId,
+              existing.map((pool) => pool.id),
+            ),
+          );
+  const previous = existing.map((pool) =>
+    lineUps.filter((m) => m.poolId === pool.id).map((m) => String(m.playerId)),
+  );
+  const rows = continuedPools(
+    previous,
+    arrangement.map((pool) => pool.map(String)),
+  ).map((index) => (index === undefined ? undefined : existing[index]!.id));
+  const unused = existing.map((pool) => pool.id).filter((id) => !rows.includes(id));
+  if (unused.length > 0) await db.delete(pools).where(inArray(pools.id, unused));
+  // Names are unique per tournament, so move the kept rows out of the way before renaming them.
+  for (const id of rows) {
+    if (id !== undefined)
+      await db
+        .update(pools)
+        .set({ name: `~${id}` })
+        .where(eq(pools.id, id));
+  }
 
+  let raceTo = existing[0]?.raceTo;
   for (const [index, playerIds] of arrangement.entries()) {
-    let poolId = existing[index]?.id;
+    let poolId = rows[index];
     if (poolId === undefined) {
       const [pool] = await db
         .insert(pools)
-        .values({ tournamentId, name: poolName(index), raceTo: existing.at(-1)?.raceTo })
+        .values({ tournamentId, name: poolName(index), raceTo })
         .returning({ id: pools.id });
       poolId = pool!.id;
+    } else {
+      const [pool] = await db
+        .update(pools)
+        .set({ name: poolName(index) })
+        .where(eq(pools.id, poolId))
+        .returning({ raceTo: pools.raceTo });
+      raceTo = pool!.raceTo;
     }
     const members = await db
       .select({ playerId: poolMembers.playerId, tiebreak: poolMembers.adminTiebreak })

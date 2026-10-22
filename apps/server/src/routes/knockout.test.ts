@@ -114,6 +114,23 @@ describe('POST /api/tournaments/:id/knockout', () => {
     expect(response.json().error).toBe('pools_incomplete');
   });
 
+  it('refuses while a pool has a single player', async () => {
+    const t = await playPools(await startedTournament());
+    const [first, ...rest] = t.pools.flatMap((p) => p.playerIds);
+    const alone: Tournament = (
+      await app.inject({
+        method: 'PUT',
+        url: `/api/tournaments/${t.id}/pools`,
+        cookies,
+        payload: { pools: [rest, [first]] },
+      })
+    ).json();
+    // The pool of 7 has new pairings without results, so play those first.
+    const response = await startKnockout(await playPools(alone), { size: 4 });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('pool_too_small');
+  });
+
   it('creates quarterfinals with players from different pools', async () => {
     const t = await playPools(await startedTournament());
     const response = await startKnockout(t, { size: 8 });

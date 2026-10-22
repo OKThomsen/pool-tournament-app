@@ -5,6 +5,7 @@ import { ApiError } from '../api';
 import { isPlayed, poolView } from '../poolView';
 import { t } from '../strings';
 import {
+  hasLonePool,
   namesWithHandicap,
   tournamentKey,
   useClearResult,
@@ -138,7 +139,12 @@ export function TournamentPlay({
           {inPools && <UpNext view={view} names={plainNames} />}
         </div>
       ))}
-      {manage && inPools && views.every((view) => view.complete) && (
+      {manage && inPools && hasLonePool(tournament) && (
+        <p className="error" role="alert">
+          {t.pools.tooSmall}
+        </p>
+      )}
+      {manage && inPools && !hasLonePool(tournament) && views.every((view) => view.complete) && (
         <QualifyPanel tournament={tournament} views={views} names={names} />
       )}
       <ScoreDialog

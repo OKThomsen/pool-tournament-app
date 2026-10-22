@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { drawPools, movePlayer, poolSizes, swapPlayers, updatePools } from './pools.js';
+import {
+  continuedPools,
+  drawPools,
+  movePlayer,
+  poolSizes,
+  swapPlayers,
+  updatePools,
+} from './pools.js';
 import { seededRng } from './random.js';
 import { roundRobinRounds } from './schedule.js';
 
@@ -8,10 +15,10 @@ describe('poolSizes', () => {
     [4, [4]],
     [5, [5]],
     [6, [6]],
-    [7, [4, 3]],
+    [7, [7]],
     [8, [4, 4]],
     [9, [5, 4]],
-    [11, [4, 4, 3]],
+    [11, [5, 6]],
     [13, [5, 4, 4]],
     [16, [4, 4, 4, 4]],
     [19, [5, 5, 5, 4]],
@@ -30,10 +37,13 @@ describe('poolSizes', () => {
     expect(poolSizes(3)).toBeNull();
   });
 
-  it('gives each player in a pool of 3 one bye, so nobody sits out twice in a row', () => {
-    const rounds = roundRobinRounds(['A', 'B', 'C']);
-    expect(rounds.map((round) => round.bye).sort()).toEqual(['A', 'B', 'C']);
-  });
+  it.each([[['A', 'B', 'C']], [['A', 'B', 'C', 'D', 'E', 'F', 'G']]])(
+    'gives each player in an odd pool one bye, so nobody sits out twice in a row (%j)',
+    (players) => {
+      const rounds = roundRobinRounds(players);
+      expect(rounds.map((round) => round.bye).sort()).toEqual(players);
+    },
+  );
 });
 
 describe('drawPools', () => {
@@ -86,17 +96,56 @@ describe('movePlayer', () => {
     expect(pools[0]).toHaveLength(4);
   });
 
-  it('refuses to leave a pool with fewer than 2 players', () => {
-    const small = [
-      ['A', 'B'],
-      ['C', 'D', 'E'],
-    ];
-    expect(() => movePlayer(small, 'A', 1)).toThrow();
+  it('starts a new pool one past the last', () => {
+    expect(movePlayer(pools, 'D', 3)).toEqual([
+      ['A', 'B', 'C'],
+      ['E', 'F', 'G', 'H'],
+      ['I', 'J', 'K'],
+      ['D'],
+    ]);
+  });
+
+  it('removes a pool left empty, moving the pools after it up', () => {
+    const small = [['A'], ['B', 'C', 'D'], ['E', 'F', 'G']];
+    expect(movePlayer(small, 'A', 2)).toEqual([
+      ['B', 'C', 'D'],
+      ['E', 'F', 'G', 'A'],
+    ]);
+  });
+
+  it('moves a lone player to a new pool at the end', () => {
+    expect(movePlayer([['A'], ['B', 'C']], 'A', 2)).toEqual([['B', 'C'], ['A']]);
   });
 
   it('rejects unknown players and pools', () => {
     expect(() => movePlayer(pools, 'Z', 0)).toThrow();
-    expect(() => movePlayer(pools, 'A', 5)).toThrow();
+    expect(() => movePlayer(pools, 'A', 4)).toThrow();
+    expect(() => movePlayer(pools, 'A', -1)).toThrow();
+  });
+});
+
+describe('continuedPools', () => {
+  const pools = [
+    ['A', 'B', 'C'],
+    ['D', 'E', 'F'],
+    ['G', 'H', 'I'],
+  ];
+
+  it('keeps pools in place after a swap', () => {
+    expect(continuedPools(pools, swapPlayers(pools, 'A', 'D'))).toEqual([0, 1, 2]);
+  });
+
+  it('lets pool C continue as B when pool B is emptied', () => {
+    const next = [
+      ['A', 'B', 'C', 'D'],
+      ['G', 'H', 'I', 'E', 'F'],
+    ];
+    expect(continuedPools(pools, next)).toEqual([0, 2]);
+  });
+
+  it('starts a new pool afresh unless an earlier pool is left over', () => {
+    expect(continuedPools(pools, movePlayer(pools, 'A', 3))).toEqual([0, 1, 2, undefined]);
+    expect(continuedPools([['A', 'B'], ['C']], [['A', 'B', 'C'], ['D']])).toEqual([0, 1]);
   });
 });
 
@@ -114,8 +163,12 @@ describe('updatePools', () => {
   });
 
   it('takes out players who left', () => {
-    expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G', 'H'])).toEqual([
-      ['A', 'B', 'C'],
+    const nine = [
+      ['A', 'B', 'C', 'D', 'X'],
+      ['E', 'F', 'G', 'H'],
+    ];
+    expect(updatePools(nine, ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'X'])).toEqual([
+      ['A', 'B', 'C', 'X'],
       ['E', 'F', 'G', 'H'],
     ]);
   });
@@ -128,8 +181,8 @@ describe('updatePools', () => {
   });
 
   it('asks for a new draw when the player count needs another number of pools', () => {
-    // 8 → 11 players is 4 + 4 + 3; 8 → 6 is one pool of 6.
-    expect(updatePools(pools, [...pools.flat(), 'I', 'J', 'K'])).toBeNull();
+    // 8 → 12 players is 4 + 4 + 4; 8 → 6 is one pool of 6.
+    expect(updatePools(pools, [...pools.flat(), 'I', 'J', 'K', 'L'])).toBeNull();
     expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G'])).toBeNull();
   });
 

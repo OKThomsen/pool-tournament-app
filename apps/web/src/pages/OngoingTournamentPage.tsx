@@ -11,6 +11,7 @@ import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { t } from '../strings';
 import {
+  hasLonePool,
   namesWithHandicap,
   POOL_RACE_MAX,
   POOL_RACE_MIN,
@@ -127,7 +128,7 @@ function DraftPools({ tournament }: { tournament: Tournament }) {
         <button
           type="button"
           className="primary"
-          disabled={start.isPending}
+          disabled={start.isPending || hasLonePool(tournament)}
           onClick={() => setConfirming(true)}
         >
           {t.ongoing.finalizeBrackets}

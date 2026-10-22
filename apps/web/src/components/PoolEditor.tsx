@@ -3,7 +3,6 @@ import {
   DragOverlay,
   MouseSensor,
   pointerWithin,
-  rectIntersection,
   TouchSensor,
   useDraggable,
   useDroppable,
@@ -12,7 +11,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { movePlayer, swapPlayers } from '@franks/core';
+import { MIN_PLAYERS_PER_POOL, movePlayer, swapPlayers } from '@franks/core';
 import { useState } from 'react';
 import { t } from '../strings';
 
@@ -28,23 +27,25 @@ interface PoolEditorProps {
 
 const playerKey = (id: number) => `player:${id}`;
 const poolKey = (index: number) => `pool:${index}`;
+/** Everything around the pools: dropping a player there starts a new pool. */
+const OUTSIDE = 'outside';
 
-// When the pointer is over a player, that player is the target (swap), even though the pool
-// around them is under the pointer too. Otherwise the pool is the target (move).
+// The most specific target under the pointer wins: a player (swap), then a pool (move there),
+// then the area around the pools (a new pool).
 const collisionDetection: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
-  const player = hits.find((hit) => String(hit.id).startsWith('player:'));
-  if (player) return [player];
-  return hits.length > 0 ? hits : rectIntersection(args);
+  const kind = (prefix: string) => hits.find((hit) => String(hit.id).startsWith(prefix));
+  const target = kind('player:') ?? kind('pool:') ?? kind(OUTSIDE);
+  return target ? [target] : [];
 };
 
 /**
- * The drawn pools before "finalize brackets". Drag a player onto another player to swap them,
- * or into another pool to move them there.
+ * The pools until the knockout starts. Drag a player onto another player to swap them, or into
+ * another pool to move them to its bottom. Dropping a player next to the pools (or on "Ny pulje")
+ * starts a new pool, and a pool left empty is removed.
  */
 export function PoolEditor({ pools, names, disabled = false, onChange, footer }: PoolEditorProps) {
   const [dragging, setDragging] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     // A short press before dragging on touch screens, so the page can still be scrolled.
@@ -57,19 +58,19 @@ export function PoolEditor({ pools, names, disabled = false, onChange, footer }:
     const player = String(active.data.current?.playerId);
     const [kind, value] = String(over.id).split(':');
     const asStrings = pools.map((pool) => pool.map(String));
-    try {
-      const next =
-        kind === 'player'
-          ? value === player
-            ? null
-            : swapPlayers(asStrings, player, value!)
-          : movePlayer(asStrings, player, Number(value));
-      setError(null);
-      if (next) onChange(next.map((pool) => pool.map(Number)));
-    } catch {
-      setError(t.pools.tooSmall);
+    const from = asStrings.findIndex((pool) => pool.includes(player));
+    let next: string[][] | null = null;
+    if (kind === 'player') {
+      if (value !== player) next = swapPlayers(asStrings, player, value!);
+    } else {
+      const to = kind === OUTSIDE ? pools.length : Number(value);
+      // A lone player dropped outside is a pool of their own already.
+      const alone = to === pools.length && asStrings[from]!.length === 1;
+      if (to !== from && !alone) next = movePlayer(asStrings, player, to);
     }
+    if (next) onChange(next.map((pool) => pool.map(Number)));
   };
+  const draggingFrom = pools.findIndex((pool) => dragging !== null && pool.includes(dragging));
 
   return (
     <DndContext
@@ -80,23 +81,34 @@ export function PoolEditor({ pools, names, disabled = false, onChange, footer }:
       onDragEnd={onDragEnd}
     >
       <p>{t.pools.dragHelp}</p>
-      {error && (
+      {pools.some((pool) => pool.length < MIN_PLAYERS_PER_POOL) && (
         <p className="error" role="alert">
-          {error}
+          {t.pools.tooSmall}
         </p>
       )}
-      <div className="pool-grid">
-        {pools.map((pool, index) => (
-          <PoolDropZone key={index} index={index}>
-            {pool.map((id) => (
-              <PlayerChip key={id} id={id} name={names.get(id) ?? '?'} disabled={disabled} />
-            ))}
-            {/* Pushes the footer to the bottom, so it lines up across pools of different sizes. */}
-            {footer && <div className="pool-spacer" />}
-            {footer?.(index)}
-          </PoolDropZone>
-        ))}
-      </div>
+      <OutsideDropZone>
+        <div className="pool-grid">
+          {pools.map((pool, index) => (
+            <PoolDropZone key={index} index={index}>
+              {pool.map((id) => (
+                <PlayerChip key={id} id={id} name={names.get(id) ?? '?'} disabled={disabled} />
+              ))}
+              {/* Where a player dragged in from another pool will land. */}
+              {dragging !== null && draggingFrom !== index && (
+                <div className="chip drop-slot">{t.pools.dropHere}</div>
+              )}
+              {/* Pushes the footer to the bottom, so it lines up across pools of different sizes. */}
+              {footer && <div className="pool-spacer" />}
+              {footer?.(index)}
+            </PoolDropZone>
+          ))}
+          {dragging !== null && (
+            <PoolDropZone index={pools.length} title={t.pools.newPool} isNew>
+              <div className="chip drop-slot">{t.pools.dropHere}</div>
+            </PoolDropZone>
+          )}
+        </div>
+      </OutsideDropZone>
       <DragOverlay>
         {dragging !== null && <div className="chip dragging">{names.get(dragging)}</div>}
       </DragOverlay>
@@ -104,13 +116,30 @@ export function PoolEditor({ pools, names, disabled = false, onChange, footer }:
   );
 }
 
-function PoolDropZone({ index, children }: { index: number; children: React.ReactNode }) {
+function OutsideDropZone({ children }: { children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: OUTSIDE });
+  return (
+    <div ref={setNodeRef} className="pool-outside">
+      {children}
+    </div>
+  );
+}
+
+function PoolDropZone({
+  index,
+  title,
+  isNew = false,
+  children,
+}: {
+  index: number;
+  title?: string;
+  isNew?: boolean;
+  children: React.ReactNode;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: poolKey(index) });
   return (
-    <section ref={setNodeRef} className={`pool-zone${isOver ? ' over' : ''}`}>
-      <h2>
-        {t.pools.pool} {String.fromCharCode(65 + index)}
-      </h2>
+    <section ref={setNodeRef} className={`pool-zone${isNew ? ' new' : ''}${isOver ? ' over' : ''}`}>
+      <h2>{title ?? `${t.pools.pool} ${String.fromCharCode(65 + index)}`}</h2>
       {children}
     </section>
   );
