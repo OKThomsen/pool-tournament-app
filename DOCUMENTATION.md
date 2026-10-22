@@ -55,7 +55,7 @@ and Logout instead of Log ind. Logout asks for confirmation first, using the reu
 as 404), so a wrong address says "Siden findes ikke" at once; other failures are retried.
 
 Spillere (`apps/web/src/pages/PlayersPage.tsx`) lists every player with base and frame handicap
-in separate columns (each on a background that gets redder below 0, fully red from -4, and
+in separate columns (each in text that gets redder below 0, fully red from -4, and
 greener above 0, fully green from +3: `HandicapCell`, `RED_CAP`, `GREEN_CAP`), Medlem (an active membership), Sæsonpoint for the current season (the
 column is left out in the off-season), and all-time statistics. When logged in, the page also
 has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting asks for confirmation).
@@ -727,4 +727,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | The admin sets pool sizes freely when editing pools: drop a player at the bottom of a pool to add them, next to the pools to start a new pool; an empty pool is removed. A pool of one can't be started or closed. |
 | 2026-10-22 | /live shows only the bracket during the knockout, without the pools, so the bracket fills the screen. |
 | 2026-10-22 | 1st to 3rd on the season leaderboards (frontpage, Sæson, /live) are shown as pool balls, like the seeds. |
-| 2026-10-22 | Handicaps on Spillere are tinted red below 0 (strongest from -4) and green above 0 (strongest from +3), both columns. |
+| 2026-10-22 | Handicaps on Spillere are written in red below 0 (strongest from -4) and green above 0 (strongest from +3), both columns. |
