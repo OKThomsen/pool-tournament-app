@@ -164,8 +164,11 @@ const da = {
   pools: {
     pool: 'Pulje',
     dragHelp:
-      'Træk en spiller over på en anden for at bytte dem, eller ind i en anden pulje for at flytte spilleren.',
-    tooSmall: 'En pulje skal have mindst 2 spillere.',
+      'Træk en spiller over på en anden for at bytte dem, eller ned i bunden af en anden pulje for at flytte spilleren dertil. Træk en spiller ud ved siden af puljerne for at starte en ny pulje. En tom pulje forsvinder.',
+    tooSmall:
+      'En pulje med kun én spiller kan ikke spilles. Flyt en spiller mere ind i den, eller flyt spilleren over i en anden pulje.',
+    newPool: 'Ny pulje',
+    dropHere: 'Slip her',
     setScore: 'Sætscore',
     won: 'Vundne',
     wonShort: 'V',
@@ -426,8 +429,11 @@ const en: Strings = {
   pools: {
     pool: 'Pool',
     dragHelp:
-      'Drag a player onto another to swap them, or into another pool to move the player there.',
-    tooSmall: 'A pool needs at least 2 players.',
+      'Drag a player onto another to swap them, or to the bottom of another pool to move the player there. Drag a player out next to the pools to start a new pool. An empty pool disappears.',
+    tooSmall:
+      'A pool with a single player can’t be played. Move another player into it, or move the player to another pool.',
+    newPool: 'New pool',
+    dropHere: 'Drop here',
     setScore: 'Set score',
     won: 'Won',
     wonShort: 'W',

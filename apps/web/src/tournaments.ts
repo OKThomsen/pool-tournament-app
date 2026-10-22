@@ -1,3 +1,4 @@
+import { continuedPools, MIN_PLAYERS_PER_POOL } from '@franks/core';
 import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -189,15 +190,25 @@ export function useSwapKnockout(id: number) {
 
 /**
  * How many pool results a new arrangement of the pools would delete: those whose two players are
- * no longer both in the match's pool. Pools are compared by position (A, B …).
+ * no longer both in the pool that continues the match's pool (`continuedPools`, as the server
+ * decides it).
  */
 export function resultsLost(tournament: Tournament, arrangement: number[][]): number {
+  const continued = continuedPools(
+    tournament.pools.map((pool) => pool.playerIds.map(String)),
+    arrangement.map((pool) => pool.map(String)),
+  );
   return tournament.matches.filter((m) => {
     if (m.stage !== 'pool' || m.framesA === null) return false;
     const index = tournament.pools.findIndex((p) => p.id === m.poolId);
-    const pool = arrangement[index] ?? [];
+    const pool = arrangement[continued.indexOf(index)] ?? [];
     return !pool.includes(m.playerAId!) || !pool.includes(m.playerBId!);
   }).length;
+}
+
+/** Whether a pool has a single player: it can't be played, so the pools can't start or close. */
+export function hasLonePool(tournament: Tournament): boolean {
+  return tournament.pools.some((pool) => pool.playerIds.length < MIN_PLAYERS_PER_POOL);
 }
 
 /** How many pool results there are. */

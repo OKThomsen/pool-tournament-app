@@ -103,8 +103,12 @@ tournament on ("Gå til turnering", "Afslut puljespillet", "Afslut turneringen")
 under what they finish.
 
 The tournament page (`/admin/turnering/:id`, `OngoingTournamentPage.tsx`) starts in draft with
-the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or into
-another pool to move them (pools keep at least 2 players). Every change is saved at once. On
+the drawn pools in `PoolEditor` (dnd-kit): drag a player onto another to swap them, or to the
+bottom of another pool ("Slip her") to move them there, which makes that pool bigger. Dropping a
+player next to the pools, or on the "Ny pulje" box that appears while dragging, starts a new pool,
+and a pool left empty disappears (the pools after it move up a letter). A pool with a single
+player can be left while rearranging, but the page says it can't be played, and "Gå til
+turnering" and "Afslut puljespillet" wait until it has company. Every change is saved at once. On
 touch screens a short press starts the drag, so the page still scrolls. At the bottom of each
 pool's box the admin chooses that pool's length in "Først til" (2 to 5, 2 by default; saved at
 once), the same field (`RaceToInput`) as the knockout's race lengths, so a pool of 3 can play a
@@ -580,7 +584,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 |---|---|
 | `standings.ts` | `poolStandings(players, results)`: wins, losses, frames for/against, set score, rank. |
 | `schedule.ts` | `roundRobinRounds`, `playOrder`, `upNext`, `nextOpponent`: pool schedule and the "up next" panel. |
-| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`, `updatePools`: default pool sizes, random draw, admin changes, players joining or leaving. |
+| `pools.ts` | `poolSizes`, `drawPools`, `swapPlayers`, `movePlayer`, `continuedPools`, `updatePools`: default pool sizes, random draw, admin changes (swaps, moves, new and removed pools), which earlier pool each rearranged pool continues, players joining or leaving. |
 | `qualification.ts` | `qualifyFromPools`, `qualifyForFinal`, `suggestedKnockoutSize`: who goes through to the knockout. |
 | `seeding.ts` | `seedQualifiers`: order qualifiers for the bracket. |
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
@@ -607,8 +611,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   pools of 5. Counts that can't be split that way have fixed splits: 6 → one pool of 6
   (everyone plays everyone), 7 → one pool of 7, 11 → 5 + 6.
 - **Admin changes to pools**: after the random draw the admin can swap two players
-  (`swapPlayers`, sizes unchanged) or move a player to another pool (`movePlayer`, sizes
-  change; a pool can't drop below 2 players).
+  (`swapPlayers`, sizes unchanged) or move a player to another pool or a new one (`movePlayer`,
+  sizes change; an empty pool is removed). Pool sizes are free, but a pool needs 2 players to be
+  played. A rearranged pool continues the earlier pool it shares the most players with
+  (`continuedPools`) and keeps its results there.
 - **Odd and even pools**: pools of 3 and 5 follow the round order and show "up next"; each player
   sits out exactly once. Pools of 4 and 6 have no schedule.
 - **Qualification** (`qualifyFromPools`): by finishing position. Every pool winner first, then
@@ -715,3 +721,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-19 | "For sjov kamp": a checkbox on Ny Turnering for a tournament that is played and listed under Turneringer as usual, but counts in no statistic (season points, standings, Deltagelse, Wins, Semifinals, Quarterfinals). The admin can switch it later, also after concluding. Not offered for old tournaments. |
 | 2026-10-21 | The admin's tools on a tournament's pages (join code, Rediger spillere/puljer, For sjov kamp, Annuller/Genåbn/Slet turnering) are gathered in an admin panel on the right, above the page on narrow screens. The steps that move the tournament on stay on the page. |
 | 2026-10-22 | New default splits: 7 players → one pool of 7, 11 → 5 + 6 (were 4 + 3 and 4 + 4 + 3). |
+| 2026-10-22 | The admin sets pool sizes freely when editing pools: drop a player at the bottom of a pool to add them, next to the pools to start a new pool; an empty pool is removed. A pool of one can't be started or closed. |
