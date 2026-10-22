@@ -33,18 +33,20 @@ export function Bracket({ tournament, names, onPlayerClick }: BracketProps) {
     <div className="bracket">
       {ROUNDS.filter((round) => knockout.some((m) => m.stage === round.stage)).map((round) => (
         <section key={round.stage} className="round">
-          <h3>{round.title()}</h3>
           <div className="round-matches">
             {knockout
               .filter((m) => m.stage === round.stage)
-              .map((match) => (
-                <MatchCard
-                  key={match.id}
-                  match={match}
-                  names={names}
-                  seedOf={round.stage === firstStage ? seedOf : undefined}
-                  onPlayerClick={onPlayerClick}
-                />
+              .map((match, index) => (
+                <div key={match.id} className="round-slot">
+                  {/* Right above the round's first match, which in later rounds sits lower down. */}
+                  {index === 0 && <h3>{round.title()}</h3>}
+                  <MatchCard
+                    match={match}
+                    names={names}
+                    seedOf={round.stage === firstStage ? seedOf : undefined}
+                    onPlayerClick={onPlayerClick}
+                  />
+                </div>
               ))}
           </div>
         </section>
