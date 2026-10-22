@@ -249,15 +249,15 @@ describe('PUT /api/tournaments/:id', () => {
   });
 
   it('draws the pools again when the player count needs another number of pools', async () => {
-    const extra = await addPlayers(db, 'Sen 1', 'Sen 2');
+    const extra = await addPlayers(db, 'Sen 1', 'Sen 2', 'Sen 3');
     const { id } = (await create()).json();
     const started = (await start(id)).json();
     await score(id, started.matches[0].id);
-    // 9 → 11 players is 4 + 4 + 3.
+    // 9 → 12 players is 4 + 4 + 4.
     const after = (await edit(id, [...playerIds, ...extra.map((p) => p.id)])).json();
-    expect(after.pools.map((p: { playerIds: number[] }) => p.playerIds.length)).toEqual([4, 4, 3]);
+    expect(after.pools.map((p: { playerIds: number[] }) => p.playerIds.length)).toEqual([4, 4, 4]);
     expect(after.matches.every((m: Match) => m.framesA === null)).toBe(true);
-    expect(after.matches).toHaveLength(6 + 6 + 3);
+    expect(after.matches).toHaveLength(6 + 6 + 6);
   });
 
   it('needs at least 4 known players', async () => {

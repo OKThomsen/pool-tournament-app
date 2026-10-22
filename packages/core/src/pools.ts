@@ -7,8 +7,8 @@ export const MAX_POOL_SIZE = 5;
 /** Player counts that can't be split into pools of 4–5, and how the club splits them instead. */
 const SPECIAL_SPLITS: Record<number, number[]> = {
   6: [6], // one pool, everyone plays everyone
-  7: [4, 3],
-  11: [4, 4, 3],
+  7: [7], // one pool
+  11: [5, 6],
 };
 
 /**

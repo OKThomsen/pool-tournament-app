@@ -8,10 +8,10 @@ describe('poolSizes', () => {
     [4, [4]],
     [5, [5]],
     [6, [6]],
-    [7, [4, 3]],
+    [7, [7]],
     [8, [4, 4]],
     [9, [5, 4]],
-    [11, [4, 4, 3]],
+    [11, [5, 6]],
     [13, [5, 4, 4]],
     [16, [4, 4, 4, 4]],
     [19, [5, 5, 5, 4]],
@@ -30,10 +30,13 @@ describe('poolSizes', () => {
     expect(poolSizes(3)).toBeNull();
   });
 
-  it('gives each player in a pool of 3 one bye, so nobody sits out twice in a row', () => {
-    const rounds = roundRobinRounds(['A', 'B', 'C']);
-    expect(rounds.map((round) => round.bye).sort()).toEqual(['A', 'B', 'C']);
-  });
+  it.each([[['A', 'B', 'C']], [['A', 'B', 'C', 'D', 'E', 'F', 'G']]])(
+    'gives each player in an odd pool one bye, so nobody sits out twice in a row (%j)',
+    (players) => {
+      const rounds = roundRobinRounds(players);
+      expect(rounds.map((round) => round.bye).sort()).toEqual(players);
+    },
+  );
 });
 
 describe('drawPools', () => {
@@ -114,8 +117,12 @@ describe('updatePools', () => {
   });
 
   it('takes out players who left', () => {
-    expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G', 'H'])).toEqual([
-      ['A', 'B', 'C'],
+    const nine = [
+      ['A', 'B', 'C', 'D', 'X'],
+      ['E', 'F', 'G', 'H'],
+    ];
+    expect(updatePools(nine, ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'X'])).toEqual([
+      ['A', 'B', 'C', 'X'],
       ['E', 'F', 'G', 'H'],
     ]);
   });
@@ -128,8 +135,8 @@ describe('updatePools', () => {
   });
 
   it('asks for a new draw when the player count needs another number of pools', () => {
-    // 8 → 11 players is 4 + 4 + 3; 8 → 6 is one pool of 6.
-    expect(updatePools(pools, [...pools.flat(), 'I', 'J', 'K'])).toBeNull();
+    // 8 → 12 players is 4 + 4 + 4; 8 → 6 is one pool of 6.
+    expect(updatePools(pools, [...pools.flat(), 'I', 'J', 'K', 'L'])).toBeNull();
     expect(updatePools(pools, ['A', 'B', 'C', 'E', 'F', 'G'])).toBeNull();
   });
 

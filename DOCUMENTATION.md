@@ -605,7 +605,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   time.
 - **Pool splits**: `poolSizes(n)` uses as few pools of 4–5 as possible, so 20 players make four
   pools of 5. Counts that can't be split that way have fixed splits: 6 → one pool of 6
-  (everyone plays everyone), 7 → 4 + 3, 11 → 4 + 4 + 3.
+  (everyone plays everyone), 7 → one pool of 7, 11 → 5 + 6.
 - **Admin changes to pools**: after the random draw the admin can swap two players
   (`swapPlayers`, sizes unchanged) or move a player to another pool (`movePlayer`, sizes
   change; a pool can't drop below 2 players).
@@ -714,3 +714,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-17 | Admins can enter old tournaments from before the app with their placings only: date, format, knockout (quarterfinals, semifinals or the final only), 1st–4th, 5–8 with quarterfinals, then the other participants. Every place must be filled. Points as usual (10/7/5/4/2/1, member bonus still 10), in the season of the date; statistics from the knockout. No pools or brackets are shown. |
 | 2026-10-19 | "For sjov kamp": a checkbox on Ny Turnering for a tournament that is played and listed under Turneringer as usual, but counts in no statistic (season points, standings, Deltagelse, Wins, Semifinals, Quarterfinals). The admin can switch it later, also after concluding. Not offered for old tournaments. |
 | 2026-10-21 | The admin's tools on a tournament's pages (join code, Rediger spillere/puljer, For sjov kamp, Annuller/Genåbn/Slet turnering) are gathered in an admin panel on the right, above the page on narrow screens. The steps that move the tournament on stay on the page. |
+| 2026-10-22 | New default splits: 7 players → one pool of 7, 11 → 5 + 6 (were 4 + 3 and 4 + 4 + 3). |
