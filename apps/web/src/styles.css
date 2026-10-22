@@ -1969,7 +1969,7 @@ button.match-side:hover {
   break-inside: avoid;
 }
 
-/* A name with its handicap ("Martin Johansen(-1)"): a long name is cut off, never the handicap. */
+/* A name with its handicap ("Martin Johansen (-1)"): a long name is cut off, never the handicap. */
 .player-name {
   display: inline-flex;
   max-width: 100%;
@@ -1985,6 +1985,8 @@ button.match-side:hover {
 
 .player-handicap {
   flex: none;
+  /* The space after the name, which the flex layout would drop. */
+  margin-left: 0.25em;
 }
 
 /* A short message that fades away by itself (Toast.tsx), e.g. "Resultatet er låst" on /play. */

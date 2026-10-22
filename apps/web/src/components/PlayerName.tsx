@@ -1,9 +1,9 @@
 /**
- * A name from namesWithHandicap ("Martin Johansen(-1)") in a cell that may be too narrow: the
+ * A name from namesWithHandicap ("Martin Johansen (-1)") in a cell that may be too narrow: the
  * name is cut off with "…", never the handicap.
  */
 export function PlayerName({ label }: { label: string | undefined }) {
-  const parts = /^(.*)(\(-?\d+\))$/.exec(label ?? '');
+  const parts = /^(.*?) ?(\(-?\d+\))$/.exec(label ?? '');
   if (!parts) return <>{label}</>;
   return (
     <span className="player-name">

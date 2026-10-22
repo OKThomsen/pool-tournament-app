@@ -136,7 +136,7 @@ a player onto another to swap them, or drag in someone from "Gik ikke videre" to
 place and seed. Players in a match with a result are locked.
 
 Wherever /live, /play and the admin's tournament pages show a player, the name carries their
-handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen(-1)"), except
+handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen (-1)", with a space), except
 "Næste kampe", which sits right under the pool table and shows names only. In cells
 that cut long names off, `PlayerName` shortens the name and always keeps the handicap.
 
@@ -732,3 +732,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | 1st to 3rd on the season leaderboards (frontpage, Sæson, /live) are shown as pool balls, like the seeds. |
 | 2026-10-22 | Handicaps on Spillere are written in red below 0 (strongest from -4) and green above 0 (strongest from +3), both columns. |
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
+| 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
