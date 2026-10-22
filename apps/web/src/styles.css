@@ -597,11 +597,11 @@ table,
 }
 
 .standings .rank {
-  min-width: 1.6em;
+  min-width: 1.9em;
   color: var(--charcoal-400);
   font-family: var(--font-display);
   font-weight: 600;
-  text-align: right;
+  text-align: center;
 }
 
 .standings .name {
@@ -619,9 +619,14 @@ table,
   color: var(--felt-400);
 }
 
-/* The top three get the colour of the lamps above the tables. */
-.standings li:nth-child(-n + 3) .rank {
-  color: var(--neon-amber);
+/* 1st to 3rd are pool balls (Rank in Standings.tsx), centred over the numbers below them. */
+.season-rank {
+  text-align: center;
+}
+
+.standings .rank .ball,
+.season-rank .ball {
+  vertical-align: middle;
 }
 
 /* ---------- Buttons and forms ---------- */

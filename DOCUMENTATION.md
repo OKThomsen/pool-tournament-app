@@ -78,6 +78,9 @@ when the next one starts (`components/NoSeason.tsx`).
 The frontpage (`FrontPage.tsx`) says when the club meets (every Wednesday: training 17–18:30
 for members, tournaments from 19:00) and the address, which links to Google Maps.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
+On all three leaderboards (Sæson, the frontpage and `/live` between tournaments) 1st to 3rd are
+drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared
+place shares the ball, so two players level at the top both get the 1-ball and the next is 3rd.
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
@@ -722,3 +725,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | New default splits: 7 players → one pool of 7, 11 → 5 + 6 (were 4 + 3 and 4 + 4 + 3). |
 | 2026-10-22 | The admin sets pool sizes freely when editing pools: drop a player at the bottom of a pool to add them, next to the pools to start a new pool; an empty pool is removed. A pool of one can't be started or closed. |
 | 2026-10-22 | /live shows only the bracket during the knockout, without the pools, so the bracket fills the screen. |
+| 2026-10-22 | 1st to 3rd on the season leaderboards (frontpage, Sæson, /live) are shown as pool balls, like the seeds. |

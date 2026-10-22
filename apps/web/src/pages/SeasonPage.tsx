@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { NoSeason } from '../components/NoSeason';
+import { Rank } from '../components/Standings';
 import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
 import { formatDate } from '../format';
 import {
@@ -125,7 +126,9 @@ function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
           <tbody>
             {view.rows.map((row) => (
               <tr key={row.playerId}>
-                <td>{row.rank}</td>
+                <td className="season-rank">
+                  <Rank rank={row.rank} />
+                </td>
                 <td>{row.name}</td>
                 <td>{row.points}</td>
                 <td>{row.member ? t.yes : t.no}</td>
