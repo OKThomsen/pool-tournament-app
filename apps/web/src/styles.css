@@ -1566,17 +1566,29 @@ table.clickable tbody tr:hover {
   flex-direction: column;
 }
 
-/* Later rounds' matches sit level with the matches they follow from. */
+/* Later rounds' matches sit level with the matches they follow from. The padding leaves room for
+   the first round's title. */
 .round-matches {
   display: flex;
   flex: 1;
   flex-direction: column;
   justify-content: space-around;
   gap: 14px;
+  padding-top: 1.8rem;
+}
+
+/* A round's title hangs right above its first match, taking no room in the column, so it moves
+   down with the match and the matches stay level with the ones they follow from. */
+.round-slot {
+  position: relative;
 }
 
 .round h3 {
-  margin: 0 0 10px;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin: 0 0 6px;
+  white-space: nowrap;
   color: var(--text-muted);
   font-size: 1rem;
   text-transform: uppercase;

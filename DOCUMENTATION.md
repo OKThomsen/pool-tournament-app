@@ -162,7 +162,8 @@ and 4th. It shows who qualifies, worked out with `qualifyFromPools` (or `qualify
 the server. A tie that decides who goes through must be
 settled first: the admin clicks the tied players in order, best first (a
 tie inside a pool is saved as the pool's tiebreak; a tie between pools is sent with the request).
-Then `Bracket` shows the knockout, one column per round with seed numbers in the first round;
+Then `Bracket` shows the knockout, one column per round with seed numbers in the first round
+(each round's title hangs right above its first match, so it follows the match down the column);
 admins tap a player in a match to enter the result from that player's side. Pool tables stay
 visible but read-only. Above the bracket, "Kampenes længde" (`RacePanel`) lists each round whose
 players are (partly) known and that has no result yet, with its race length: the first round as
