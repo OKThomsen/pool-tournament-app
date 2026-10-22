@@ -59,28 +59,28 @@ function LiveTournament({ id }: { id: number }) {
           </>
         )}
       </LiveHeader>
-      {data.status === 'draft' ? (
-        <p className="live-message">{t.live.drawing}</p>
-      ) : (
-        <LiveStage
-          bracket={
-            data.status === 'knockout' ? <Bracket tournament={data} names={names} /> : undefined
-          }
-          pools={
-            // Two pools per row; a third sits under the first.
-            <div className="live-pools">
-              {data.pools.map((pool) => {
-                const view = poolView(data, pool);
-                return (
-                  <section key={pool.id} className="pool-block">
-                    <PoolTable view={view} names={names} slots={slots} />
-                    {data.status === 'pools' && <UpNext view={view} names={plainNames} />}
-                  </section>
-                );
-              })}
-            </div>
-          }
-        />
+      {data.status === 'draft' && <p className="live-message">{t.live.drawing}</p>}
+      {/* In the knockout the pools are done with, so the bracket gets the whole screen. */}
+      {data.status === 'knockout' && (
+        <LiveStage key="knockout">
+          <Bracket tournament={data} names={names} />
+        </LiveStage>
+      )}
+      {data.status === 'pools' && (
+        <LiveStage key="pools">
+          {/* Two pools per row; a third sits under the first. */}
+          <div className="live-pools">
+            {data.pools.map((pool) => {
+              const view = poolView(data, pool);
+              return (
+                <section key={pool.id} className="pool-block">
+                  <PoolTable view={view} names={names} slots={slots} />
+                  <UpNext view={view} names={plainNames} />
+                </section>
+              );
+            })}
+          </div>
+        </LiveStage>
       )}
     </>
   );

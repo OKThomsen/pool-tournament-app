@@ -219,16 +219,14 @@ a "For sjov kamp" tag under the title with what it means (`ForFunNote`); Turneri
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 
-`/live` (`LivePage.tsx`) is the flatscreen view: the bracket (during the knockout), the pool
-tables and "Up next" in large type,
+`/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type during
+the pools, only the bracket during the knockout (the pools are done with by then),
 or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
 "Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
-below the header, `LiveStage` (`components/LiveStage.tsx`) lays the bracket and the pools out at
-their natural size and scales each to fit the screen, centred. Pools show two per row (a third
+below the header, `LiveStage` (`components/LiveStage.tsx`) lays the pools or the bracket out at
+their natural size and scales them to fit the screen (at most 3 times, `MAX_SCALE`), centred. Pools show two per row (a third
 sits under the first), each with its "Up next" as wide as the table, and shorter rows than the
-square cells on the admin page; on a big screen they grow to fill it. During the knockout the
-bracket is on top, taking at most half the height and growing at most 1.5 times as much as the
-pools (`BRACKET_SHARE`, `BRACKET_GROWTH`), and the pools shrink to fit below it. The layout is
+square cells on the admin page; on a big screen they grow to fill it. The layout is
 re-measured when results come in or the window changes size. `LiveUpdates` (mounted once in `main.tsx`)
 listens to `/api/events` and refetches tournament data on every change, on every page.
 
@@ -723,3 +721,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-21 | The admin's tools on a tournament's pages (join code, Rediger spillere/puljer, For sjov kamp, Annuller/Genåbn/Slet turnering) are gathered in an admin panel on the right, above the page on narrow screens. The steps that move the tournament on stay on the page. |
 | 2026-10-22 | New default splits: 7 players → one pool of 7, 11 → 5 + 6 (were 4 + 3 and 4 + 4 + 3). |
 | 2026-10-22 | The admin sets pool sizes freely when editing pools: drop a player at the bottom of a pool to add them, next to the pools to start a new pool; an empty pool is removed. A pool of one can't be started or closed. |
+| 2026-10-22 | /live shows only the bracket during the knockout, without the pools, so the bracket fills the screen. |

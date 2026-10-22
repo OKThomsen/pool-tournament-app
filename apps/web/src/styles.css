@@ -1805,8 +1805,8 @@ button.match-side:hover {
   font-size: 2rem;
 }
 
-/* The bracket and the pools are laid out at their natural size (.live-fit), and LiveStage scales
-   each one to fit the stage and centres it. Nobody can scroll the TV. */
+/* The pools, or the bracket in the knockout, are laid out at their natural size (.live-fit), and
+   LiveStage scales them to fit the stage and centres them. Nobody can scroll the TV. */
 .live-stage {
   position: relative;
   flex: 1;
