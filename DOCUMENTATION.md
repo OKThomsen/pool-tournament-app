@@ -229,7 +229,7 @@ or the season leaderboard between tournaments. When the tournament on screen is 
 into a podium with 1st, 2nd and 3rd (`components/Podium.tsx`, the pool balls 1–3 on wooden
 steps), which stays until the page is reloaded; a cancelled tournament goes straight back to the
 leaderboard. A page opened after the tournament ended shows the leaderboard. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
-"Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
+"Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. While a tournament is in progress, the top right says where to enter results ("Indtast resultater på turneringsportal.kjaer-thomsen.dk/play", from the page's own address) under the date and format; the join code itself stays off the TV. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
 below the header, `LiveStage` (`components/LiveStage.tsx`) lays the pools or the bracket out at
 their natural size and scales them to fit the screen (at most 3 times, `MAX_SCALE`), centred. Pools show two per row (a third
 sits under the first), each with its "Up next" as wide as the table, and shorter rows than the
@@ -733,3 +733,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | Handicaps on Spillere are written in red below 0 (strongest from -4) and green above 0 (strongest from +3), both columns. |
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
+| 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |

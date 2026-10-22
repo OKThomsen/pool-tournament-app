@@ -1775,12 +1775,28 @@ button.match-side:hover {
   font-size: 2.6rem;
 }
 
+/* What is on, and the /play link under it, on the right. */
+.live-info {
+  margin-left: auto;
+  text-align: right;
+}
+
 .live-header p {
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--text-muted);
   font-family: var(--font-display);
   font-size: 1.8rem;
   font-weight: 600;
+}
+
+.live-header .live-play {
+  margin-top: 4px;
+  font-size: 1.4rem;
+}
+
+.live-play a {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 /* "LIVE" with a glowing dot, like the neon signs in the bar. */

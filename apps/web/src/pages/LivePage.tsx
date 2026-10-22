@@ -44,6 +44,19 @@ export function LivePage() {
   );
 }
 
+/**
+ * Where players enter their results, written out in full for people reading it off the TV. The
+ * join code isn't shown here: people outside the tournament see the screen too.
+ */
+function PlayLink() {
+  const address = `${window.location.host}/play`;
+  return (
+    <p className="live-play">
+      {t.live.play} <Link to="/play">{address}</Link>
+    </p>
+  );
+}
+
 /** Right after a tournament on screen is concluded: its podium. A cancelled one shows Idle. */
 function LivePodium({ id }: { id: number }) {
   const tournament = useTournament(id);
@@ -64,8 +77,11 @@ function LivePodium({ id }: { id: number }) {
   );
 }
 
-/** The logo (a link back to the frontpage), a "Live" badge, and what is on. */
-function LiveHeader({ children }: { children: ReactNode }) {
+/**
+ * The logo (a link back to the frontpage), a "Live" badge, and what is on, with `below` under it
+ * on the right.
+ */
+function LiveHeader({ children, below }: { children: ReactNode; below?: ReactNode }) {
   return (
     <header className="live-header">
       <Link to="/" className="live-home" aria-label={t.live.home} title={t.live.home}>
@@ -73,7 +89,10 @@ function LiveHeader({ children }: { children: ReactNode }) {
       </Link>
       <h1>{t.brand}</h1>
       <span className="live-badge">{t.live.badge}</span>
-      <p>{children}</p>
+      <div className="live-info">
+        <p>{children}</p>
+        {below}
+      </div>
     </header>
   );
 }
@@ -89,7 +108,7 @@ function LiveTournament({ id }: { id: number }) {
 
   return (
     <>
-      <LiveHeader>
+      <LiveHeader below={<PlayLink />}>
         {t.tournaments.one} {formatDate(data.date)} · {data.format}
         {data.forFun && (
           <>
