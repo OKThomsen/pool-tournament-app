@@ -89,17 +89,31 @@ describe('movePlayer', () => {
     expect(pools[0]).toHaveLength(4);
   });
 
-  it('refuses to leave a pool with fewer than 2 players', () => {
-    const small = [
-      ['A', 'B'],
-      ['C', 'D', 'E'],
-    ];
-    expect(() => movePlayer(small, 'A', 1)).toThrow();
+  it('starts a new pool one past the last', () => {
+    expect(movePlayer(pools, 'D', 3)).toEqual([
+      ['A', 'B', 'C'],
+      ['E', 'F', 'G', 'H'],
+      ['I', 'J', 'K'],
+      ['D'],
+    ]);
+  });
+
+  it('removes a pool left empty, moving the pools after it up', () => {
+    const small = [['A'], ['B', 'C', 'D'], ['E', 'F', 'G']];
+    expect(movePlayer(small, 'A', 2)).toEqual([
+      ['B', 'C', 'D'],
+      ['E', 'F', 'G', 'A'],
+    ]);
+  });
+
+  it('moves a lone player to a new pool at the end', () => {
+    expect(movePlayer([['A'], ['B', 'C']], 'A', 2)).toEqual([['B', 'C'], ['A']]);
   });
 
   it('rejects unknown players and pools', () => {
     expect(() => movePlayer(pools, 'Z', 0)).toThrow();
-    expect(() => movePlayer(pools, 'A', 5)).toThrow();
+    expect(() => movePlayer(pools, 'A', 4)).toThrow();
+    expect(() => movePlayer(pools, 'A', -1)).toThrow();
   });
 });
 

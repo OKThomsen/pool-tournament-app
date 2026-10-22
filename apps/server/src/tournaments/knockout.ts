@@ -4,6 +4,7 @@ import {
   bracketFromFirstRound,
   knockoutBracket,
   knockoutSlots,
+  MIN_PLAYERS_PER_POOL,
   poolStandings,
   qualifyForFinal,
   qualifyFromPools,
@@ -77,6 +78,9 @@ export async function startKnockout(
   const poolMatches = detail.matches.filter((m) => m.stage === 'pool');
   if (poolMatches.some((m) => m.framesA === null)) {
     return { ok: false, status: 409, error: 'pools_incomplete' };
+  }
+  if (detail.pools.some((pool) => pool.playerIds.length < MIN_PLAYERS_PER_POOL)) {
+    return { ok: false, status: 409, error: 'pool_too_small' };
   }
   if (size === 2 && detail.pools.length !== 1) {
     return { ok: false, status: 400, error: 'final_only_needs_one_pool' };

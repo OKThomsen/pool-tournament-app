@@ -68,10 +68,17 @@ export function swapPlayers(
   return result;
 }
 
-/** Smallest pool the admin can leave behind when moving players around. */
+/**
+ * Fewest players a pool can be played with. The admin may leave a single player in a pool while
+ * rearranging, but the tournament can't start (or go on to the knockout) like that.
+ */
 export const MIN_PLAYERS_PER_POOL = 2;
 
-/** Moves a player to the end of another pool, changing both pools' sizes. Returns new pools. */
+/**
+ * Moves a player to the end of another pool, changing both pools' sizes. `toPool` may be one past
+ * the last pool, which starts a new pool with just this player. A pool left empty is removed, so
+ * the pools after it move up a place. Returns new pools.
+ */
 export function movePlayer(
   pools: readonly (readonly PlayerId[])[],
   player: PlayerId,
@@ -79,16 +86,16 @@ export function movePlayer(
 ): PlayerId[][] {
   const from = pools.findIndex((pool) => pool.includes(player));
   if (from === -1) throw new Error(`Player ${player} is not in any pool`);
-  if (!pools[toPool]) throw new RangeError(`There is no pool ${toPool}`);
-  if (from === toPool) return pools.map((pool) => [...pool]);
-  if (pools[from]!.length <= MIN_PLAYERS_PER_POOL) {
-    throw new RangeError(`A pool needs at least ${MIN_PLAYERS_PER_POOL} players`);
+  if (!Number.isInteger(toPool) || toPool < 0 || toPool > pools.length) {
+    throw new RangeError(`There is no pool ${toPool}`);
   }
-  return pools.map((pool, i) => {
+  if (from === toPool) return pools.map((pool) => [...pool]);
+  const result = [...pools, []].map((pool, i) => {
     if (i === from) return pool.filter((p) => p !== player);
     if (i === toPool) return [...pool, player];
     return [...pool];
   });
+  return result.filter((pool) => pool.length > 0);
 }
 
 /**

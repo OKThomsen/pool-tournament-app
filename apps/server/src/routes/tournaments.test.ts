@@ -162,10 +162,69 @@ describe('PUT /api/tournaments/:id/pools', () => {
     expect(stranger.json()).toEqual({ error: 'players_mismatch' });
   });
 
-  it('refuses a pool of one', async () => {
+  it('saves a pool of one, but the tournament cannot start with it', async () => {
     const { id } = (await create()).json();
     const response = await savePools(id, [playerIds.slice(0, 8), playerIds.slice(8)]);
-    expect(response.json()).toEqual({ error: 'pool_too_small' });
+    expect(response.statusCode).toBe(200);
+    expect((await start(id)).json()).toEqual({ error: 'pool_too_small' });
+    await savePools(id, [playerIds]);
+    expect((await start(id)).statusCode).toBe(200);
+  });
+
+  it('refuses an empty pool', async () => {
+    const { id } = (await create()).json();
+    const response = await savePools(id, [playerIds, []]);
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('adds and removes pools, naming them A, B, C … in order', async () => {
+    const { id } = (await create()).json();
+    const three = (
+      await savePools(id, [playerIds.slice(0, 3), playerIds.slice(3, 6), playerIds.slice(6)])
+    ).json();
+    expect(three.pools.map((p: { name: string }) => p.name)).toEqual(['A', 'B', 'C']);
+    const two = (await savePools(id, [playerIds.slice(0, 3), playerIds.slice(3)])).json();
+    expect(two.pools.map((p: { name: string }) => p.name)).toEqual(['A', 'B']);
+  });
+
+  it('keeps a pool with its results and race length when a pool before it is removed', async () => {
+    const { id } = (await create()).json();
+    const [p1, p2, p3, p4, p5, p6, p7, p8, p9] = playerIds as Nine;
+    await savePools(id, [
+      [p1, p2, p3],
+      [p4, p5, p6],
+      [p7, p8, p9],
+    ]);
+    const started = (await start(id)).json();
+    const poolC = started.pools[2];
+    await setPoolRace(id, poolC.id, 3);
+    const played = matchBetween(started, p7, p8);
+    await score(id, played.id, 3);
+
+    // Pool B's players go to A and C, so B is removed and C becomes B.
+    const after = (
+      await savePools(id, [
+        [p1, p2, p3, p4],
+        [p7, p8, p9, p5, p6],
+      ])
+    ).json();
+    expect(after.pools.map((p: { id: number; name: string }) => [p.id, p.name])).toEqual([
+      [started.pools[0].id, 'A'],
+      [poolC.id, 'B'],
+    ]);
+    expect(after.pools[1].raceTo).toBe(3);
+    expect(matchBetween(after, p7, p8)).toMatchObject({ id: played.id, framesA: 3 });
+    expect(after.matches).toHaveLength(6 + 10);
+  });
+
+  it('gives a new pool the race length of the pool before it', async () => {
+    const { id } = (await create()).json();
+    const { pools } = (await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5)])).json();
+    await setPoolRace(id, pools[1].id, 4);
+    const after = (
+      await savePools(id, [playerIds.slice(0, 5), playerIds.slice(5, 8), playerIds.slice(8)])
+    ).json();
+    expect(after.pools.map((p: { raceTo: number }) => p.raceTo)).toEqual([2, 4, 4]);
   });
 
   it('keeps the pool ids, and results while both players stay in the pool', async () => {
