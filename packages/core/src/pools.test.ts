@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { drawPools, movePlayer, poolSizes, swapPlayers, updatePools } from './pools.js';
+import {
+  continuedPools,
+  drawPools,
+  movePlayer,
+  poolSizes,
+  swapPlayers,
+  updatePools,
+} from './pools.js';
 import { seededRng } from './random.js';
 import { roundRobinRounds } from './schedule.js';
 
@@ -114,6 +121,31 @@ describe('movePlayer', () => {
     expect(() => movePlayer(pools, 'Z', 0)).toThrow();
     expect(() => movePlayer(pools, 'A', 4)).toThrow();
     expect(() => movePlayer(pools, 'A', -1)).toThrow();
+  });
+});
+
+describe('continuedPools', () => {
+  const pools = [
+    ['A', 'B', 'C'],
+    ['D', 'E', 'F'],
+    ['G', 'H', 'I'],
+  ];
+
+  it('keeps pools in place after a swap', () => {
+    expect(continuedPools(pools, swapPlayers(pools, 'A', 'D'))).toEqual([0, 1, 2]);
+  });
+
+  it('lets pool C continue as B when pool B is emptied', () => {
+    const next = [
+      ['A', 'B', 'C', 'D'],
+      ['G', 'H', 'I', 'E', 'F'],
+    ];
+    expect(continuedPools(pools, next)).toEqual([0, 2]);
+  });
+
+  it('starts a new pool afresh unless an earlier pool is left over', () => {
+    expect(continuedPools(pools, movePlayer(pools, 'A', 3))).toEqual([0, 1, 2, undefined]);
+    expect(continuedPools([['A', 'B'], ['C']], [['A', 'B', 'C'], ['D']])).toEqual([0, 1]);
   });
 });
 

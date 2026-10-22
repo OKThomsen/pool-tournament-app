@@ -1,44 +1,10 @@
-import { playOrder, roundRobinRounds, samePairing } from '@franks/core';
+import { continuedPools, playOrder, roundRobinRounds, samePairing } from '@franks/core';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { matches, poolMembers, pools } from '../db/schema.js';
 
 /** Pool names in order: A, B, C … */
 const poolName = (index: number) => String.fromCharCode(65 + index);
-
-/**
- * Pairs each new pool with the existing pool row it shares the most players with, so a row (with
- * its matches, results and race length) stays with its players when the pools before it are
- * removed or added. Pools that share no players take the rows left over, in order. Returns the
- * row id per new pool (undefined: a new row is needed) and the rows no pool uses.
- */
-function matchPoolRows(
-  existing: { id: number; playerIds: number[] }[],
-  arrangement: number[][],
-): { rows: (number | undefined)[]; unused: number[] } {
-  const overlaps = arrangement
-    .flatMap((playerIds, index) =>
-      existing.map((row) => ({
-        index,
-        id: row.id,
-        shared: playerIds.filter((p) => row.playerIds.includes(p)).length,
-      })),
-    )
-    .filter((overlap) => overlap.shared > 0)
-    .sort((x, y) => y.shared - x.shared);
-  const rows: (number | undefined)[] = arrangement.map(() => undefined);
-  const taken = new Set<number>();
-  for (const { index, id } of overlaps) {
-    if (rows[index] !== undefined || taken.has(id)) continue;
-    rows[index] = id;
-    taken.add(id);
-  }
-  const free = existing.map((row) => row.id).filter((id) => !taken.has(id));
-  for (const index of rows.keys()) {
-    if (rows[index] === undefined && free.length > 0) rows[index] = free.shift();
-  }
-  return { rows, unused: free };
-}
 
 /**
  * Saves the pools (player ids per pool, in order). Each pool keeps the row of the pool most of
@@ -66,13 +32,14 @@ export async function savePools(db: Executor, tournamentId: number, arrangement:
               existing.map((pool) => pool.id),
             ),
           );
-  const { rows, unused } = matchPoolRows(
-    existing.map((pool) => ({
-      id: pool.id,
-      playerIds: lineUps.filter((m) => m.poolId === pool.id).map((m) => m.playerId),
-    })),
-    arrangement,
+  const previous = existing.map((pool) =>
+    lineUps.filter((m) => m.poolId === pool.id).map((m) => String(m.playerId)),
   );
+  const rows = continuedPools(
+    previous,
+    arrangement.map((pool) => pool.map(String)),
+  ).map((index) => (index === undefined ? undefined : existing[index]!.id));
+  const unused = existing.map((pool) => pool.id).filter((id) => !rows.includes(id));
   if (unused.length > 0) await db.delete(pools).where(inArray(pools.id, unused));
   // Names are unique per tournament, so move the kept rows out of the way before renaming them.
   for (const id of rows) {

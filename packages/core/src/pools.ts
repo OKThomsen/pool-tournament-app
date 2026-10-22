@@ -99,6 +99,41 @@ export function movePlayer(
 }
 
 /**
+ * Which earlier pool each new pool continues, when the admin rearranges them: the one it shares
+ * the most players with (each earlier pool continues at most once). New pools that share no
+ * players continue the earlier pools left over, in order. A pool keeps its matches, results and
+ * race length when it's continued, so removing pool B leaves pool C's results alone. Returns the
+ * earlier pool's index per new pool, or undefined for a pool that starts afresh.
+ */
+export function continuedPools(
+  previous: readonly (readonly PlayerId[])[],
+  next: readonly (readonly PlayerId[])[],
+): (number | undefined)[] {
+  const overlaps = next
+    .flatMap((pool, index) =>
+      previous.map((earlier, from) => ({
+        index,
+        from,
+        shared: pool.filter((p) => earlier.includes(p)).length,
+      })),
+    )
+    .filter((overlap) => overlap.shared > 0)
+    .sort((x, y) => y.shared - x.shared);
+  const result: (number | undefined)[] = next.map(() => undefined);
+  const taken = new Set<number>();
+  for (const { index, from } of overlaps) {
+    if (result[index] !== undefined || taken.has(from)) continue;
+    result[index] = from;
+    taken.add(from);
+  }
+  const free = previous.map((_, from) => from).filter((from) => !taken.has(from));
+  for (const index of result.keys()) {
+    if (result[index] === undefined && free.length > 0) result[index] = free.shift();
+  }
+  return result;
+}
+
+/**
  * The pools after the player list changes in a tournament that's already drawn: players who
  * left are taken out, and each newcomer goes into the smallest pool (the first of several equally
  * small ones). Returns null when the pools must be drawn again instead: the new number of players
