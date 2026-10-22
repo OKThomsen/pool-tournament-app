@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Bracket } from '../components/Bracket';
 import { ForFunTag } from '../components/ForFun';
 import { LiveStage } from '../components/LiveStage';
 import { PoolTable, UpNext } from '../components/PoolTable';
 import { NoSeason } from '../components/NoSeason';
+import { Podium } from '../components/Podium';
 import { Standings } from '../components/Standings';
 import { formatDate } from '../format';
 import { poolView } from '../poolView';
@@ -18,15 +19,69 @@ import { namesWithHandicap, useOngoingTournament, useTournament } from '../tourn
  */
 export function LivePage() {
   const ongoing = useOngoingTournament();
+  // The tournament that was on screen when it stopped being in progress. If it was concluded (not
+  // cancelled), its podium stays up until the page is reloaded.
+  const [ended, setEnded] = useState<number | null>(null);
+  const onScreen = useRef<number | null>(null);
+  const ongoingId = ongoing.isSuccess ? (ongoing.data?.id ?? null) : undefined;
+  useEffect(() => {
+    if (ongoingId === undefined) return;
+    if (ongoingId === null && onScreen.current !== null) setEnded(onScreen.current);
+    if (ongoingId !== null) setEnded(null);
+    onScreen.current = ongoingId;
+  }, [ongoingId]);
+
   return (
     <div className="live theme-dark">
-      {ongoing.data ? <LiveTournament id={ongoing.data.id} /> : ongoing.isSuccess && <Idle />}
+      {ongoing.data ? (
+        <LiveTournament id={ongoing.data.id} />
+      ) : ended !== null ? (
+        <LivePodium id={ended} />
+      ) : (
+        ongoing.isSuccess && <Idle />
+      )}
     </div>
   );
 }
 
-/** The logo (a link back to the frontpage), a "Live" badge, and what is on. */
-function LiveHeader({ children }: { children: ReactNode }) {
+/**
+ * Where players enter their results, written out in full for people reading it off the TV. The
+ * join code isn't shown here: people outside the tournament see the screen too.
+ */
+function PlayLink() {
+  const address = `${window.location.host}/play`;
+  return (
+    <p className="live-play">
+      {t.live.play} <Link to="/play">{address}</Link>
+    </p>
+  );
+}
+
+/** Right after a tournament on screen is concluded: its podium. A cancelled one shows Idle. */
+function LivePodium({ id }: { id: number }) {
+  const tournament = useTournament(id);
+  // Cancelled: the tournament is gone.
+  if (tournament.isError) return <Idle />;
+  // Until the refetch after concluding has come in.
+  if (tournament.data?.status !== 'concluded') return null;
+  const data = tournament.data;
+  return (
+    <>
+      <LiveHeader>
+        {t.tournaments.one} {formatDate(data.date)} · {data.format} · {t.live.concluded}
+      </LiveHeader>
+      <LiveStage>
+        <Podium tournament={data} />
+      </LiveStage>
+    </>
+  );
+}
+
+/**
+ * The logo (a link back to the frontpage), a "Live" badge, and what is on, with `below` under it
+ * on the right.
+ */
+function LiveHeader({ children, below }: { children: ReactNode; below?: ReactNode }) {
   return (
     <header className="live-header">
       <Link to="/" className="live-home" aria-label={t.live.home} title={t.live.home}>
@@ -34,7 +89,10 @@ function LiveHeader({ children }: { children: ReactNode }) {
       </Link>
       <h1>{t.brand}</h1>
       <span className="live-badge">{t.live.badge}</span>
-      <p>{children}</p>
+      <div className="live-info">
+        <p>{children}</p>
+        {below}
+      </div>
     </header>
   );
 }
@@ -50,7 +108,7 @@ function LiveTournament({ id }: { id: number }) {
 
   return (
     <>
-      <LiveHeader>
+      <LiveHeader below={<PlayLink />}>
         {t.tournaments.one} {formatDate(data.date)} · {data.format}
         {data.forFun && (
           <>

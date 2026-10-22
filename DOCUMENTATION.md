@@ -136,7 +136,7 @@ a player onto another to swap them, or drag in someone from "Gik ikke videre" to
 place and seed. Players in a match with a result are locked.
 
 Wherever /live, /play and the admin's tournament pages show a player, the name carries their
-handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen(-1)"), except
+handicap in parentheses (`namesWithHandicap` in `tournaments.ts`: "Martin Johansen (-1)", with a space), except
 "Næste kampe", which sits right under the pool table and shows names only. In cells
 that cut long names off, `PlayerName` shortens the name and always keeps the handicap.
 
@@ -225,8 +225,11 @@ pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 
 `/live` (`LivePage.tsx`) is the flatscreen view: the pool tables and "Up next" in large type during
 the pools, only the bracket during the knockout (the pools are done with by then),
-or the season leaderboard between tournaments. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
-"Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
+or the season leaderboard between tournaments. When the tournament on screen is concluded, it turns
+into a podium with 1st, 2nd and 3rd (`components/Podium.tsx`, the pool balls 1–3 on wooden
+steps), which stays until the page is reloaded; a cancelled tournament goes straight back to the
+leaderboard. A page opened after the tournament ended shows the leaderboard. It uses the dark theme (`.theme-dark`, less glare in a dim bar) with a
+"Live" badge; the logo links back to the frontpage (`.live-home`), since `/live` has no site header. While a tournament is in progress, the top right says where to enter results ("Indtast resultater på turneringsportal.kjaer-thomsen.dk/play", from the page's own address) under the date and format; the join code itself stays off the TV. The TV can't be scrolled, so `/live` is exactly one screen high and never scrolls:
 below the header, `LiveStage` (`components/LiveStage.tsx`) lays the pools or the bracket out at
 their natural size and scales them to fit the screen (at most 3 times, `MAX_SCALE`), centred. Pools show two per row (a third
 sits under the first), each with its "Up next" as wide as the table, and shorter rows than the
@@ -728,3 +731,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | /live shows only the bracket during the knockout, without the pools, so the bracket fills the screen. |
 | 2026-10-22 | 1st to 3rd on the season leaderboards (frontpage, Sæson, /live) are shown as pool balls, like the seeds. |
 | 2026-10-22 | Handicaps on Spillere are written in red below 0 (strongest from -4) and green above 0 (strongest from +3), both columns. |
+| 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
+| 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
+| 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |

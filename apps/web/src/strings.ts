@@ -255,6 +255,9 @@ const da = {
   live: {
     drawing: 'Puljerne bliver lavet …',
     noTournament: 'Ingen turnering i gang lige nu',
+    concluded: 'Turneringen er slut',
+    play: 'Indtast resultater på',
+    podium: 'Tillykke til vinderne!',
     badge: 'Live',
     home: 'Til forsiden',
   },
@@ -521,6 +524,9 @@ const en: Strings = {
   live: {
     drawing: 'Drawing the pools …',
     noTournament: 'No tournament in progress right now',
+    concluded: 'The tournament is over',
+    play: 'Enter results at',
+    podium: 'Congratulations to the winners!',
     badge: 'Live',
     home: 'To the homepage',
   },

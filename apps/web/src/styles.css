@@ -1775,12 +1775,28 @@ button.match-side:hover {
   font-size: 2.6rem;
 }
 
+/* What is on, and the /play link under it, on the right. */
+.live-info {
+  margin-left: auto;
+  text-align: right;
+}
+
 .live-header p {
-  margin: 0 0 0 auto;
+  margin: 0;
   color: var(--text-muted);
   font-family: var(--font-display);
   font-size: 1.8rem;
   font-weight: 600;
+}
+
+.live-header .live-play {
+  margin-top: 4px;
+  font-size: 1.4rem;
+}
+
+.live-play a {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 /* "LIVE" with a glowing dot, like the neon signs in the bar. */
@@ -1825,6 +1841,68 @@ button.match-side:hover {
 
 .live-message {
   font-size: 2rem;
+}
+
+/* After a tournament is concluded: the top three on a podium (Podium.tsx), 2nd, 1st, 3rd. */
+.podium {
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.podium h2 {
+  margin: 0 0 1.5rem;
+  color: var(--neon-amber);
+  font-size: 2.4rem;
+}
+
+.podium-steps {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.podium-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 15rem;
+}
+
+.podium-name {
+  margin-bottom: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.podium-block {
+  display: grid;
+  place-items: start center;
+  width: 100%;
+  padding-top: 1.2rem;
+  border-top: 6px solid var(--wood-500);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(var(--wood-700), var(--charcoal-900));
+  font-size: 2.4rem;
+}
+
+.place-1 .podium-block {
+  height: 15rem;
+  border-top-color: var(--neon-amber);
+}
+
+.place-1 .podium-name {
+  color: var(--neon-amber);
+  font-size: 2.3rem;
+}
+
+.place-2 .podium-block {
+  height: 11rem;
+}
+
+.place-3 .podium-block {
+  height: 8rem;
 }
 
 /* The pools, or the bracket in the knockout, are laid out at their natural size (.live-fit), and
@@ -1907,7 +1985,7 @@ button.match-side:hover {
   break-inside: avoid;
 }
 
-/* A name with its handicap ("Martin Johansen(-1)"): a long name is cut off, never the handicap. */
+/* A name with its handicap ("Martin Johansen (-1)"): a long name is cut off, never the handicap. */
 .player-name {
   display: inline-flex;
   max-width: 100%;
@@ -1923,6 +2001,8 @@ button.match-side:hover {
 
 .player-handicap {
   flex: none;
+  /* The space after the name, which the flex layout would drop. */
+  margin-left: 0.25em;
 }
 
 /* A short message that fades away by itself (Toast.tsx), e.g. "Resultatet er låst" on /play. */
