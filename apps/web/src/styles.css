@@ -54,6 +54,9 @@
   --win-text: var(--green-700);
   --loss-bg: var(--red-100);
   --loss-text: var(--red-700);
+  /* Handicaps on Spillere: the strongest red (from -4) and green (from +3). */
+  --handicap-minus: #ee8a7f;
+  --handicap-plus: #7ccf98;
   --error: var(--red-700);
   --focus: var(--felt-400);
   --shadow: 0 1px 2px rgb(40 30 20 / 6%), 0 4px 16px rgb(40 30 20 / 6%);
@@ -627,6 +630,16 @@ table,
 .standings .rank .ball,
 .season-rank .ball {
   vertical-align: middle;
+}
+
+/* A handicap on Spillere: tinted red below 0 and green above, stronger the further from 0 (up to
+   -4 and +3). The tint's strength comes from the page as --strength. */
+td.handicap.minus {
+  background: color-mix(in srgb, var(--handicap-minus) var(--strength), transparent);
+}
+
+td.handicap.plus {
+  background: color-mix(in srgb, var(--handicap-plus) var(--strength), transparent);
 }
 
 /* ---------- Buttons and forms ---------- */

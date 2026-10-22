@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type CSSProperties, type FormEvent } from 'react';
 import { useSession } from '../auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import {
@@ -95,8 +95,8 @@ export function PlayersPage() {
                   ) : (
                     <tr key={player.id}>
                       <td>{player.name}</td>
-                      <td>{player.baseHandicap}</td>
-                      <td>{player.frameHandicap}</td>
+                      <HandicapCell value={player.baseHandicap} />
+                      <HandicapCell value={player.frameHandicap} />
                       <td>{player.member ? t.yes : t.no}</td>
                       {inSeason && <td>{player.seasonPoints}</td>}
                       <td>{player.participation}</td>
@@ -200,5 +200,27 @@ function EditPlayerRow({ player, onDone }: { player: PlayerWithStats; onDone: ()
         </form>
       </td>
     </tr>
+  );
+}
+
+/** The handicap where the cell's red is at its strongest; lower handicaps look the same. */
+const RED_CAP = -4;
+/** The handicap where the cell's green is at its strongest; higher handicaps look the same. */
+const GREEN_CAP = 3;
+
+/**
+ * A handicap on a background that gets gradually redder below 0 (full at RED_CAP) and greener
+ * above 0 (full at GREEN_CAP). 0 has no colour.
+ */
+function HandicapCell({ value }: { value: number }) {
+  if (value === 0) return <td>{value}</td>;
+  const strength = value < 0 ? Math.min(value / RED_CAP, 1) : Math.min(value / GREEN_CAP, 1);
+  return (
+    <td
+      className={`handicap ${value < 0 ? 'minus' : 'plus'}`}
+      style={{ '--strength': `${Math.round(strength * 100)}%` } as CSSProperties}
+    >
+      {value}
+    </td>
   );
 }
