@@ -596,6 +596,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
 | `placements.ts` | `placements`, `placementsInOrder`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings (from the bracket, or for an old tournament from the order entered) and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
+| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder. |
 
 ### Rules as implemented
 
@@ -655,6 +656,21 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   only accepts a finished race: the winner has exactly `raceTo` frames and the loser fewer.
 - **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
+- **Handicap regulation** (`regulation`, like the workbook's Handicap Tracking): every player has
+  a hidden regulation score, starting at 0 and replayed from their first tournament. 1st or 2nd
+  gives +1; no pool wins gives −1 (old tournaments only count finals, their pool wins aren't
+  known); "For sjov kamp" tournaments don't count. A ±1 is forgotten two calendar months after
+  the score last changed (on that date: a −1 from 04-11 is gone on 04-01). At +2 the player gets
+  a recommendation to make the handicap harder, at −2 easier, and the count starts again from 0
+  while it waits. The handicap never changes by itself: the admin applies or dismisses the
+  recommendation, and either sets the score back to 0, as does changing the handicap by hand.
+  Recommendations don't expire. The workbook keeps each notch on its own and has it last through
+  the date two months on; with at most ±1 open at a time that's the same score, except that here
+  the change is gone on that date.
+- **Handicap ladder** (`regulatedHandicap`, the workbook's): base +3 … −4, then the frame
+  handicap 0 … −4. Harder lowers the base, and below −4 the frame; easier takes the frame back
+  first, then raises the base. −4(−4) can't get harder and +3 can't get easier; such a
+  recommendation can only be dismissed.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   first round is drawn from the seeds once, when the knockout starts, and stored; the admin can
   then swap players in it, or bring in a player who didn't qualify, while its matches have no
