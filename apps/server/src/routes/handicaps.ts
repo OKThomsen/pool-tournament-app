@@ -66,9 +66,12 @@ type AdjustmentRow = Awaited<ReturnType<typeof loadAdjustments>>[number];
 /**
  * Whether the tournament came before the adjustment: by date, and on the same date by the time
  * it was concluded (a handicap changed in the afternoon comes before that evening's tournament).
+ * A score set by hand is the score at the end of its date, so it comes after that day's
+ * tournaments.
  */
 function tournamentFirst(t: TournamentRow, a: AdjustmentRow): boolean {
   if (t.date !== a.date) return t.date < a.date;
+  if (a.kind === 'set') return true;
   return (t.concludedAt?.getTime() ?? 0) <= a.createdAt.getTime();
 }
 
@@ -99,6 +102,7 @@ function toEvent(entry: ReturnType<typeof history>[number]): RegulationEvent {
     };
   }
   const a = entry.adjustment;
+  if (a.kind === 'set') return { kind: 'set', score: a.score as -1 | 0 | 1, date: a.date };
   return { kind: 'reset', reason: a.kind, tournamentId: a.tournamentId, date: a.date };
 }
 
@@ -169,6 +173,7 @@ async function playerDetail(db: Executor, player: PlayerRow) {
       };
     }
     const a = (source as { adjustment: AdjustmentRow }).adjustment;
+    if (step.kind === 'set') return step;
     return {
       ...step,
       oldBase: a.oldBase,
@@ -291,6 +296,48 @@ export const handicapRoutes: FastifyPluginAsync<{ db: Database }> = async (app, 
       });
       if ('error' in outcome) return reply.code(outcome.error).send({ error: outcome.code });
       return playerDetail(db, outcome.player);
+    },
+  );
+
+  /**
+   * Sets the regulation score by hand to what it was at the end of `date` (today unless given),
+   * for instance to account for old tournaments whose pool results aren't known. Tournaments
+   * after that date count on top of it; the handicap and any recommendations stay as they are.
+   */
+  app.put<{ Params: { id: number }; Body: { score: -1 | 0 | 1; date?: string } }>(
+    '/handicaps/:id/score',
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['score'],
+          additionalProperties: false,
+          properties: {
+            score: { type: 'integer', minimum: -1, maximum: 1 },
+            date: { type: 'string', format: 'date' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const player = await findPlayer(db, request.params.id);
+      if (!player) return reply.code(404).send({ error: 'not_found' });
+      const today = todayInDenmark();
+      const { score, date = today } = request.body;
+      if (date > today) return reply.code(400).send({ error: 'date_in_future' });
+      await db.insert(handicapAdjustments).values({
+        playerId: player.id,
+        kind: 'set',
+        date,
+        score,
+        oldBase: player.baseHandicap,
+        oldFrame: player.frameHandicap,
+        newBase: player.baseHandicap,
+        newFrame: player.frameHandicap,
+      });
+      return playerDetail(db, player);
     },
   );
 };

@@ -455,6 +455,7 @@ All of it is admin only: the score is hidden from players.
 | `GET /api/handicaps` | admin | Every player by name: `id`, `name`, `baseHandicap`, `frameHandicap`, `lastAdjusted`, `score` (−1, 0 or 1 today), `expires` (when the ±1 runs out, or null), `pending` (`[{ tournamentId, date, direction: 'harder' \| 'easier', next: { base, frame } \| null }]`, `next` being the handicap after applying it, null at the end of the ladder). |
 | `GET /api/handicaps/:id` | admin | One player as above, plus `history`, newest first: `tournament` steps (`tournamentId`, `date`, `format`, `historical`, `placement`, `poolWins` (null for an old tournament), the `baseHandicap`/`frameHandicap` snapshot, `change`, `score` after it, `recommendation`), `reset` steps (`reason`: `applied`, `dismissed` or `manual`, with `oldBase`, `oldFrame`, `newBase`, `newFrame`), and `expired` steps (a ±1 running out). 404 `not_found`. |
 | `POST /api/handicaps/:id/recommendations/:tournamentId` | admin | `{ action: 'apply' \| 'dismiss' }` resolves the pending recommendation from that tournament. Apply moves the handicap one step on the ladder and sets `lastAdjusted` to today; dismiss leaves it. Both set the score back to 0. Returns the player as `GET /api/handicaps/:id`. 409 `not_pending`, 409 `handicap_at_limit` (apply at −4(−4) or +3). |
+| `PUT /api/handicaps/:id/score` | admin | `{ score: -1 \| 0 \| 1, date? }` sets the regulation score by hand as it stood at the end of `date` (today by default), for old tournaments without pool results. Comes after that day's tournaments; later ones count on top. The handicap, `lastAdjusted` and open recommendations stay as they are. Shows in `history` as a `set` step. Returns the player as `GET /api/handicaps/:id`. 400 `date_in_future`. |
 
 `PATCH /api/players/:id` records a change of handicap as a `manual` adjustment, which also sets
 the score back to 0. Changes made before this existed aren't recorded, so they don't reset the
@@ -600,7 +601,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, race length, frames, play order. |
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
-| `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; the date and the handicap before and after. |
+| `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 

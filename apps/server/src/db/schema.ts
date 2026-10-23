@@ -218,12 +218,14 @@ export const handicapAdjustmentKind = pgEnum('handicap_adjustment_kind', [
   'manual',
   'applied',
   'dismissed',
+  'set',
 ]);
 
 /**
  * Everything that sets a player's handicap regulation score back to 0 (`regulation` in
  * @franks/core): the admin applied or dismissed the recommendation from `tournament_id`, or
- * changed the handicap by hand ('manual'). The score itself is replayed from the results.
+ * changed the handicap by hand ('manual'); or that sets it to `score` ('set', by hand, as it
+ * stood on `date`). The score itself is replayed from the results.
  */
 export const handicapAdjustments = pgTable(
   'handicap_adjustments',
@@ -237,8 +239,10 @@ export const handicapAdjustments = pgTable(
     tournamentId: integer('tournament_id').references(() => tournaments.id, {
       onDelete: 'set null',
     }),
-    /** The day in Denmark it was made. */
+    /** The day in Denmark it was made; for 'set', the day the score applies from. */
     date: date('date').notNull(),
+    /** The score set by hand (−1, 0 or 1), for 'set' only. */
+    score: integer('score'),
     oldBase: integer('old_base').notNull(),
     oldFrame: integer('old_frame').notNull(),
     newBase: integer('new_base').notNull(),

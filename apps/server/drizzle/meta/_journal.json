@@ -99,6 +99,13 @@
       "when": 1792747395808,
       "tag": "0013_handicap_adjustments",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792750428720,
+      "tag": "0014_handicap_score_set",
+      "breakpoints": true
     }
   ]
 }

@@ -259,3 +259,53 @@ describe('changing a handicap by hand', () => {
     expect((await detail()).score).toBe(1);
   });
 });
+
+describe('PUT /api/handicaps/:id/score', () => {
+  function setScore(payload: object, id = august) {
+    return app.inject({ method: 'PUT', url: `/api/handicaps/${id}/score`, cookies, payload });
+  }
+
+  it('sets the score as it was on a date; later tournaments count on top', async () => {
+    await augustFinishes('participation', '2026-10-07', 2);
+    const response = await setScore({ score: 1, date: '2026-10-07' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      score: 1,
+      expires: '2026-12-07',
+      history: [{ kind: 'set', score: 1, date: '2026-10-07' }, { kind: 'tournament' }],
+    });
+
+    const second = await augustFinishes('2nd', '2026-10-21');
+    expect(await detail()).toMatchObject({
+      score: 0,
+      pending: [{ tournamentId: second.id, direction: 'harder' }],
+    });
+  });
+
+  it('defaults to today and leaves the handicap alone', async () => {
+    const response = await setScore({ score: -1 });
+    expect(response.json()).toMatchObject({
+      score: -1,
+      expires: '2026-12-23',
+      lastAdjusted: null,
+      baseHandicap: 0,
+      history: [{ kind: 'set', score: -1, date: '2026-10-23' }],
+    });
+  });
+
+  it('refuses other scores and dates in the future', async () => {
+    expect((await setScore({ score: 2 })).statusCode).toBe(400);
+    const future = await setScore({ score: 1, date: '2026-10-24' });
+    expect(future.statusCode).toBe(400);
+    expect(future.json()).toEqual({ error: 'date_in_future' });
+  });
+
+  it('is for admins only', async () => {
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/api/handicaps/${august}/score`,
+      payload: { score: 1 },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+});
