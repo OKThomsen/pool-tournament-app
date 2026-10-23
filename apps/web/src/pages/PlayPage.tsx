@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { ApiError } from '../api';
+import { entrantCount } from '../components/Duo';
 import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { useJoin, useLeave, usePlaySession, useRecheckPlaySession } from '../play';
@@ -118,7 +119,7 @@ function PlayTournament({
         </button>
       </div>
       <p className="meta">
-        {data.format} · {t.create.count(data.players.length)}
+        {data.format} · {entrantCount(data)}
       </p>
       {data.status === 'draft' && <p className="notice">{t.live.drawing}</p>}
       {data.status === 'concluded' && (

@@ -8,8 +8,8 @@ import { useEditTournament, useTournament, type Tournament } from '../tournament
 import { EntryForm, type Entry } from './CreateTournamentPage';
 
 /**
- * "Rediger spillere": the player list, date and format of the tournament in progress, filled in
- * as they are, until the knockout starts. "Færdiggør" goes back to the pools.
+ * "Rediger spillere": the player list (or teams), date and format of the tournament in progress,
+ * filled in as they are, until the knockout starts. "Færdiggør" goes back to the pools.
  */
 export function EditTournamentPage() {
   const id = Number(useParams().id);
@@ -54,8 +54,10 @@ function EditForm({ tournament }: { tournament: Tournament }) {
   const save = (entry: Entry) => edit.mutate(entry, { onSuccess: back });
 
   // The list shows what the tournament has on record (Medlem on its date); the rest of a
-  // player's record isn't needed here.
-  const entrants = tournament.players.map((p) => ({ ...p, memberSince: null, lastAdjusted: null }));
+  // player's record isn't needed here. A team's two players follow each other.
+  const entrants = tournament.players
+    .flatMap(({ partner, ...player }) => (partner ? [player, partner] : [player]))
+    .map((p) => ({ ...p, memberSince: null, lastAdjusted: null }));
 
   return (
     <>
@@ -65,6 +67,7 @@ function EditForm({ tournament }: { tournament: Tournament }) {
           date: tournament.date,
           format: tournament.format,
           forFun: tournament.forFun,
+          duo: tournament.duo,
           entrants,
         }}
         busy={edit.isPending}

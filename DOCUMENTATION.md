@@ -237,6 +237,23 @@ for logged-in admins, the same checkbox switches it at any time, concluded or no
 a "For sjov kamp" tag under the title with what it means (`ForFunNote`); Turneringer and
 `/live` show the tag next to the date. A fun tournament's placings have no Point column.
 
+Below it, a **"Par turnering"** checkbox ("Pairs") makes the tournament one of teams of two
+(Tournaments API → Par turnering); both can be ticked. The player list then has a row per team,
+"Spiller 1 | Spiller 2" (`TeamList`): "Tilføj spiller" fills the first empty place, and the × after
+a name takes that player out, leaving the place empty for the next one added. Players are put
+together by drag and drop, as in "Rediger puljer": dropping a player on another swaps the two
+(within a team or between teams), and dropping on an empty place moves them there. Switching it on makes
+teams of the players two by two in the order they were added. "Færdiggør" waits until every
+team has two players ("Hvert hold skal have to spillere"). "Rediger spillere" shows the teams
+the same way and can switch it until the knockout starts. In the placings, on the podium and in
+the Turneringer list a team is named in full, "Anna Holm & Bo Jensen" (`entrantName`). In the
+pools, "Næste kampe" and the bracket it goes by first names only, "Sara & Mathias (-1)", also
+when two players share a first name (`namesWithHandicap`, `namesOf(players, true)`), with the
+team's handicap (`entrantHandicap`; Rules → Team handicap). The pool tables get a wider name column
+for teams (`PoolTable teams`). The header line counts teams
+("8 hold", `entrantCount`), and a "Par turnering" tag with what it means sits under the title
+(`DuoNote` in `components/Duo.tsx`) and next to the date on Turneringer and `/live`.
+
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 
@@ -456,7 +473,7 @@ points.
 
 The regulation score (Rules as implemented → Handicap regulation) is never stored. It's replayed
 on every request from the player's results in concluded tournaments that count (not "For sjov
-kamp"), merged with `handicap_adjustments`: the admin's decisions and handicap changes made by
+kamp" or "Par turnering"), merged with `handicap_adjustments`: the admin's decisions and handicap changes made by
 hand. A tournament and an adjustment on the same date are ordered by when the tournament was
 concluded. Corrections, reopening and deleting a tournament therefore change the score at once.
 All of it is admin only: the score is hidden from players.
@@ -488,11 +505,11 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | Route | Who | What |
 |---|---|---|
 | `GET /api/tournaments/ongoing` | public | `{ tournament: { id, date, status } \| null }`: the tournament in progress. |
-| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season (null in the off-season), format, status, knockout size, `players` (with handicaps and Medlem on the tournament's date), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
+| `GET /api/tournaments/:id` | public | Everything about a tournament: date, week, season (null in the off-season), format, status, knockout size, `forFun`, `duo`, `players` (with handicaps and Medlem on the tournament's date; in a "Par turnering" each is a team, with its second player as `partner`, otherwise `partner` is null), `pools` (`{ id, name, playerIds }` in order) and `matches`. |
 | `GET /api/tournaments/:id/code` | admin | `{ code }`: the join code for `/play` (null once concluded). |
 | `POST /api/tournaments/:id/code` | admin | "Ny kode": `{ code }`, a new join code. Everyone who joined with the old one is signed out. 409 `tournament_concluded`. |
-| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds, forFun? }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. |
-| `PUT /api/tournaments/:id` | admin | "Rediger spillere": `{ date, format, playerIds, forFun? }` (`forFun` left as it is when omitted), in `draft` or `pools` (409 `pools_closed` once the knockout has started; 400 `too_few_players` / `unknown_player` as when creating). Players who leave are taken out of their pool with all their matches, so they get no result at all. Newcomers go into the smallest pool (`updatePools`). When the new count needs another number of pools (`poolSizes`), or a pool would get too small, every pool is drawn again and every pool result is deleted. |
+| `POST /api/tournaments` | admin | "Færdiggør": `{ date, format, playerIds, forFun?, duo?, partnerIds? }` → 201, a `draft` with the pools drawn at random (`poolSizes` + `drawPools`) and a join code. The week comes from the date, and so does the season (it isn't stored). Tournaments in the off-season are allowed but give no season points. 409 `tournament_in_progress` if another one isn't concluded. For a "Par turnering" (`duo: true`), `playerIds` are the teams' first players and `partnerIds` their second, in the same order; 400 `incomplete_team` (not one partner per team), `player_in_two_teams`, `partners_without_duo`, and `too_few_players` counts teams. |
+| `PUT /api/tournaments/:id` | admin | "Rediger spillere": `{ date, format, playerIds, forFun?, duo?, partnerIds? }` (`forFun` and `duo` left as they are when omitted; teams as when creating), in `draft` or `pools` (409 `pools_closed` once the knockout has started; 400 `too_few_players` / `unknown_player` as when creating). Players who leave are taken out of their pool with all their matches, so they get no result at all. Newcomers go into the smallest pool (`updatePools`). When the new count needs another number of pools (`poolSizes`), or a pool would get too small, every pool is drawn again and every pool result is deleted. In a "Par turnering" a team is kept (with its pool and results) while its first player stays; its partner can change freely. |
 | `PUT /api/tournaments/:id/pools` | admin | `{ pools: playerId[][] }` saves the admin's swaps and moves, new pools and removed ones, in `draft` or `pools` (409 `pools_closed`). Every entrant exactly once, no empty pool (400). A pool of one can be saved while rearranging, but the pools can't start or close with it (`pool_too_small` below). Each pool keeps the row (id, matches, results, race length) of the pool most of its players were in, so removing pool B doesn't touch pool C's results; a new pool gets the race length of the pool before it. The pools are then named A, B, C … in order. During the pools, each pool's matches follow its players (`syncPoolMatches`): a result stays while both its players are still in that pool, matches with a player who left the pool are deleted, new pairings are added with their pool's race length, and the play order is rebuilt. A pool whose players changed loses its `tiebreak`. |
 | `PUT /api/tournaments/:id/for-fun` | admin | `{ forFun }`: "For sjov kamp" on or off, in any status, concluded too. 409 `historical` for an old tournament. |
 | `POST /api/tournaments/:id/randomize` | admin | "Randomize": draws every pool again (`poolSizes` + `drawPools`), in `draft` or `pools`. Every pool match and result is deleted; during the pools new matches are created. Each pool (A, B …) keeps its race length. |
@@ -508,7 +525,7 @@ progress (not concluded) at a time; a partial unique index in the database enfor
 | `POST /api/tournaments/:id/conclude` | admin | "conclude tournament": needs the final and the third-place final (if there is one) played (409 `knockout_unfinished`). Writes every player's `results` row and moves to `concluded`. The join code is retired and players are signed out. |
 | `POST /api/tournaments/:id/reopen` | admin | Puts a concluded tournament back in the knockout for corrections too big to make in place; its results are removed until it is concluded again, and it gets a new join code. 409 `tournament_in_progress` if another tournament is in progress, 409 `historical` for an old tournament (it has no knockout). |
 | `POST /api/tournaments/historical` | admin | "Indtast gammel turnering": `{ date, format, knockoutSize: 2 \| 4 \| 8, playerIds }`, the players best first (below) → 201, a tournament with `historical: true` that is `concluded` at once, with no pools, matches, seeds or join code. Allowed while another tournament is in progress. 400 `date_in_future`, `too_few_players` (fewer than the places to fill), `unknown_player`. |
-| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `forFun`, `winner` (name), `participants`. |
+| `GET /api/tournaments` | public | Concluded tournaments, newest first: `id`, `date`, `week`, `season`, `format`, `forFun`, `duo`, `winner` (name; a team as "Anna & Bo"), `participants` (players, both of every team). |
 
 A result is a player's **placement** (from `placements` in core: 1st/2nd from the final, 3rd/4th
 from the third-place final, quarterfinal losers 5–8, the rest participation), **points** from
@@ -550,6 +567,18 @@ statistics queries leave them out when they're read (`countsInStats` and `season
 `apps/server/src/db/seasons.ts`, `standings` in `routes/seasons.ts`), so switching it on or off
 later needs no recomputing. It is set on Ny Turnering and can be switched on the tournament's
 admin page at any time. Old tournaments can't be for fun.
+
+**Par turnering** (`duo`). Teams of two play instead of single players, and run like any other
+tournament: each team takes one place in the pools, matches, seeds and placings. A team goes by
+its first player's id everywhere; `tournament_players.partner_id` is its second player. When it
+is concluded, both players get a `results` row with the team's placement and pool wins, and
+every team gets the **participation points** (1), whatever its placement: duo tournaments are
+for fun and only count as participation. So they count in season points, the standings and
+Deltagelse, but Wins, Semifinals and Quarterfinals (`players.ts`, `seasons.ts`) and handicap
+regulation (`handicaps.ts`) leave them out. A tournament can be both a "Par turnering" and "For
+sjov kamp"; then it counts in nothing. Its detail's `results` has one row per team (the first
+player's). It is chosen on Ny Turnering and can be changed with "Rediger spillere" until the
+knockout starts. Old tournaments are always singles.
 
 ### Live updates
 
@@ -605,8 +634,8 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 |---|---|
 | `players` | Name (unique ignoring case), base/frame handicap, last adjusted date. |
 | `membership_periods` | When a player was a member: start, end (null while active). |
-| `tournaments` | Date, week, format (8/9/10-ball), knockout size (2/4/8), status (draft → pools → knockout → concluded), join code for `/play`, `historical` (an old tournament entered with its placings only), `for_fun` ("For sjov kamp": left out of the statistics). |
-| `tournament_players` | Who entered a tournament. |
+| `tournaments` | Date, week, format (8/9/10-ball), knockout size (2/4/8), status (draft → pools → knockout → concluded), join code for `/play`, `historical` (an old tournament entered with its placings only), `for_fun` ("For sjov kamp": left out of the statistics), `duo` ("Par turnering": teams of two, participation only). |
+| `tournament_players` | Who entered a tournament; in a "Par turnering", `partner_id` is the team's second player. |
 | `pools`, `pool_members` | Pools (A, B, …) with their race length (`race_to`, 2 to 5), and their players in drawn order. |
 | `knockout_seeds` | Seeds, best first. The bracket is derived from these and the knockout scores. |
 | `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, race length, frames, play order. |
@@ -642,7 +671,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
 | `placements.ts` | `placements`, `placementsInOrder`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings (from the bracket, or for an old tournament from the order entered) and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
-| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder. |
+| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`, `teamHandicap`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder; a duo team's handicap. |
 
 ### Rules as implemented
 
@@ -705,7 +734,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 - **Handicap regulation** (`regulation`, like the workbook's Handicap Tracking): every player has
   a hidden regulation score, starting at 0 and replayed from their first tournament. 1st or 2nd
   gives +1; no pool wins gives −1 (old tournaments only count finals, their pool wins aren't
-  known); "For sjov kamp" tournaments don't count. A ±1 is forgotten two calendar months after
+  known); "For sjov kamp" and "Par turnering" tournaments don't count. A ±1 is forgotten two calendar months after
   the score last changed (on that date: a −1 from 04-11 is gone on 04-01). At +2 the player gets
   a recommendation to make the handicap harder, at −2 easier, and the count starts again from 0
   while it waits. The handicap never changes by itself: the admin applies or dismisses the
@@ -716,6 +745,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   open recommendations stay as they are. The workbook keeps each notch on its own and has it last through
   the date two months on; with at most ±1 open at a time that's the same score, except that here
   the change is gone on that date.
+- **Team handicap** (`teamHandicap`, "Par turnering"): the average of the two players' base
+  handicaps, a half rounded towards the harder handicap: −4 & +2 → −1, −3 & 0 → −2 (−1.5),
+  +1 & +2 → +1 (1.5). It's only shown; the players' own handicaps are kept and snapshotted.
 - **Handicap ladder** (`regulatedHandicap`, the workbook's): base +3 … −4, then the frame
   handicap 0 … −4. Harder lowers the base, and below −4 the frame; easier takes the frame back
   first, then raises the base. −4(−4) can't get harder and +3 can't get easier; such a
@@ -799,5 +831,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
+| 2026-10-23 | "Par turnering": a checkbox on Ny Turnering (with or without "For sjov kamp") for teams of two, entered two names per row. A team plays as one; both players get a result, but every team gets the participation point (1) whatever its placement, so it counts in season points and Deltagelse only, not in Wins, Semifinals, Quarterfinals or handicap regulation. |
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |

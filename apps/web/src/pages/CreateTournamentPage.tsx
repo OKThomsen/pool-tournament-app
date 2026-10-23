@@ -11,6 +11,7 @@ import {
   toPlayerRequest,
 } from '../components/PlayerFields';
 import { FitTable, ColumnLabel, matchesWordStart } from '../components/TableView';
+import { TeamList } from '../components/TeamList';
 import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
 import {
@@ -27,7 +28,7 @@ const MAX_RESULTS = 10;
 
 /**
  * CreateTurnering: pick date, format and players (and "For sjov kamp" for a tournament that
- * doesn't count), then "Færdiggør" draws the pools.
+ * doesn't count, "Par turnering" for teams of two), then "Færdiggør" draws the pools.
  */
 export function CreateTournamentPage() {
   const navigate = useNavigate();
@@ -48,7 +49,13 @@ export function CreateTournamentPage() {
   return (
     <EntryForm
       title={t.nav.newTournament}
-      initial={{ date: todayInDenmark(), format: '8-ball', forFun: false, entrants: [] }}
+      initial={{
+        date: todayInDenmark(),
+        format: '8-ball',
+        forFun: false,
+        duo: false,
+        entrants: [],
+      }}
       busy={createTournament.isPending}
       error={
         error &&
@@ -70,7 +77,11 @@ export type Entry = TournamentEntry;
 
 interface EntryFormProps {
   title: string;
-  initial: { date: string; format: GameFormat; forFun: boolean; entrants: Player[] };
+  /**
+   * The players. In a "Par turnering" the teams follow each other: the first team's two players,
+   * then the second team's, and so on.
+   */
+  initial: { date: string; format: GameFormat; forFun: boolean; duo: boolean; entrants: Player[] };
   busy: boolean;
   error?: string | null;
   /** What saving will do, shown above the buttons (for an existing tournament). */
@@ -80,8 +91,24 @@ interface EntryFormProps {
 }
 
 /**
- * Date, format, "For sjov kamp" and the player list, with "Færdiggør" and "Annuller". Used to create a tournament
- * and, with "Rediger spillere", to change one until the knockout starts.
+ * A "Par turnering"'s places without the teams left with nobody: the players two by two, a team
+ * per pair, with null for an empty place.
+ */
+function tidyTeams(slots: (Player | null)[]): (Player | null)[] {
+  const kept: (Player | null)[] = [];
+  for (let i = 0; i < slots.length; i += 2) {
+    const team = slots.slice(i, i + 2);
+    if (team.some((p) => p !== null)) kept.push(...team);
+  }
+  return kept;
+}
+
+/**
+ * Date, format, "For sjov kamp", "Par turnering" and the player list, with "Færdiggør" and
+ * "Annuller". Used to create a tournament and, with "Rediger spillere", to change one until the
+ * knockout starts. In a "Par turnering" the list has a row per team with its two players
+ * (TeamList): a player added fills the first empty place, and dragging a player onto another
+ * swaps them, so the admin puts the teams together freely.
  */
 export function EntryForm({
   title,
@@ -95,19 +122,47 @@ export function EntryForm({
   const [date, setDate] = useState(initial.date);
   const [format, setFormat] = useState<GameFormat>(initial.format);
   const [forFun, setForFun] = useState(initial.forFun);
-  const [entrants, setEntrants] = useState<Player[]>(initial.entrants);
+  const [duo, setDuo] = useState(initial.duo);
+  // The players in order; in a "Par turnering" two per team, with null for an empty place.
+  const [slots, setSlots] = useState<(Player | null)[]>(initial.entrants);
 
-  const sizes = poolSizes(entrants.length);
-  const playerIds = entrants.map((p) => p.id);
-  const message = sizes ? notice?.(playerIds) : null;
+  const chosen = slots.filter((p): p is Player => p !== null);
+  const complete = chosen.length === slots.length && (!duo || slots.length % 2 === 0);
+  const entrants = duo ? Math.ceil(slots.length / 2) : slots.length;
+  const sizes = poolSizes(entrants);
+  const playerIds = (duo ? chosen.filter((_, i) => i % 2 === 0) : chosen).map((p) => p.id);
+  const partnerIds = chosen.filter((_, i) => i % 2 === 1).map((p) => p.id);
+  const message = sizes && complete ? notice?.(playerIds) : null;
+
   const add = (player: Player) =>
-    setEntrants((current) =>
-      current.some((p) => p.id === player.id) ? current : [...current, player],
+    setSlots((current) => {
+      if (current.some((p) => p?.id === player.id)) return current;
+      const empty = current.indexOf(null);
+      return empty < 0 ? [...current, player] : current.map((p, i) => (i === empty ? player : p));
+    });
+  const remove = (index: number) =>
+    setSlots((current) =>
+      duo
+        ? tidyTeams(current.map((p, i) => (i === index ? null : p)))
+        : current.filter((_, i) => i !== index),
     );
+  // Dragging a player in a "Par turnering" onto another place swaps the two places.
+  const move = (from: number, to: number) =>
+    setSlots((current) => {
+      const next = [...current];
+      while (next.length <= Math.max(from, to)) next.push(null);
+      [next[from], next[to]] = [next[to] ?? null, next[from] ?? null];
+      return tidyTeams(next);
+    });
+  // Switching on makes teams of the players two by two, in the order they were added.
+  const switchDuo = (on: boolean) => {
+    setDuo(on);
+    setSlots(chosen);
+  };
 
   const finish = (event: FormEvent) => {
     event.preventDefault();
-    onSubmit({ date, format, playerIds, forFun });
+    onSubmit({ date, format, playerIds, ...(duo && { partnerIds }), forFun, duo });
   };
 
   return (
@@ -132,52 +187,60 @@ export function EntryForm({
         {t.forFun.label}
       </label>
       {forFun && <p className="muted">{t.forFun.help}</p>}
+      <label className="checkbox for-fun">
+        <input type="checkbox" checked={duo} onChange={(e) => switchDuo(e.target.checked)} />
+        {t.duo.label}
+      </label>
+      {duo && <p className="muted">{t.duo.help}</p>}
 
-      <PlayerSearch excluded={entrants} onAdd={add} />
+      <PlayerSearch excluded={chosen} onAdd={add} />
 
-      <FitTable className="entrants">
-        <table>
-          <thead>
-            <tr>
-              <th>{t.players.name}</th>
-              <th>
-                <ColumnLabel full={t.players.baseHandicap} short={t.short.baseHandicap} />
-              </th>
-              <th>
-                <ColumnLabel full={t.players.frameHandicap} short={t.short.frameHandicap} />
-              </th>
-              <th>
-                <ColumnLabel full={t.players.member} short={t.short.member} />
-              </th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {entrants.map((player) => (
-              <tr key={player.id}>
-                <td>{player.name}</td>
-                <td>{player.baseHandicap}</td>
-                <td>{player.frameHandicap}</td>
-                <td>{player.member ? t.yes : t.no}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="link"
-                    onClick={() => setEntrants((all) => all.filter((p) => p.id !== player.id))}
-                  >
-                    {t.create.remove}
-                  </button>
-                </td>
+      {duo ? (
+        <TeamList slots={slots} onMove={move} onRemove={remove} />
+      ) : (
+        <FitTable className="entrants">
+          <table>
+            <thead>
+              <tr>
+                <th>{t.players.name}</th>
+                <th>
+                  <ColumnLabel full={t.players.baseHandicap} short={t.short.baseHandicap} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.players.frameHandicap} short={t.short.frameHandicap} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.players.member} short={t.short.member} />
+                </th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </FitTable>
+            </thead>
+            <tbody>
+              {chosen.map((player, i) => (
+                <tr key={player.id}>
+                  <td>{player.name}</td>
+                  <td>{player.baseHandicap}</td>
+                  <td>{player.frameHandicap}</td>
+                  <td>{player.member ? t.yes : t.no}</td>
+                  <td>
+                    <button type="button" className="link" onClick={() => remove(i)}>
+                      {t.create.remove}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FitTable>
+      )}
 
       <p>
-        {t.create.count(entrants.length)}
-        {sizes && entrants.length > 0 && ` · ${t.create.pools(sizes)}`}
-        {!sizes && entrants.length > 0 && ` · ${t.create.tooFew}`}
+        {duo
+          ? `${t.duo.teams(entrants)} · ${t.create.count(chosen.length)}`
+          : t.create.count(entrants)}
+        {sizes && complete && ` · ${t.create.pools(sizes)}`}
+        {!complete && ` · ${t.duo.incomplete}`}
+        {complete && !sizes && entrants > 0 && ` · ${duo ? t.duo.tooFew : t.create.tooFew}`}
       </p>
       {message && <p className="notice">{message}</p>}
       {error && (
@@ -186,7 +249,7 @@ export function EntryForm({
         </p>
       )}
       <div className="form-actions">
-        <button type="submit" className="primary" disabled={!sizes || busy}>
+        <button type="submit" className="primary" disabled={!sizes || !complete || busy}>
           {t.create.finish}
         </button>
         <button type="button" className="link" onClick={onCancel}>

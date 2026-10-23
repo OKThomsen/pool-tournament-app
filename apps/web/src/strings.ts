@@ -51,6 +51,17 @@ const da = {
     label: 'For sjov kamp',
     help: 'Spilles og gemmes som andre turneringer, men tæller ikke med i point eller statistik.',
   },
+  /** "Par turnering": teams of two. */
+  duo: {
+    label: 'Par turnering',
+    help: 'Hold af to spillere. Tæller kun som deltagelse: alle får 1 point, uanset placering.',
+    teams: (n: number) => (n === 1 ? '1 hold' : `${n} hold`),
+    player1: 'Spiller 1',
+    player2: 'Spiller 2',
+    incomplete: 'Hvert hold skal have to spillere',
+    dragHelp: 'Træk en spiller over på en anden for at bytte dem, eller over på en tom plads.',
+    tooFew: 'Der skal mindst være 4 hold',
+  },
   detail: {
     inProgress: 'Turneringen er i gang.',
     followLive: 'Følg den live',
@@ -391,6 +402,16 @@ const en: Strings = {
   forFun: {
     label: 'Just for fun',
     help: 'Played and saved like any other tournament, but doesn’t count towards points or statistics.',
+  },
+  duo: {
+    label: 'Pairs',
+    help: 'Teams of two players. Only counts as participation: everyone gets 1 point, whatever the placement.',
+    teams: (n: number) => (n === 1 ? '1 team' : `${n} teams`),
+    player1: 'Player 1',
+    player2: 'Player 2',
+    incomplete: 'Every team needs two players',
+    dragHelp: 'Drag a player onto another to swap them, or onto an empty place.',
+    tooFew: 'At least 4 teams are needed',
   },
   detail: {
     inProgress: 'This tournament is in progress.',

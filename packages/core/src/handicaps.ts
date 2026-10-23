@@ -53,6 +53,14 @@ export function regulatedHandicap(
   return null;
 }
 
+/**
+ * A "Par turnering" team's handicap: the average of its two players' base handicaps, a half
+ * rounded towards the harder handicap (down): -4 & +2 → -1, -3 & 0 → -2, +1 & +2 → +1.
+ */
+export function teamHandicap(a: number, b: number): number {
+  return Math.floor((a + b) / 2);
+}
+
 /** YYYY-MM-DD `months` calendar months later; a day the month lacks becomes its last day. */
 export function addMonths(date: string, months: number): string {
   const [year, month, day] = date.split('-').map(Number) as [number, number, number];

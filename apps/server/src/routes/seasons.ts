@@ -13,7 +13,8 @@ import { currentSeason, earnsBonusIn, inSeason, qualified, seasonPointsIn } from
 
 /**
  * The season's standings: everyone with at least 1 point this season (from playing in it or the
- * member bonus), by points. "For sjov kamp" tournaments don't count. Players level on points share a rank. Players with 0 points are left
+ * member bonus), by points. "For sjov kamp" tournaments don't count, and a "Par turnering" only
+ * counts in points and Deltagelse. Players level on points share a rank. Players with 0 points are left
  * out here but are still listed on Spillere.
  */
 async function standings(db: Database, season: Season) {
@@ -30,14 +31,14 @@ async function standings(db: Database, season: Season) {
       member,
       points,
       participation: sql<number>`count(${results.playerId})::int`,
-      wins: sql<number>`(count(*) filter (where ${results.placement} = '1st'))::int`,
+      wins: sql<number>`(count(*) filter (where ${results.placement} = '1st' and not ${tournaments.duo}))::int`,
       semifinals: sql<number>`(count(*) filter (
         where ${results.placement} in ('1st', '2nd', '3rd', '4th')
-        and ${tournaments.knockoutSize} <> 2
+        and ${tournaments.knockoutSize} <> 2 and not ${tournaments.duo}
       ))::int`,
       quarterfinals: sql<number>`(count(*) filter (
         where ${results.placement} in ('1st', '2nd', '3rd', '4th', '5-8')
-          and ${tournaments.knockoutSize} = 8
+          and ${tournaments.knockoutSize} = 8 and not ${tournaments.duo}
       ))::int`,
     })
     .from(players)

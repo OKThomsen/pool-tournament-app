@@ -38,7 +38,12 @@ interface PoolTableProps {
   slots: number;
   /** Set for admins: clicking a cell enters or changes that match, from the row player's side. */
   onCellClick?: (match: Match, rowPlayer: number) => void;
+  /** A wider name column, for the teams of a "Par turnering" ("Sara & Mathias (-1/0)"). */
+  teams?: boolean;
 }
+
+/** How much wider the name column is for teams, in em. */
+const TEAM_NAME_EXTRA = { normal: 4, compact: 2.5 };
 
 /**
  * One pool as a matrix, like the workbook: each row is a player, read across. A played match
@@ -46,10 +51,12 @@ interface PoolTableProps {
  * pool's name and race length, and each player's set score (frames won and lost) above their
  * column; wins and rank are on the right. On phones the table is compact (`COMPACT_COLUMN`).
  */
-export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
+export function PoolTable({ view, names, slots, onCellClick, teams = false }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
   const compact = usePhone();
-  const column = compact ? COMPACT_COLUMN : COLUMN;
+  const base = compact ? COMPACT_COLUMN : COLUMN;
+  const extra = teams ? TEAM_NAME_EXTRA[compact ? 'compact' : 'normal'] : 0;
+  const column = { ...base, name: base.name + extra };
   const ids = pool.playerIds;
   const padding = Array.from({ length: Math.max(0, slots - ids.length) }, (_, i) => i);
   const columns = Math.max(slots, ids.length);

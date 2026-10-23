@@ -2072,6 +2072,41 @@ button.match-side:hover {
   margin-left: 0.25em;
 }
 
+/* A "Par turnering"'s teams on Ny Turnering (TeamList): a player to drag in each place. */
+.teams td {
+  width: 50%;
+}
+
+.teams .chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0.45em 0.6em;
+}
+
+.teams .chip-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.teams .chip.empty {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* The × that takes a player out of a team. */
+.teams .chip button.link {
+  flex: none;
+  padding: 0 0.2em;
+  font-size: 1.25em;
+  line-height: 1;
+  text-decoration: none;
+}
+
 /* A short message that fades away by itself (Toast.tsx), e.g. "Resultatet er låst" on /play. */
 .toast {
   position: fixed;

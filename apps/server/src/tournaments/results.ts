@@ -9,6 +9,9 @@ import { currentBracket, poolOrder, standingsByPool } from './knockout.js';
  * Writes every player's result for a finished tournament: placement, points (from the points
  * table) and matches won (pool wins, like the workbook's "Matches Won"). The handicap snapshot is
  * taken the first time and kept when a correction rewrites the results.
+ *
+ * In a "Par turnering" both players of a team get the team's result, and every team gets the
+ * participation points whatever its placement: duo tournaments only count as participation.
  */
 export async function writeResults(db: Executor, detail: TournamentDetail): Promise<void> {
   const table = await loadPointsTable(db);
@@ -23,17 +26,20 @@ export async function writeResults(db: Executor, detail: TournamentDetail): Prom
       .map((row) => [Number(row.playerId), row.won]),
   );
 
-  const rows = detail.players.map((player) => {
-    const placement = placed.get(String(player.id)) as Placement;
-    return {
+  const rows = detail.players.flatMap((entrant) => {
+    const placement = placed.get(String(entrant.id)) as Placement;
+    const result = {
       tournamentId: detail.id,
-      playerId: player.id,
       placement,
-      points: table[placement],
-      matchesWon: poolWins.get(player.id) ?? 0,
+      points: table[detail.duo ? 'participation' : placement],
+      matchesWon: poolWins.get(entrant.id) ?? 0,
+    };
+    return [entrant, ...(entrant.partner ? [entrant.partner] : [])].map((player) => ({
+      ...result,
+      playerId: player.id,
       baseHandicap: player.baseHandicap,
       frameHandicap: player.frameHandicap,
-    };
+    }));
   });
   await db
     .insert(results)

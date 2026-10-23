@@ -57,8 +57,10 @@ const formats = ['8-ball', '9-ball', '10-ball'] as const;
 type GameFormat = (typeof formats)[number];
 
 /**
- * Date, format, players and "For sjov kamp": what CreateTurnering sends, and "Rediger spillere"
- * afterwards. `forFun` defaults to false on create and is left as it is when an edit omits it.
+ * Date, format, players, "For sjov kamp" and "Par turnering": what CreateTurnering sends, and
+ * "Rediger spillere" afterwards. `forFun` and `duo` default to false on create and are left as
+ * they are when an edit omits them. In a "Par turnering" `playerIds` are the teams' first
+ * players and `partnerIds` their second, in the same order.
  */
 const entryBody = {
   type: 'object',
@@ -68,7 +70,9 @@ const entryBody = {
     date: { type: 'string', format: 'date' },
     format: { type: 'string', enum: formats },
     playerIds: { ...playerIdList, maxItems: 64 },
+    partnerIds: { ...playerIdList, maxItems: 64 },
     forFun: { type: 'boolean' },
+    duo: { type: 'boolean' },
   },
 } as const;
 
@@ -76,7 +80,9 @@ interface Entry {
   date: string;
   format: GameFormat;
   playerIds: number[];
+  partnerIds?: number[];
   forFun?: boolean;
+  duo?: boolean;
 }
 
 /**
@@ -102,14 +108,36 @@ interface HistoricalEntry {
   playerIds: number[];
 }
 
-/** Why a player list can't be used: too few players for pools, or an unknown player. */
-async function entryError(db: Executor, playerIds: number[]): Promise<string | null> {
+/**
+ * Why a player list can't be used: too few players (or teams) for pools, an unknown player, or
+ * in a "Par turnering" a team without a second player or a player in two teams. Partners are
+ * only allowed in a "Par turnering".
+ */
+async function entryError(
+  db: Executor,
+  playerIds: number[],
+  partnerIds: number[],
+  duo: boolean,
+): Promise<string | null> {
   if (!poolSizes(playerIds.length)) return 'too_few_players';
+  if (!duo && partnerIds.length > 0) return 'partners_without_duo';
+  if (duo && partnerIds.length !== playerIds.length) return 'incomplete_team';
+  const everyone = [...playerIds, ...partnerIds];
+  if (new Set(everyone).size !== everyone.length) return 'player_in_two_teams';
   const found = await db
     .select({ id: players.id })
     .from(players)
-    .where(inArray(players.id, playerIds));
-  return found.length === playerIds.length ? null : 'unknown_player';
+    .where(inArray(players.id, everyone));
+  return found.length === everyone.length ? null : 'unknown_player';
+}
+
+/** The tournament_players rows for an entry: each player, with their partner in a team. */
+function entrantRows(tournamentId: number, playerIds: number[], partnerIds: number[]) {
+  return playerIds.map((playerId, i) => ({
+    tournamentId,
+    playerId,
+    partnerId: partnerIds[i] ?? null,
+  }));
 }
 
 /** The players, date and pools can change until the knockout starts. */
@@ -156,8 +184,15 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     '/tournaments',
     { preHandler: requireAdmin, schema: { body: entryBody } },
     async (request, reply) => {
-      const { date, format, playerIds, forFun = false } = request.body;
-      const error = await entryError(db, playerIds);
+      const {
+        date,
+        format,
+        playerIds,
+        partnerIds = [],
+        forFun = false,
+        duo = false,
+      } = request.body;
+      const error = await entryError(db, playerIds, partnerIds, duo);
       if (error) return reply.code(400).send({ error });
 
       try {
@@ -169,12 +204,13 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
               week: weekNumber(date),
               format,
               forFun,
+              duo,
               joinCode: newJoinCode(),
             })
             .returning({ id: tournaments.id });
           await tx
             .insert(tournamentPlayers)
-            .values(playerIds.map((playerId) => ({ tournamentId: tournament!.id, playerId })));
+            .values(entrantRows(tournament!.id, playerIds, partnerIds));
           await redrawPools(tx, tournament!.id, playerIds, false);
           return tournament!.id;
         });
@@ -311,8 +347,10 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
   );
 
   /**
-   * "Rediger spillere": changes the date, format and players until the knockout starts. Players
-   * who leave are taken out of their pool with their matches, and so get no result at all.
+   * "Rediger spillere": changes the date, format and players until the knockout starts (and
+   * whether it is a "Par turnering"). Players who leave are taken out of their pool with their
+   * matches, and so get no result at all. A team is kept as long as its first player stays;
+   * its second player can change freely.
    * Newcomers go into the smallest pool; when the new player count needs another number of
    * pools, or a pool would get too small, every pool is drawn again and the pool results go.
    */
@@ -321,11 +359,12 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
     { preHandler: requireAdmin, schema: { params: idParams, body: entryBody } },
     async (request, reply) => {
       const { id } = request.params;
-      const { date, format, playerIds, forFun } = request.body;
+      const { date, format, playerIds, partnerIds = [], forFun } = request.body;
       const detail = await tournamentDetail(db, id);
       if (!detail) return reply.code(404).send({ error: 'not_found' });
       if (!poolsOpen(detail.status)) return reply.code(409).send({ error: 'pools_closed' });
-      const error = await entryError(db, playerIds);
+      const duo = request.body.duo ?? detail.duo;
+      const error = await entryError(db, playerIds, partnerIds, duo);
       if (error) return reply.code(400).send({ error });
 
       const before = detail.players.map((p) => p.id);
@@ -338,7 +377,7 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
       await db.transaction(async (tx) => {
         await tx
           .update(tournaments)
-          .set({ date, week: weekNumber(date), format, forFun })
+          .set({ date, week: weekNumber(date), format, forFun, duo })
           .where(eq(tournaments.id, id));
         if (leaving.length > 0) {
           await tx
@@ -350,10 +389,28 @@ export const tournamentRoutes: FastifyPluginAsync<{ db: Database; events: Events
               ),
             );
         }
+        // Partners are set again from scratch, so two teams can swap theirs.
+        await tx
+          .update(tournamentPlayers)
+          .set({ partnerId: null })
+          .where(eq(tournamentPlayers.tournamentId, id));
         if (joining.length > 0) {
           await tx
             .insert(tournamentPlayers)
-            .values(joining.map((playerId) => ({ tournamentId: id, playerId })));
+            .values(
+              entrantRows(id, playerIds, partnerIds).filter((row) =>
+                joining.includes(row.playerId),
+              ),
+            );
+        }
+        for (const [i, playerId] of playerIds.entries()) {
+          if (partnerIds[i] === undefined || joining.includes(playerId)) continue;
+          await tx
+            .update(tournamentPlayers)
+            .set({ partnerId: partnerIds[i] })
+            .where(
+              and(eq(tournamentPlayers.tournamentId, id), eq(tournamentPlayers.playerId, playerId)),
+            );
         }
         const playing = detail.status === 'pools';
         if (!kept) return redrawPools(tx, id, playerIds, playing);

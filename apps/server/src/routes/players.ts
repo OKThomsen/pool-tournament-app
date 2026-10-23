@@ -1,5 +1,5 @@
 import { todayInDenmark } from '@franks/core';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { requireAdmin } from '../auth/plugin.js';
 import type { Database, Executor } from '../db/client.js';
@@ -64,7 +64,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
   /**
    * Every player with this season's points (null in the off-season) and all-time statistics from
    * concluded tournaments, leaving out "For sjov kamp" tournaments. Wins = tournaments won, semifinals = reached the semifinals,
-   * quarterfinals = played in one.
+   * quarterfinals = played in one. A "Par turnering" only counts in Deltagelse (and its points).
    */
   app.get('/players', async () => {
     const season = currentSeason();
@@ -73,14 +73,14 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
         ...playerColumns(),
         seasonPoints: season ? seasonPointsIn(season, players.id) : sql<null>`null`,
         participation: sql<number>`count(${results.playerId})::int`,
-        wins: sql<number>`(count(*) filter (where ${results.placement} = '1st'))::int`,
+        wins: sql<number>`(count(*) filter (where ${results.placement} = '1st' and not ${tournaments.duo}))::int`,
         semifinals: sql<number>`(count(*) filter (
           where ${results.placement} in ('1st', '2nd', '3rd', '4th')
-          and ${tournaments.knockoutSize} <> 2
+          and ${tournaments.knockoutSize} <> 2 and not ${tournaments.duo}
         ))::int`,
         quarterfinals: sql<number>`(count(*) filter (
           where ${results.placement} in ('1st', '2nd', '3rd', '4th', '5-8')
-            and ${tournaments.knockoutSize} = 8
+            and ${tournaments.knockoutSize} = 8 and not ${tournaments.duo}
         ))::int`,
       })
       .from(players)
@@ -211,7 +211,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
     },
   );
 
-  /** Deletes a player who has never been in a tournament. Others are kept for the history. */
+  /** Deletes a player who has never been in a tournament (also as a partner). Others are kept for the history. */
   app.delete<{ Params: { id: number } }>(
     '/players/:id',
     { preHandler: requireAdmin, schema: { params: idParams } },
@@ -220,7 +220,7 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
       const [entered] = await db
         .select({ id: tournamentPlayers.playerId })
         .from(tournamentPlayers)
-        .where(eq(tournamentPlayers.playerId, id))
+        .where(or(eq(tournamentPlayers.playerId, id), eq(tournamentPlayers.partnerId, id)))
         .limit(1);
       if (entered) return reply.code(409).send({ error: 'player_has_tournaments' });
       const deleted = await db

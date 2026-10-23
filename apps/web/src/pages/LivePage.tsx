@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Bracket } from '../components/Bracket';
+import { DuoTag } from '../components/Duo';
 import { ForFunTag } from '../components/ForFun';
 import { LiveStage } from '../components/LiveStage';
 import { PoolTable, UpNext } from '../components/PoolTable';
@@ -11,7 +12,7 @@ import { formatDate } from '../format';
 import { poolView } from '../poolView';
 import { useCurrentSeason } from '../seasons';
 import { t } from '../strings';
-import { namesWithHandicap, useOngoingTournament, useTournament } from '../tournaments';
+import { namesOf, namesWithHandicap, useOngoingTournament, useTournament } from '../tournaments';
 
 /**
  * /live: the flatscreen in the club. Public and read-only, without the site header, in the dark
@@ -103,7 +104,7 @@ function LiveTournament({ id }: { id: number }) {
   const data = tournament.data;
   const names = namesWithHandicap(data.players);
   // "Næste kampe" shows names only; the handicap is already in the table above it.
-  const plainNames = new Map(data.players.map((p) => [p.id, p.name]));
+  const plainNames = namesOf(data.players, true);
   const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (
@@ -114,6 +115,12 @@ function LiveTournament({ id }: { id: number }) {
           <>
             {' '}
             <ForFunTag />
+          </>
+        )}
+        {data.duo && (
+          <>
+            {' '}
+            <DuoTag />
           </>
         )}
       </LiveHeader>
@@ -132,7 +139,7 @@ function LiveTournament({ id }: { id: number }) {
               const view = poolView(data, pool);
               return (
                 <section key={pool.id} className="pool-block">
-                  <PoolTable view={view} names={names} slots={slots} />
+                  <PoolTable view={view} names={names} slots={slots} teams={data.duo} />
                   <UpNext view={view} names={plainNames} />
                 </section>
               );

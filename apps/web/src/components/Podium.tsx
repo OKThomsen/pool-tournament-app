@@ -1,5 +1,5 @@
 import { t } from '../strings';
-import type { Placement, Tournament } from '../tournaments';
+import { namesOf, type Placement, type Tournament } from '../tournaments';
 import { Ball } from './Ball';
 
 /** Left to right as on a real podium: 2nd, 1st, 3rd. */
@@ -11,7 +11,8 @@ const STEPS: { placement: Placement; place: number }[] = [
 
 /** A concluded tournament's top three on a podium, for /live. */
 export function Podium({ tournament }: { tournament: Tournament }) {
-  const name = (id: number) => tournament.players.find((p) => p.id === id)?.name ?? '?';
+  const names = namesOf(tournament.players);
+  const name = (id: number) => names.get(id) ?? '?';
   return (
     <div className="podium">
       <h2>{t.live.podium}</h2>

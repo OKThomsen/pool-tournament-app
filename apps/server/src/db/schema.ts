@@ -85,6 +85,14 @@ export const tournaments = pgTable(
      */
     forFun: boolean('for_fun').notNull().default(false),
     /**
+     * "Par turnering": teams of two play instead of single players. A team is entered as its
+     * first player (`tournament_players.partner_id` is the second) and plays, scores and places
+     * as one. Both players get a result, but only participation counts: every team gets the
+     * participation points, and wins, semifinals, quarterfinals and handicap regulation leave
+     * the tournament out.
+     */
+    duo: boolean('duo').notNull().default(false),
+    /**
      * The 6-digit code players enter on /play to score matches. Only admins see it. Null once
      * the tournament is concluded.
      */
@@ -109,8 +117,16 @@ export const tournamentPlayers = pgTable(
     playerId: integer('player_id')
       .notNull()
       .references(() => players.id),
+    /**
+     * In a "Par turnering", the team's second player. The team goes by `player_id` everywhere
+     * else (pools, matches, seeds). Null otherwise.
+     */
+    partnerId: integer('partner_id').references(() => players.id),
   },
-  (t) => [primaryKey({ columns: [t.tournamentId, t.playerId] })],
+  (t) => [
+    primaryKey({ columns: [t.tournamentId, t.playerId] }),
+    uniqueIndex('tournament_players_partner_idx').on(t.tournamentId, t.partnerId),
+  ],
 );
 
 export const pools = pgTable(

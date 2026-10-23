@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useSession } from '../auth';
+import { DuoTag } from '../components/Duo';
 import { ForFunTag } from '../components/ForFun';
 import {
   ColumnLabel,
@@ -85,6 +86,12 @@ export function TournamentsPage() {
                         <>
                           {' '}
                           <ForFunTag />
+                        </>
+                      )}
+                      {row.duo && (
+                        <>
+                          {' '}
+                          <DuoTag />
                         </>
                       )}
                     </td>
