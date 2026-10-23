@@ -2,7 +2,14 @@ import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { NoSeason } from '../components/NoSeason';
 import { Rank } from '../components/Standings';
-import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
+import {
+  ColumnLabel,
+  FitTable,
+  TableSearch,
+  matchesWordStart,
+  useTableView,
+  type Column,
+} from '../components/TableView';
 import { formatDate } from '../format';
 import {
   seasonId,
@@ -109,18 +116,33 @@ function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
   return (
     <>
       <TableSearch value={view.query} onChange={view.setQuery} placeholder={t.players.search} />
-      <div className="table-scroll">
+      <FitTable>
         <table>
           <thead>
             <tr>
               {view.header('rank', '#')}
               {view.header('name', t.players.name)}
-              {view.header('points', t.players.seasonPoints)}
-              {view.header('member', t.players.member)}
-              {view.header('participation', t.players.participation)}
-              {view.header('wins', t.players.wins)}
-              {view.header('semifinals', t.players.semifinals)}
-              {view.header('quarterfinals', t.players.quarterfinals)}
+              {view.header(
+                'points',
+                <ColumnLabel full={t.players.seasonPoints} short={t.short.seasonPoints} />,
+              )}
+              {view.header(
+                'member',
+                <ColumnLabel full={t.players.member} short={t.short.member} />,
+              )}
+              {view.header(
+                'participation',
+                <ColumnLabel full={t.players.participation} short={t.short.participation} />,
+              )}
+              {view.header('wins', <ColumnLabel full={t.players.wins} short={t.short.wins} />)}
+              {view.header(
+                'semifinals',
+                <ColumnLabel full={t.players.semifinals} short={t.short.semifinals} />,
+              )}
+              {view.header(
+                'quarterfinals',
+                <ColumnLabel full={t.players.quarterfinals} short={t.short.quarterfinals} />,
+              )}
             </tr>
           </thead>
           <tbody>
@@ -140,7 +162,7 @@ function SeasonTable({ standings }: { standings: SeasonStanding[] }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </FitTable>
       {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
     </>
   );

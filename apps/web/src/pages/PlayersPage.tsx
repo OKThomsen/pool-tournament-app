@@ -7,7 +7,14 @@ import {
   playerErrorMessage,
   toPlayerRequest,
 } from '../components/PlayerFields';
-import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
+import {
+  ColumnLabel,
+  FitTable,
+  TableSearch,
+  matchesWordStart,
+  useTableView,
+  type Column,
+} from '../components/TableView';
 import {
   useCreatePlayer,
   useDeletePlayer,
@@ -68,19 +75,41 @@ export function PlayersPage() {
       ) : (
         <>
           <TableSearch value={view.query} onChange={view.setQuery} placeholder={t.players.search} />
-          <div className="table-scroll">
+          <FitTable>
             <table>
               <thead>
                 <tr>
                   {view.header('name', t.players.name)}
-                  {view.header('baseHandicap', t.players.baseHandicap)}
-                  {view.header('frameHandicap', t.players.frameHandicap)}
-                  {view.header('member', t.players.member)}
-                  {inSeason && view.header('seasonPoints', t.players.seasonPoints)}
-                  {view.header('participation', t.players.participation)}
-                  {view.header('wins', t.players.wins)}
-                  {view.header('semifinals', t.players.semifinals)}
-                  {view.header('quarterfinals', t.players.quarterfinals)}
+                  {view.header(
+                    'baseHandicap',
+                    <ColumnLabel full={t.players.baseHandicap} short={t.short.baseHandicap} />,
+                  )}
+                  {view.header(
+                    'frameHandicap',
+                    <ColumnLabel full={t.players.frameHandicap} short={t.short.frameHandicap} />,
+                  )}
+                  {view.header(
+                    'member',
+                    <ColumnLabel full={t.players.member} short={t.short.member} />,
+                  )}
+                  {inSeason &&
+                    view.header(
+                      'seasonPoints',
+                      <ColumnLabel full={t.players.seasonPoints} short={t.short.seasonPoints} />,
+                    )}
+                  {view.header(
+                    'participation',
+                    <ColumnLabel full={t.players.participation} short={t.short.participation} />,
+                  )}
+                  {view.header('wins', <ColumnLabel full={t.players.wins} short={t.short.wins} />)}
+                  {view.header(
+                    'semifinals',
+                    <ColumnLabel full={t.players.semifinals} short={t.short.semifinals} />,
+                  )}
+                  {view.header(
+                    'quarterfinals',
+                    <ColumnLabel full={t.players.quarterfinals} short={t.short.quarterfinals} />,
+                  )}
                   {admin && <th />}
                 </tr>
               </thead>
@@ -126,7 +155,7 @@ export function PlayersPage() {
                 )}
               </tbody>
             </table>
-          </div>
+          </FitTable>
           {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
         </>
       )}

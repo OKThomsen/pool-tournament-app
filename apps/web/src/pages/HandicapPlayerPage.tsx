@@ -14,6 +14,7 @@ import {
   type RegulationStep,
 } from '../handicaps';
 import { t } from '../strings';
+import { FitTable, ColumnLabel } from '../components/TableView';
 
 /**
  * One player's handicap regulation (admins only): the same as on Handicapregulering, the
@@ -76,15 +77,21 @@ export function HandicapPlayerPage() {
       {player.history.length === 0 ? (
         <p>{t.handicaps.noHistory}</p>
       ) : (
-        <div className="table-scroll">
+        <FitTable>
           <table className="regulation-history">
             <thead>
               <tr>
                 <th>{t.handicaps.date}</th>
                 <th>{t.handicaps.event}</th>
-                <th>{t.handicaps.poolWins}</th>
-                <th>{t.handicaps.handicap}</th>
-                <th>{t.handicaps.change}</th>
+                <th>
+                  <ColumnLabel full={t.handicaps.poolWins} short={t.short.poolWins} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.handicaps.handicap} short={t.short.baseHandicap} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.handicaps.change} short={t.short.change} />
+                </th>
                 <th>{t.handicaps.scoreAfter}</th>
               </tr>
             </thead>
@@ -94,7 +101,7 @@ export function HandicapPlayerPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FitTable>
       )}
     </section>
   );
@@ -181,7 +188,7 @@ function HistoryRow({ step }: { step: RegulationStep }) {
           {step.recommendation && <strong> · {t.handicaps.reached(step.recommendation)}</strong>}
         </td>
         <td>{step.poolWins ?? '–'}</td>
-        <td>{formatHandicap(step.baseHandicap, step.frameHandicap)}</td>
+        <td className="nowrap">{formatHandicap(step.baseHandicap, step.frameHandicap)}</td>
         <td>{step.change === 0 ? '' : formatScore(step.change)}</td>
         <td>{formatScore(step.score)}</td>
       </tr>

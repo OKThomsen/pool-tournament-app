@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { SetScoreDialog } from '../components/SetScoreDialog';
-import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
+import {
+  ColumnLabel,
+  FitTable,
+  TableSearch,
+  matchesWordStart,
+  useTableView,
+  type Column,
+} from '../components/TableView';
 import { formatDate } from '../format';
 import { formatHandicap, formatScore, useHandicaps, type PlayerRegulation } from '../handicaps';
 import { t } from '../strings';
@@ -46,16 +53,31 @@ export function HandicapsPage() {
             onChange={view.setQuery}
             placeholder={t.handicaps.search}
           />
-          <div className="table-scroll">
+          <FitTable>
             <table className="clickable">
               <thead>
                 <tr>
                   {view.header('name', t.handicaps.name)}
-                  {view.header('handicap', t.handicaps.handicap)}
-                  {view.header('score', t.handicaps.score)}
-                  {view.header('expires', t.handicaps.expires)}
-                  {view.header('lastAdjusted', t.handicaps.lastAdjusted)}
-                  {view.header('pending', t.handicaps.pending)}
+                  {view.header(
+                    'handicap',
+                    <ColumnLabel full={t.handicaps.handicap} short={t.short.baseHandicap} />,
+                  )}
+                  {view.header(
+                    'score',
+                    <ColumnLabel full={t.handicaps.score} short={t.short.score} />,
+                  )}
+                  {view.header(
+                    'expires',
+                    <ColumnLabel full={t.handicaps.expires} short={t.short.expires} />,
+                  )}
+                  {view.header(
+                    'lastAdjusted',
+                    <ColumnLabel full={t.handicaps.lastAdjusted} short={t.short.lastAdjusted} />,
+                  )}
+                  {view.header(
+                    'pending',
+                    <ColumnLabel full={t.handicaps.pending} short={t.short.pending} />,
+                  )}
                   <th />
                 </tr>
               </thead>
@@ -67,10 +89,14 @@ export function HandicapsPage() {
                         {player.name}
                       </a>
                     </td>
-                    <td>{formatHandicap(player.baseHandicap, player.frameHandicap)}</td>
+                    <td className="nowrap">
+                      {formatHandicap(player.baseHandicap, player.frameHandicap)}
+                    </td>
                     <td>{formatScore(player.score)}</td>
-                    <td>{player.expires ? formatDate(player.expires) : ''}</td>
-                    <td>{player.lastAdjusted ? formatDate(player.lastAdjusted) : ''}</td>
+                    <td className="nowrap">{player.expires ? formatDate(player.expires) : ''}</td>
+                    <td className="nowrap">
+                      {player.lastAdjusted ? formatDate(player.lastAdjusted) : ''}
+                    </td>
                     <td>
                       {player.pending.map((r) => (
                         <span key={r.tournamentId} className={`recommendation-tag ${r.direction}`}>
@@ -94,7 +120,7 @@ export function HandicapsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </FitTable>
           {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
         </>
       )}

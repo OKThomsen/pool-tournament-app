@@ -6,6 +6,7 @@ import type { Player } from '../players';
 import { t } from '../strings';
 import { useEnterOldTournament, type GameFormat } from '../tournaments';
 import { FORMATS, PlayerSearch } from './CreateTournamentPage';
+import { FitTable, ColumnLabel } from '../components/TableView';
 
 type KnockoutSize = 2 | 4 | 8;
 const KNOCKOUTS: KnockoutSize[] = [8, 4, 2];
@@ -115,14 +116,20 @@ export function OldTournamentPage() {
         onAdd={(player) => setOthers((current) => [...current, player])}
       />
       {others.length > 0 && (
-        <div className="table-scroll entrants">
+        <FitTable className="entrants">
           <table>
             <thead>
               <tr>
                 <th>{t.players.name}</th>
-                <th>{t.players.baseHandicap}</th>
-                <th>{t.players.frameHandicap}</th>
-                <th>{t.players.member}</th>
+                <th>
+                  <ColumnLabel full={t.players.baseHandicap} short={t.short.baseHandicap} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.players.frameHandicap} short={t.short.frameHandicap} />
+                </th>
+                <th>
+                  <ColumnLabel full={t.players.member} short={t.short.member} />
+                </th>
                 <th />
               </tr>
             </thead>
@@ -146,7 +153,7 @@ export function OldTournamentPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FitTable>
       )}
 
       <p>

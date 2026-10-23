@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 type Value = string | number | boolean | null;
 
@@ -143,5 +143,69 @@ export function TableSearch({
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
+  );
+}
+
+/**
+ * A column heading with a shorter form for phones ("Sæsonpoint" → "Point"), where the tables are
+ * compact. The full heading is the short one's tooltip.
+ */
+export function ColumnLabel({ full, short }: { full: string; short: string }) {
+  return (
+    <>
+      <span className="label-full">{full}</span>
+      <abbr className="label-short" title={full}>
+        {short}
+      </abbr>
+    </>
+  );
+}
+
+/** The width where the tables turn compact, as the pool tables (PoolTable). */
+const PHONE = '(max-width: 600px)';
+/** The smallest font a table shrinks to on a phone (0.65rem), like the pool tables. */
+const MIN_FONT_PX = 10.4;
+
+/**
+ * A table's scroll box that, on phones, shrinks the table's font until it fits the screen (but
+ * not below MIN_FONT_PX), so it needs no swiping. The cells' padding is in em on phones, so it
+ * shrinks with the text. A table still too wide at the smallest font scrolls sideways. It fits
+ * again when the screen turns or the rows change.
+ */
+export function FitTable({ className, children }: { className?: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    const fit = () => {
+      const table = box.querySelector('table');
+      if (!table) return;
+      table.style.fontSize = '';
+      if (!window.matchMedia(PHONE).matches) return;
+      // Padding and borders don't shrink in proportion, so it takes a step or two.
+      for (let step = 0; step < 4 && table.scrollWidth > box.clientWidth; step++) {
+        const size = parseFloat(getComputedStyle(table).fontSize);
+        if (size <= MIN_FONT_PX) break;
+        const next = Math.max(MIN_FONT_PX, (size * box.clientWidth) / table.scrollWidth);
+        table.style.fontSize = `${next}px`;
+      }
+    };
+    fit();
+    const resized = new ResizeObserver(fit);
+    resized.observe(box);
+    // New rows (a search, live updates) can make it wider.
+    const changed = new MutationObserver(fit);
+    changed.observe(box, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resized.disconnect();
+      changed.disconnect();
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className={className ? `table-scroll ${className}` : 'table-scroll'}>
+      {children}
+    </div>
   );
 }
