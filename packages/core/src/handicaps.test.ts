@@ -198,4 +198,37 @@ describe('regulation', () => {
     const events = [played('2026-09-02', 'participation', null), played('2026-09-09', '1st', null)];
     expect(regulation(events, '2026-09-10').score).toBe(1);
   });
+
+  it('takes a score set by hand, and counts later tournaments on top of it', () => {
+    const events: RegulationEvent[] = [
+      won('2026-09-02'),
+      { kind: 'set', score: -1, date: '2026-09-10' },
+      noPoolWins('2026-09-16'),
+    ];
+    const result = regulation(events, '2026-09-17');
+    expect(result.score).toBe(0);
+    expect(result.recommendations).toEqual([
+      expect.objectContaining({ date: '2026-09-16', direction: 'easier' }),
+    ]);
+    expect(scores(events, '2026-09-17')).toEqual([
+      ['tournament', '2026-09-02', 1],
+      ['set', '2026-09-10', -1],
+      ['tournament', '2026-09-16', -2],
+    ]);
+  });
+
+  it('forgets a ±1 set by hand two months after its date', () => {
+    const events: RegulationEvent[] = [{ kind: 'set', score: 1, date: '2026-09-10' }];
+    expect(regulation(events, '2026-11-09')).toMatchObject({ score: 1, expires: '2026-11-10' });
+    expect(regulation(events, '2026-11-10')).toMatchObject({ score: 0, expires: null });
+  });
+
+  it('leaves recommendations open when the score is set by hand', () => {
+    const events: RegulationEvent[] = [
+      won('2026-09-02'),
+      won('2026-09-09'),
+      { kind: 'set', score: 0, date: '2026-09-10' },
+    ];
+    expect(regulation(events, '2026-09-11').recommendations[0]!.resolution).toBeNull();
+  });
 });

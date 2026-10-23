@@ -87,7 +87,19 @@ export interface RegulationReset {
   date: string;
 }
 
-export type RegulationEvent = RegulationTournament | RegulationReset;
+/**
+ * The admin set the score by hand to what it was on `date` (−1, 0 or 1), for instance to account
+ * for old tournaments whose pool results aren't known. Later tournaments count on top of it, and
+ * a ±1 runs out REGULATION_MONTHS after `date`. Recommendations stay as they are.
+ */
+export interface RegulationSet {
+  kind: 'set';
+  score: -1 | 0 | 1;
+  /** YYYY-MM-DD */
+  date: string;
+}
+
+export type RegulationEvent = RegulationTournament | RegulationReset | RegulationSet;
 
 export type RegulationStep =
   | (RegulationTournament & {
@@ -97,6 +109,7 @@ export type RegulationStep =
       recommendation: Direction | null;
     })
   | (RegulationReset & { score: 0 })
+  | RegulationSet
   /** A ±1 that ran out: REGULATION_MONTHS after the score last changed. */
   | { kind: 'expired'; date: string; score: 0 };
 
@@ -125,7 +138,7 @@ export interface Regulation {
  * event) the score goes back to 0. When the score reaches ±2, it gives a recommendation and the
  * count starts again from 0, so results played before the admin resolves it build a new score.
  * Resolving a recommendation (applied or dismissed) and changing the handicap by hand also set
- * the score back to 0. Recommendations don't expire.
+ * the score back to 0, and the admin can set it by hand. Recommendations don't expire.
  *
  * @param events in the order they happened; when a tournament and a reset fall on the same date,
  *   the caller decides which came first
@@ -157,6 +170,12 @@ export function regulation(events: readonly RegulationEvent[], today: string): R
         if (resolved) resolved.resolution = event.reason;
       }
       steps.push({ ...event, score: 0 });
+      continue;
+    }
+    if (event.kind === 'set') {
+      score = event.score;
+      expires = score === 0 ? null : addMonths(event.date, REGULATION_MONTHS);
+      steps.push({ ...event });
       continue;
     }
 

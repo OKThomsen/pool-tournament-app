@@ -698,7 +698,10 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   a recommendation to make the handicap harder, at −2 easier, and the count starts again from 0
   while it waits. The handicap never changes by itself: the admin applies or dismisses the
   recommendation, and either sets the score back to 0, as does changing the handicap by hand.
-  Recommendations don't expire. The workbook keeps each notch on its own and has it last through
+  Recommendations don't expire. The admin can also set the score by hand (−1, 0 or 1) as it stood
+  at the end of a date, to bring in old tournaments whose pool results aren't known: later
+  tournaments count on top of it, a ±1 runs out two months after that date, and the handicap and
+  open recommendations stay as they are. The workbook keeps each notch on its own and has it last through
   the date two months on; with at most ±1 open at a time that's the same score, except that here
   the change is gone on that date.
 - **Handicap ladder** (`regulatedHandicap`, the workbook's): base +3 … −4, then the frame
