@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/admin/handicap`, `/admin/handicap/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -61,6 +61,23 @@ column is left out in the off-season), and all-time statistics. When logged in, 
 has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting asks for confirmation).
 The forms have a Medlem checkbox and, when it's ticked, "Medlem siden" (today by default), so a
 membership paid earlier can be entered late without losing the season bonus.
+
+**Handicapregulering** (`/admin/handicap`, `HandicapsPage.tsx`, admins only, "Handicap" in the
+header) lists every player with their handicap ("-4 (-2)" with a frame handicap), the hidden
+regulation score, when a ±1 runs out ("Udløber"), "Sidst reguleret" (`lastAdjusted`) and the
+recommendations waiting ("Sværere" / "Lettere"); it sorts and searches like Spillere (key
+`view:handicap`). The header link carries a red badge with the number of players waiting.
+"Sæt score" on each row (and on the player's page) opens `SetScoreDialog`: the score (−1, 0 or
++1) as it stood at the end of a date ("Pr. dato", today by default), to bring the score up to
+date after old tournaments without pool results. A row
+opens `/admin/handicap/:id` (`HandicapPlayerPage.tsx`): the same facts, each pending
+recommendation with what applying it does ("-4 → -4 (-1)") and Anvend / Afvis (after a
+confirmation; only Afvis at the end of the ladder), and the history, newest first: every
+counting tournament since the first (linked) with the placement, pool wins, the handicap at the
+time, the change and the score after it, plus the changes that ran out and the resets (applied,
+dismissed, changed by hand). After a tournament is concluded, its page tells the admin how many
+players it took to ±2, with a link, until they're resolved (`RegulationNotice` in
+`TournamentDetailPage.tsx`). Data comes from `apps/web/src/handicaps.ts`.
 
 **Sorting and search.** The tables on Spillere, Sæson and Turneringer sort by any column: click a
 header to sort by it, and again to reverse (`components/TableView.tsx`). Names start A→Å
@@ -427,6 +444,26 @@ September) and lasts to the season's last day. During a running season an active
 counts, and the bonus disappears if it ends early. Being a member in the off-season gives no
 points.
 
+### Handicaps API (regulation)
+
+The regulation score (Rules as implemented → Handicap regulation) is never stored. It's replayed
+on every request from the player's results in concluded tournaments that count (not "For sjov
+kamp"), merged with `handicap_adjustments`: the admin's decisions and handicap changes made by
+hand. A tournament and an adjustment on the same date are ordered by when the tournament was
+concluded. Corrections, reopening and deleting a tournament therefore change the score at once.
+All of it is admin only: the score is hidden from players.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/handicaps` | admin | Every player by name: `id`, `name`, `baseHandicap`, `frameHandicap`, `lastAdjusted`, `score` (−1, 0 or 1 today), `expires` (when the ±1 runs out, or null), `pending` (`[{ tournamentId, date, direction: 'harder' \| 'easier', next: { base, frame } \| null }]`, `next` being the handicap after applying it, null at the end of the ladder). |
+| `GET /api/handicaps/:id` | admin | One player as above, plus `history`, newest first: `tournament` steps (`tournamentId`, `date`, `format`, `historical`, `placement`, `poolWins` (null for an old tournament), the `baseHandicap`/`frameHandicap` snapshot, `change`, `score` after it, `recommendation`), `reset` steps (`reason`: `applied`, `dismissed` or `manual`, with `oldBase`, `oldFrame`, `newBase`, `newFrame`), and `expired` steps (a ±1 running out). 404 `not_found`. |
+| `POST /api/handicaps/:id/recommendations/:tournamentId` | admin | `{ action: 'apply' \| 'dismiss' }` resolves the pending recommendation from that tournament. Apply moves the handicap one step on the ladder and sets `lastAdjusted` to today; dismiss leaves it. Both set the score back to 0. Returns the player as `GET /api/handicaps/:id`. 409 `not_pending`, 409 `handicap_at_limit` (apply at −4(−4) or +3). |
+| `PUT /api/handicaps/:id/score` | admin | `{ score: -1 \| 0 \| 1, date? }` sets the regulation score by hand as it stood at the end of `date` (today by default), for old tournaments without pool results. Comes after that day's tournaments; later ones count on top. The handicap, `lastAdjusted` and open recommendations stay as they are. Shows in `history` as a `set` step. Returns the player as `GET /api/handicaps/:id`. 400 `date_in_future`. |
+
+`PATCH /api/players/:id` records a change of handicap as a `manual` adjustment, which also sets
+the score back to 0. Changes made before this existed aren't recorded, so they don't reset the
+score.
+
 ### Seasons API
 
 | Route | Who | What |
@@ -567,6 +604,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `matches` | Pool and knockout matches: stage, pool or slot (QF1 … FINAL), players, race length, frames, play order. |
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
+| `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 
@@ -596,6 +634,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
 | `placements.ts` | `placements`, `placementsInOrder`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings (from the bracket, or for an old tournament from the order entered) and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
+| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder. |
 
 ### Rules as implemented
 
@@ -655,6 +694,24 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   only accepts a finished race: the winner has exactly `raceTo` frames and the loser fewer.
 - **Handicaps don't change scoring.** A frame handicap is the number of balls a player may leave
   on the table before playing the 8-ball (in 8-ball). It doesn't change the race length.
+- **Handicap regulation** (`regulation`, like the workbook's Handicap Tracking): every player has
+  a hidden regulation score, starting at 0 and replayed from their first tournament. 1st or 2nd
+  gives +1; no pool wins gives −1 (old tournaments only count finals, their pool wins aren't
+  known); "For sjov kamp" tournaments don't count. A ±1 is forgotten two calendar months after
+  the score last changed (on that date: a −1 from 04-11 is gone on 04-01). At +2 the player gets
+  a recommendation to make the handicap harder, at −2 easier, and the count starts again from 0
+  while it waits. The handicap never changes by itself: the admin applies or dismisses the
+  recommendation, and either sets the score back to 0, as does changing the handicap by hand.
+  Recommendations don't expire. The admin can also set the score by hand (−1, 0 or 1) as it stood
+  at the end of a date, to bring in old tournaments whose pool results aren't known: later
+  tournaments count on top of it, a ±1 runs out two months after that date, and the handicap and
+  open recommendations stay as they are. The workbook keeps each notch on its own and has it last through
+  the date two months on; with at most ±1 open at a time that's the same score, except that here
+  the change is gone on that date.
+- **Handicap ladder** (`regulatedHandicap`, the workbook's): base +3 … −4, then the frame
+  handicap 0 … −4. Harder lowers the base, and below −4 the frame; easier takes the frame back
+  first, then raises the base. −4(−4) can't get harder and +3 can't get easier; such a
+  recommendation can only be dismissed.
 - **Knockout**: semifinal losers play the third-place final; winners play the final. The
   first round is drawn from the seeds once, when the knockout starts, and stored; the admin can
   then swap players in it, or bring in a player who didn't qualify, while its matches have no
@@ -734,3 +791,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
+| 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |

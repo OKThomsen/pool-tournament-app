@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api } from './api';
+import { handicapsKey } from './handicaps';
 import { seasonsKey } from './seasons';
 
 export interface Player {
@@ -35,11 +36,15 @@ export interface PlayerInput {
 
 const playersKey = ['players'];
 
-/** Player changes can change the season standings too (membership, names). */
+/**
+ * Player changes can change the season standings too (membership, names), and a handicap changed
+ * by hand sets the regulation score back to 0.
+ */
 function refresh(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: playersKey }),
     queryClient.invalidateQueries({ queryKey: seasonsKey }),
+    queryClient.invalidateQueries({ queryKey: handicapsKey }),
   ]);
 }
 

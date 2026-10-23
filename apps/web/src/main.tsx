@@ -10,6 +10,8 @@ import { RequireAdmin } from './components/RequireAdmin';
 import { CreateTournamentPage } from './pages/CreateTournamentPage';
 import { EditTournamentPage } from './pages/EditTournamentPage';
 import { FrontPage } from './pages/FrontPage';
+import { HandicapPlayerPage } from './pages/HandicapPlayerPage';
+import { HandicapsPage } from './pages/HandicapsPage';
 import { LivePage } from './pages/LivePage';
 import { LoginPage } from './pages/LoginPage';
 import { OngoingTournamentPage } from './pages/OngoingTournamentPage';
@@ -64,6 +66,8 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="turnering/gammel" element={<OldTournamentPage />} />
                 <Route path="turnering/:id" element={<OngoingTournamentPage />} />
                 <Route path="turnering/:id/rediger" element={<EditTournamentPage />} />
+                <Route path="handicap" element={<HandicapsPage />} />
+                <Route path="handicap/:id" element={<HandicapPlayerPage />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>

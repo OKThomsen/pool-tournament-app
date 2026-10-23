@@ -9,6 +9,7 @@ import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { formatDate } from '../format';
+import { usePendingHandicaps } from '../handicaps';
 import { poolView } from '../poolView';
 import { t } from '../strings';
 import {
@@ -51,6 +52,7 @@ export function TournamentDetailPage() {
           {t.create.count(data.players.length)}
         </p>
         <ForFunNote tournament={data} />
+        {admin && concluded && <RegulationNotice tournamentId={data.id} />}
         {concluded ? (
           <Concluded tournament={data} admin={Boolean(admin)} />
         ) : (
@@ -139,6 +141,22 @@ function ConcludedAdmin({ tournament }: { tournament: Tournament }) {
         onCancel={() => setConfirm(null)}
       />
     </>
+  );
+}
+
+/**
+ * Tells the admin when the tournament took players' regulation score to ±2, so their handicaps
+ * should be looked at. Shown until the recommendations are resolved.
+ */
+function RegulationNotice({ tournamentId }: { tournamentId: number }) {
+  const count = usePendingHandicaps().filter((player) =>
+    player.pending.some((r) => r.tournamentId === tournamentId),
+  ).length;
+  if (count === 0) return null;
+  return (
+    <p className="notice">
+      {t.handicaps.notice(count)} <Link to="/admin/handicap">{t.handicaps.noticeLink}</Link>
+    </p>
   );
 }
 

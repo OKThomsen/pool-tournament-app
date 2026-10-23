@@ -2036,3 +2036,79 @@ button.match-side:hover {
     opacity: 0;
   }
 }
+
+/* ---------- Handicap regulation ---------- */
+
+/* The number of players waiting for a handicap decision, next to "Handicap" in the header. */
+.count-badge {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.4em;
+  text-align: center;
+}
+
+.recommendation-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.recommendation-tag.harder {
+  background: var(--loss-bg);
+  color: var(--loss-text);
+}
+
+.recommendation-tag.easier {
+  background: var(--win-bg);
+  color: var(--win-text);
+}
+
+/* Label over value, side by side: Handicap, Reguleringsscore … on a player's page. */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 0 0 16px;
+}
+
+.facts dt {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.facts dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.notice.recommendation p {
+  margin: 0 0 8px;
+}
+
+.notice.recommendation .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.regulation-history tr.reached {
+  background: var(--accent-soft);
+}
+
+.regulation-history tr.reset td {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.regulation-history td:first-child {
+  white-space: nowrap;
+}

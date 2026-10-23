@@ -12,6 +12,7 @@ import {
   seasonPointsIn,
   setMembership,
 } from '../db/seasons.js';
+import { recordManualAdjustment } from './handicaps.js';
 
 const handicap = { type: 'integer', minimum: -20, maximum: 20 } as const;
 const name = { type: 'string', minLength: 1, maxLength: 60, pattern: '\\S' } as const;
@@ -147,7 +148,8 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
   );
 
   /**
-   * Edits a player. Changing a handicap also sets the last adjusted date to today. `member`
+   * Edits a player. Changing a handicap also sets the last adjusted date to today and the
+   * regulation score back to 0 (recordManualAdjustment). `member`
    * starts or ends their membership, and `memberSince` sets when it started.
    */
   app.patch<{ Params: { id: number }; Body: Partial<PlayerBody> }>(
@@ -190,6 +192,12 @@ export const playerRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { 
         return await db.transaction(async (tx) => {
           if (Object.keys(changes).length > 0) {
             await tx.update(players).set(changes).where(eq(players.id, current.id));
+          }
+          if (handicapChanged) {
+            await recordManualAdjustment(tx, current.id, current, {
+              baseHandicap: baseHandicap ?? current.baseHandicap,
+              frameHandicap: frameHandicap ?? current.frameHandicap,
+            });
           }
           if (member !== undefined) {
             await setMembership(tx, current.id, member, memberSince);
