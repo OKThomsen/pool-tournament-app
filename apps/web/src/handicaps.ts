@@ -52,6 +52,7 @@ export type RegulationStep =
       newBase: number;
       newFrame: number;
     }
+  | { kind: 'set'; date: string; score: -1 | 0 | 1 }
   | { kind: 'expired'; date: string };
 
 export interface PlayerRegulationDetail extends PlayerRegulation {
@@ -93,6 +94,16 @@ export function useResolveRecommendation(playerId: number) {
       }),
     // Applying changes the handicap, which Spillere and the tournament pages show too.
     onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+/** Sets the regulation score by hand as it stood at the end of `date`. */
+export function useSetRegulationScore(playerId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { score: -1 | 0 | 1; date: string }) =>
+      api<PlayerRegulationDetail>(`/handicaps/${playerId}/score`, { method: 'PUT', body: input }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: handicapsKey }),
   });
 }
 

@@ -66,7 +66,10 @@ membership paid earlier can be entered late without losing the season bonus.
 header) lists every player with their handicap ("-4 (-2)" with a frame handicap), the hidden
 regulation score, when a ±1 runs out ("Udløber"), "Sidst reguleret" (`lastAdjusted`) and the
 recommendations waiting ("Sværere" / "Lettere"); it sorts and searches like Spillere (key
-`view:handicap`). The header link carries a red badge with the number of players waiting. A row
+`view:handicap`). The header link carries a red badge with the number of players waiting.
+"Sæt score" on each row (and on the player's page) opens `SetScoreDialog`: the score (−1, 0 or
++1) as it stood at the end of a date ("Pr. dato", today by default), to bring the score up to
+date after old tournaments without pool results. A row
 opens `/admin/handicap/:id` (`HandicapPlayerPage.tsx`): the same facts, each pending
 recommendation with what applying it does ("-4 → -4 (-1)") and Anvend / Afvis (after a
 confirmation; only Afvis at the end of the ladder), and the history, newest first: every
@@ -788,4 +791,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
-| 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. |
+| 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |

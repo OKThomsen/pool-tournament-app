@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { SetScoreDialog } from '../components/SetScoreDialog';
 import { formatDate } from '../format';
 import {
   formatHandicap,
@@ -17,11 +18,13 @@ import { t } from '../strings';
 /**
  * One player's handicap regulation (admins only): the same as on Handicapregulering, the
  * recommendations to apply or dismiss, and every tournament since the first with the placement,
- * the handicap at the time and the regulation score after it, newest first.
+ * the handicap at the time and the regulation score after it, newest first. "Sæt score" sets the
+ * score by hand.
  */
 export function HandicapPlayerPage() {
   const id = Number(useParams().id);
   const regulation = usePlayerRegulation(id);
+  const [setting, setSetting] = useState(false);
 
   if (regulation.isPending) return <p>{t.loading}</p>;
   if (regulation.error instanceof ApiError && regulation.error.status === 404) {
@@ -56,6 +59,12 @@ export function HandicapPlayerPage() {
           <dd>{player.lastAdjusted ? formatDate(player.lastAdjusted) : '–'}</dd>
         </div>
       </dl>
+      <p>
+        <button type="button" className="secondary" onClick={() => setSetting(true)}>
+          {t.handicaps.setScore}
+        </button>
+      </p>
+      {setting && <SetScoreDialog player={player} onClose={() => setSetting(false)} />}
       {player.pending.map((recommendation) => (
         <Recommendation
           key={recommendation.tournamentId}
@@ -174,6 +183,15 @@ function HistoryRow({ step }: { step: RegulationStep }) {
         <td>{step.poolWins ?? '–'}</td>
         <td>{formatHandicap(step.baseHandicap, step.frameHandicap)}</td>
         <td>{step.change === 0 ? '' : formatScore(step.change)}</td>
+        <td>{formatScore(step.score)}</td>
+      </tr>
+    );
+  }
+  if (step.kind === 'set') {
+    return (
+      <tr className="reset">
+        <td>{formatDate(step.date)}</td>
+        <td colSpan={4}>{t.handicaps.set(formatScore(step.score))}</td>
         <td>{formatScore(step.score)}</td>
       </tr>
     );

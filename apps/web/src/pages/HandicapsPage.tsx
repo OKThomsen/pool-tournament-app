@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { SetScoreDialog } from '../components/SetScoreDialog';
 import { TableSearch, matchesWordStart, useTableView, type Column } from '../components/TableView';
 import { formatDate } from '../format';
 import { formatHandicap, formatScore, useHandicaps, type PlayerRegulation } from '../handicaps';
@@ -18,11 +20,13 @@ const matches = (player: PlayerRegulation, query: string) => matchesWordStart(pl
 
 /**
  * Handicapregulering (admins only): every player's handicap, hidden regulation score and when it
- * was last regulated, with the recommendations waiting to be resolved. A row opens the player.
+ * was last regulated, with the recommendations waiting to be resolved. A row opens the player;
+ * "Sæt score" sets the score by hand, for instance after old tournaments without pool results.
  */
 export function HandicapsPage() {
   const handicaps = useHandicaps();
   const navigate = useNavigate();
+  const [setting, setSetting] = useState<PlayerRegulation | null>(null);
   const view = useTableView('view:handicap', handicaps.data ?? [], COLUMNS, matches);
 
   return (
@@ -52,6 +56,7 @@ export function HandicapsPage() {
                   {view.header('expires', t.handicaps.expires)}
                   {view.header('lastAdjusted', t.handicaps.lastAdjusted)}
                   {view.header('pending', t.handicaps.pending)}
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +78,18 @@ export function HandicapsPage() {
                         </span>
                       ))}
                     </td>
+                    <td className="actions">
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSetting(player);
+                        }}
+                      >
+                        {t.handicaps.setScore}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -81,6 +98,7 @@ export function HandicapsPage() {
           {view.rows.length === 0 && <p className="muted">{t.noMatches}</p>}
         </>
       )}
+      {setting && <SetScoreDialog player={setting} onClose={() => setSetting(null)} />}
     </section>
   );
 }

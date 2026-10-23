@@ -143,6 +143,13 @@ const da = {
         ? '1 spiller bør have reguleret sit handicap efter denne turnering.'
         : `${n} spillere bør have reguleret deres handicap efter denne turnering.`,
     noticeLink: 'Gå til handicapregulering',
+    setScore: 'Sæt score',
+    setScoreTitle: (name: string) => `Sæt reguleringsscore for ${name}`,
+    setScoreHelp:
+      'Scoren, som den stod ved udgangen af datoen, fx efter gamle turneringer uden puljeresultater. Turneringer efter datoen tæller oven i, og +1 eller −1 udløber to måneder efter datoen. Handicappet ændres ikke.',
+    asOf: 'Pr. dato',
+    asOfFuture: 'Datoen kan ikke ligge i fremtiden.',
+    set: (score: string) => `Score sat i hånden til ${score}`,
   },
   season: {
     title: 'Sæson',
@@ -458,6 +465,13 @@ const en: Strings = {
         ? '1 player should have their handicap regulated after this tournament.'
         : `${n} players should have their handicap regulated after this tournament.`,
     noticeLink: 'Go to handicap regulation',
+    setScore: 'Set score',
+    setScoreTitle: (name: string) => `Set the regulation score for ${name}`,
+    setScoreHelp:
+      'The score as it stood at the end of the date, for instance after old tournaments without pool results. Tournaments after the date count on top of it, and +1 or −1 expires two months after the date. The handicap doesn’t change.',
+    asOf: 'As of',
+    asOfFuture: 'The date can’t be in the future.',
+    set: (score: string) => `Score set by hand to ${score}`,
   },
   season: {
     title: 'Season',
