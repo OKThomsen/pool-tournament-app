@@ -1,4 +1,4 @@
-import { continuedPools, MIN_PLAYERS_PER_POOL } from '@franks/core';
+import { continuedPools, MIN_PLAYERS_PER_POOL, teamHandicap } from '@franks/core';
 import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -26,36 +26,37 @@ export function entrantName(entrant: Entrant): string {
   return entrant.partner ? `${entrant.name} & ${entrant.partner.name}` : entrant.name;
 }
 
+/** "Sara Holm" → "Sara". */
+const firstName = (name: string) => name.trim().split(/\s+/)[0]!;
+
 /**
- * A team's short name for the pools and the bracket, from first names: "Sara & Mathias". A first
- * name that two players in the tournament share is written in full, so they can be told apart.
- * A single player keeps their full name.
+ * A team's short name for the pools and the bracket, by first names only: "Sara & Mathias",
+ * also when another player in the tournament has the same first name. A single player keeps
+ * their full name.
  */
-function shortNames(players: readonly Entrant[]): (entrant: Entrant) => string {
-  const firstName = (name: string) => name.trim().split(/\s+/)[0]!;
-  const count = new Map<string, number>();
-  for (const player of players.flatMap((p) => (p.partner ? [p, p.partner] : [p]))) {
-    const first = firstName(player.name).toLowerCase();
-    count.set(first, (count.get(first) ?? 0) + 1);
-  }
-  const short = (player: EntrantPlayer) =>
-    count.get(firstName(player.name).toLowerCase())! > 1 ? player.name : firstName(player.name);
-  return (entrant) =>
-    entrant.partner ? `${short(entrant)} & ${short(entrant.partner)}` : entrant.name;
+function shortName(entrant: Entrant): string {
+  return entrant.partner
+    ? `${firstName(entrant.name)} & ${firstName(entrant.partner.name)}`
+    : entrant.name;
+}
+
+/**
+ * The handicap the pools show: the player's base handicap, or a team's (teamHandicap: the
+ * average, a half rounded towards the harder handicap).
+ */
+export function entrantHandicap(entrant: Entrant): number {
+  return entrant.partner
+    ? teamHandicap(entrant.baseHandicap, entrant.partner.baseHandicap)
+    : entrant.baseHandicap;
 }
 
 /**
  * Player names with their handicap after them, as /live, /play and the admin's tournament pages
- * show them: "Martin Johansen (-1)", and a team by first names, "Sara & Mathias (-1/0)".
+ * show them: "Martin Johansen (-1)", and a team by first names with the team's handicap,
+ * "Sara & Mathias (-1)".
  */
 export function namesWithHandicap(players: readonly Entrant[]): Map<number, string> {
-  const name = shortNames(players);
-  return new Map(
-    players.map((p) => {
-      const handicaps = p.partner ? `${p.baseHandicap}/${p.partner.baseHandicap}` : p.baseHandicap;
-      return [p.id, `${name(p)} (${handicaps})`];
-    }),
-  );
+  return new Map(players.map((p) => [p.id, `${shortName(p)} (${entrantHandicap(p)})`]));
 }
 
 /**
@@ -63,7 +64,7 @@ export function namesWithHandicap(players: readonly Entrant[]): Map<number, stri
  * names as in the pools ("Sara & Mathias").
  */
 export function namesOf(players: readonly Entrant[], short = false): Map<number, string> {
-  const name = short ? shortNames(players) : entrantName;
+  const name = short ? shortName : entrantName;
   return new Map(players.map((p) => [p.id, name(p)]));
 }
 

@@ -247,9 +247,9 @@ teams of the players two by two in the order they were added. "Færdiggør" wait
 team has two players ("Hvert hold skal have to spillere"). "Rediger spillere" shows the teams
 the same way and can switch it until the knockout starts. In the placings, on the podium and in
 the Turneringer list a team is named in full, "Anna Holm & Bo Jensen" (`entrantName`). In the
-pools, "Næste kampe" and the bracket it goes by first names, "Sara & Mathias (-1/0)"
-(`namesWithHandicap`, `namesOf(players, true)`); a first name two players in the tournament
-share is written in full, so they can be told apart. The pool tables get a wider name column
+pools, "Næste kampe" and the bracket it goes by first names only, "Sara & Mathias (-1)", also
+when two players share a first name (`namesWithHandicap`, `namesOf(players, true)`), with the
+team's handicap (`entrantHandicap`; Rules → Team handicap). The pool tables get a wider name column
 for teams (`PoolTable teams`). The header line counts teams
 ("8 hold", `entrantCount`), and a "Par turnering" tag with what it means sits under the title
 (`DuoNote` in `components/Duo.tsx`) and next to the date on Turneringer and `/live`.
@@ -671,7 +671,7 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | `knockout.ts` | `knockoutBracket(seeds, scores)`: the whole bracket, derived from seeds and scores. `bracketFromFirstRound(pairings, scores)` does the same from a first round the admin may have changed (`swapInFirstRound`). |
 | `placements.ts` | `placements`, `placementsInOrder`, `pointsFor`, `DEFAULT_POINTS_TABLE`: final placings (from the bracket, or for an old tournament from the order entered) and season points. |
 | `seasons.ts` | `seasonForDate`, `seasonByLabel`, `nextSeason`, `joinDeadline`, `earnsMemberBonus`, `weekNumber`, `todayInDenmark`, `MEMBER_BONUS`: which season and week a date is in, and who earns the member bonus. |
-| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder. |
+| `handicaps.ts` | `regulation`, `regulationChange`, `regulatedHandicap`, `addMonths`, `teamHandicap`: a player's handicap regulation score, replayed from their tournaments, and the workbook's handicap ladder; a duo team's handicap. |
 
 ### Rules as implemented
 
@@ -745,6 +745,9 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
   open recommendations stay as they are. The workbook keeps each notch on its own and has it last through
   the date two months on; with at most ±1 open at a time that's the same score, except that here
   the change is gone on that date.
+- **Team handicap** (`teamHandicap`, "Par turnering"): the average of the two players' base
+  handicaps, a half rounded towards the harder handicap: −4 & +2 → −1, −3 & 0 → −2 (−1.5),
+  +1 & +2 → +1 (1.5). It's only shown; the players' own handicaps are kept and snapshotted.
 - **Handicap ladder** (`regulatedHandicap`, the workbook's): base +3 … −4, then the frame
   handicap 0 … −4. Harder lowers the base, and below −4 the frame; easier takes the frame back
   first, then raises the base. −4(−4) can't get harder and +3 can't get easier; such a

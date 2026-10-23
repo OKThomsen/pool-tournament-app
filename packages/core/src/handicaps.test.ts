@@ -4,6 +4,7 @@ import {
   regulatedHandicap,
   regulation,
   regulationChange,
+  teamHandicap,
   type RegulationEvent,
 } from './handicaps.js';
 import type { Placement } from './placements.js';
@@ -74,6 +75,21 @@ describe('regulatedHandicap (the workbook ladder)', () => {
     [{ base: 3, frame: 0 }, null],
   ])('easier: %j → %j', (from, to) => {
     expect(regulatedHandicap(from, 'easier')).toEqual(to);
+  });
+});
+
+describe('teamHandicap', () => {
+  it('is the average of the two handicaps', () => {
+    expect(teamHandicap(-4, 2)).toBe(-1);
+    expect(teamHandicap(-4, -4)).toBe(-4);
+    expect(teamHandicap(3, 1)).toBe(2);
+  });
+
+  it('rounds a half towards the harder handicap', () => {
+    expect(teamHandicap(-3, 0)).toBe(-2);
+    expect(teamHandicap(1, 2)).toBe(1);
+    expect(teamHandicap(0, -1)).toBe(-1);
+    expect(teamHandicap(0, 1)).toBe(0);
   });
 });
 
