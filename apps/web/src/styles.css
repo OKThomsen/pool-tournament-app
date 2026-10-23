@@ -2066,26 +2066,42 @@ button.match-side:hover {
   text-overflow: ellipsis;
 }
 
-/* A team in a "Par turnering": its two names on a line each, each cut off on its own. */
-.player-name.team {
-  align-items: center;
-}
-
-.player-name.team .player-name-text > span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .player-handicap {
   flex: none;
   /* The space after the name, which the flex layout would drop. */
   margin-left: 0.25em;
 }
 
-/* The × that takes a player out of a team on Ny Turnering. */
-.teams button.link {
-  padding: 0 0.3em;
+/* A "Par turnering"'s teams on Ny Turnering (TeamList): a player to drag in each place. */
+.teams td {
+  width: 50%;
+}
+
+.teams .chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0.45em 0.6em;
+}
+
+.teams .chip-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.teams .chip.empty {
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* The × that takes a player out of a team. */
+.teams .chip button.link {
+  flex: none;
+  padding: 0 0.2em;
   font-size: 1.25em;
   line-height: 1;
   text-decoration: none;

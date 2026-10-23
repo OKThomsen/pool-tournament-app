@@ -11,6 +11,7 @@ import {
   toPlayerRequest,
 } from '../components/PlayerFields';
 import { FitTable, ColumnLabel, matchesWordStart } from '../components/TableView';
+import { TeamList } from '../components/TeamList';
 import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
 import {
@@ -105,9 +106,9 @@ function tidyTeams(slots: (Player | null)[]): (Player | null)[] {
 /**
  * Date, format, "For sjov kamp", "Par turnering" and the player list, with "Færdiggør" and
  * "Annuller". Used to create a tournament and, with "Rediger spillere", to change one until the
- * knockout starts. In a "Par turnering" the list has a row per team with its two players; a
- * player added fills the first empty place, so taking someone out of a team and adding another
- * player replaces them.
+ * knockout starts. In a "Par turnering" the list has a row per team with its two players
+ * (TeamList): a player added fills the first empty place, and dragging a player onto another
+ * swaps them, so the admin puts the teams together freely.
  */
 export function EntryForm({
   title,
@@ -145,6 +146,14 @@ export function EntryForm({
         ? tidyTeams(current.map((p, i) => (i === index ? null : p)))
         : current.filter((_, i) => i !== index),
     );
+  // Dragging a player in a "Par turnering" onto another place swaps the two places.
+  const move = (from: number, to: number) =>
+    setSlots((current) => {
+      const next = [...current];
+      while (next.length <= Math.max(from, to)) next.push(null);
+      [next[from], next[to]] = [next[to] ?? null, next[from] ?? null];
+      return tidyTeams(next);
+    });
   // Switching on makes teams of the players two by two, in the order they were added.
   const switchDuo = (on: boolean) => {
     setDuo(on);
@@ -154,25 +163,6 @@ export function EntryForm({
   const finish = (event: FormEvent) => {
     event.preventDefault();
     onSubmit({ date, format, playerIds, ...(duo && { partnerIds }), forFun, duo });
-  };
-
-  const place = (index: number) => {
-    const player = slots[index];
-    if (!player) return <span className="muted">–</span>;
-    return (
-      <>
-        {player.name} <span className="muted">({player.baseHandicap})</span>{' '}
-        <button
-          type="button"
-          className="link"
-          aria-label={`${t.create.remove} ${player.name}`}
-          title={t.create.remove}
-          onClick={() => remove(index)}
-        >
-          ×
-        </button>
-      </>
-    );
   };
 
   return (
@@ -206,24 +196,7 @@ export function EntryForm({
       <PlayerSearch excluded={chosen} onAdd={add} />
 
       {duo ? (
-        <FitTable className="entrants">
-          <table className="teams">
-            <thead>
-              <tr>
-                <th>{t.duo.player1}</th>
-                <th>{t.duo.player2}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: entrants }, (_, team) => (
-                <tr key={team}>
-                  <td>{place(team * 2)}</td>
-                  <td>{place(team * 2 + 1)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </FitTable>
+        <TeamList slots={slots} onMove={move} onRemove={remove} />
       ) : (
         <FitTable className="entrants">
           <table>

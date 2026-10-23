@@ -168,6 +168,8 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
   const setResult = useSetResult(tournament.id);
   const [scoring, setScoring] = useState<Scoring | null>(null);
   const names = namesOf(tournament.players);
+  // The pools name a team by first names, as during the tournament.
+  const poolNames = namesOf(tournament.players, true);
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
   const close = () => setScoring(null);
@@ -230,9 +232,10 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
             <div key={pool.id} className="pool-block">
               <PoolTable
                 view={poolView(tournament, pool)}
-                names={names}
+                names={poolNames}
                 slots={slots}
                 onCellClick={score}
+                teams={tournament.duo}
               />
             </div>
           ))}

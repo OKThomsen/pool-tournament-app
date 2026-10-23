@@ -239,13 +239,18 @@ a "For sjov kamp" tag under the title with what it means (`ForFunNote`); Turneri
 
 Below it, a **"Par turnering"** checkbox ("Pairs") makes the tournament one of teams of two
 (Tournaments API → Par turnering); both can be ticked. The player list then has a row per team,
-"Spiller 1 | Spiller 2": "Tilføj spiller" fills the first empty place, and the × after a name
-takes that player out, leaving the place empty for the next one added. Switching it on makes
+"Spiller 1 | Spiller 2" (`TeamList`): "Tilføj spiller" fills the first empty place, and the × after
+a name takes that player out, leaving the place empty for the next one added. Players are put
+together by drag and drop, as in "Rediger puljer": dropping a player on another swaps the two
+(within a team or between teams), and dropping on an empty place moves them there. Switching it on makes
 teams of the players two by two in the order they were added. "Færdiggør" waits until every
 team has two players ("Hvert hold skal have to spillere"). "Rediger spillere" shows the teams
-the same way and can switch it until the knockout starts. Everywhere a team is named, it is
-"Anna & Bo" (`entrantName`; with handicaps "Anna & Bo (-1/0)", `namesWithHandicap`); the pool
-tables put the two names on a line each (`PlayerName stack`). The header line counts teams
+the same way and can switch it until the knockout starts. In the placings, on the podium and in
+the Turneringer list a team is named in full, "Anna Holm & Bo Jensen" (`entrantName`). In the
+pools, "Næste kampe" and the bracket it goes by first names, "Sara & Mathias (-1/0)"
+(`namesWithHandicap`, `namesOf(players, true)`); a first name two players in the tournament
+share is written in full, so they can be told apart. The pool tables get a wider name column
+for teams (`PoolTable teams`). The header line counts teams
 ("8 hold", `entrantCount`), and a "Par turnering" tag with what it means sits under the title
 (`DuoNote` in `components/Duo.tsx`) and next to the date on Turneringer and `/live`.
 

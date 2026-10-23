@@ -27,21 +27,44 @@ export function entrantName(entrant: Entrant): string {
 }
 
 /**
+ * A team's short name for the pools and the bracket, from first names: "Sara & Mathias". A first
+ * name that two players in the tournament share is written in full, so they can be told apart.
+ * A single player keeps their full name.
+ */
+function shortNames(players: readonly Entrant[]): (entrant: Entrant) => string {
+  const firstName = (name: string) => name.trim().split(/\s+/)[0]!;
+  const count = new Map<string, number>();
+  for (const player of players.flatMap((p) => (p.partner ? [p, p.partner] : [p]))) {
+    const first = firstName(player.name).toLowerCase();
+    count.set(first, (count.get(first) ?? 0) + 1);
+  }
+  const short = (player: EntrantPlayer) =>
+    count.get(firstName(player.name).toLowerCase())! > 1 ? player.name : firstName(player.name);
+  return (entrant) =>
+    entrant.partner ? `${short(entrant)} & ${short(entrant.partner)}` : entrant.name;
+}
+
+/**
  * Player names with their handicap after them, as /live, /play and the admin's tournament pages
- * show them: "Martin Johansen (-1)", and a team "Anna & Bo (-1/0)".
+ * show them: "Martin Johansen (-1)", and a team by first names, "Sara & Mathias (-1/0)".
  */
 export function namesWithHandicap(players: readonly Entrant[]): Map<number, string> {
+  const name = shortNames(players);
   return new Map(
     players.map((p) => {
       const handicaps = p.partner ? `${p.baseHandicap}/${p.partner.baseHandicap}` : p.baseHandicap;
-      return [p.id, `${entrantName(p)} (${handicaps})`];
+      return [p.id, `${name(p)} (${handicaps})`];
     }),
   );
 }
 
-/** The entrants' names without handicaps (see entrantName). */
-export function namesOf(players: readonly Entrant[]): Map<number, string> {
-  return new Map(players.map((p) => [p.id, entrantName(p)]));
+/**
+ * The entrants' names without handicaps: in full (entrantName), or with `short` a team by first
+ * names as in the pools ("Sara & Mathias").
+ */
+export function namesOf(players: readonly Entrant[], short = false): Map<number, string> {
+  const name = short ? shortNames(players) : entrantName;
+  return new Map(players.map((p) => [p.id, name(p)]));
 }
 
 export interface Pool {

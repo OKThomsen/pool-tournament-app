@@ -104,7 +104,7 @@ function LiveTournament({ id }: { id: number }) {
   const data = tournament.data;
   const names = namesWithHandicap(data.players);
   // "Næste kampe" shows names only; the handicap is already in the table above it.
-  const plainNames = namesOf(data.players);
+  const plainNames = namesOf(data.players, true);
   const slots = Math.max(...data.pools.map((pool) => pool.playerIds.length));
 
   return (
@@ -139,7 +139,7 @@ function LiveTournament({ id }: { id: number }) {
               const view = poolView(data, pool);
               return (
                 <section key={pool.id} className="pool-block">
-                  <PoolTable view={view} names={names} slots={slots} />
+                  <PoolTable view={view} names={names} slots={slots} teams={data.duo} />
                   <UpNext view={view} names={plainNames} />
                 </section>
               );

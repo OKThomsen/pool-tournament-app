@@ -59,6 +59,7 @@ const da = {
     player1: 'Spiller 1',
     player2: 'Spiller 2',
     incomplete: 'Hvert hold skal have to spillere',
+    dragHelp: 'Træk en spiller over på en anden for at bytte dem, eller over på en tom plads.',
     tooFew: 'Der skal mindst være 4 hold',
   },
   detail: {
@@ -409,6 +410,7 @@ const en: Strings = {
     player1: 'Player 1',
     player2: 'Player 2',
     incomplete: 'Every team needs two players',
+    dragHelp: 'Drag a player onto another to swap them, or onto an empty place.',
     tooFew: 'At least 4 teams are needed',
   },
   detail: {
