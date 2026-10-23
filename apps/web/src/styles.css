@@ -965,6 +965,73 @@ table.clickable tbody tr:hover {
   max-width: 40em;
 }
 
+/* A heading's short form (ColumnLabel), shown instead on phones. */
+.label-short {
+  display: none;
+  text-decoration: none;
+}
+
+/* Phones (the same width as the compact pool tables): tighter cells, smaller type and the
+   short headings. FitTable shrinks the font further until the table fits the screen, so the
+   padding and headings are in em to shrink with it. The pool tables have their own compact
+   layout. */
+@media (max-width: 600px) {
+  table:not(.pool-table) {
+    font-size: 0.85rem;
+  }
+
+  table:not(.pool-table) th,
+  table:not(.pool-table) td {
+    padding: 0.55em 0.35em;
+  }
+
+  table:not(.pool-table) th:first-child,
+  table:not(.pool-table) td:first-child {
+    padding-left: 0.6em;
+  }
+
+  table:not(.pool-table) th:last-child,
+  table:not(.pool-table) td:last-child {
+    padding-right: 0.6em;
+  }
+
+  table:not(.pool-table) thead th {
+    font-size: 0.88em;
+    letter-spacing: 0.02em;
+  }
+
+  .sort-button {
+    gap: 2px;
+  }
+
+  /* Only the column it's sorted by keeps its arrow. */
+  th:not([aria-sort]) .sort-arrow {
+    display: none;
+  }
+
+  .label-full {
+    display: none;
+  }
+
+  .label-short {
+    display: inline;
+  }
+
+  /* Rediger and Slet on top of each other instead of side by side, and "Sæt score" on two
+     lines. */
+  td.actions {
+    white-space: normal;
+  }
+
+  td.actions .link {
+    display: block;
+  }
+
+  td.actions .link + .link {
+    margin: 6px 0 0;
+  }
+}
+
 .placings .placement-1st td {
   font-weight: 700;
 }
@@ -2110,5 +2177,10 @@ button.match-side:hover {
 }
 
 .regulation-history td:first-child {
+  white-space: nowrap;
+}
+
+/* Dates and handicaps ("-4 (-2)") stay on one line; names wrap instead. */
+td.nowrap {
   white-space: nowrap;
 }

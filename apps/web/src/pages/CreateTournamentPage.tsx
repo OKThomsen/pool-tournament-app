@@ -10,7 +10,7 @@ import {
   playerErrorMessage,
   toPlayerRequest,
 } from '../components/PlayerFields';
-import { matchesWordStart } from '../components/TableView';
+import { FitTable, ColumnLabel, matchesWordStart } from '../components/TableView';
 import { useCreatePlayer, usePlayers, type Player } from '../players';
 import { t } from '../strings';
 import {
@@ -135,14 +135,20 @@ export function EntryForm({
 
       <PlayerSearch excluded={entrants} onAdd={add} />
 
-      <div className="table-scroll entrants">
+      <FitTable className="entrants">
         <table>
           <thead>
             <tr>
               <th>{t.players.name}</th>
-              <th>{t.players.baseHandicap}</th>
-              <th>{t.players.frameHandicap}</th>
-              <th>{t.players.member}</th>
+              <th>
+                <ColumnLabel full={t.players.baseHandicap} short={t.short.baseHandicap} />
+              </th>
+              <th>
+                <ColumnLabel full={t.players.frameHandicap} short={t.short.frameHandicap} />
+              </th>
+              <th>
+                <ColumnLabel full={t.players.member} short={t.short.member} />
+              </th>
               <th />
             </tr>
           </thead>
@@ -166,7 +172,7 @@ export function EntryForm({
             ))}
           </tbody>
         </table>
-      </div>
+      </FitTable>
 
       <p>
         {t.create.count(entrants.length)}

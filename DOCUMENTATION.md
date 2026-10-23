@@ -280,6 +280,14 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
 - Logo files are in `apps/web/public/brand/`: `wordmark.png` (transparent background, for light
   backgrounds) and `roundel.png` (the 8-ball, for the dark header); `favicon.png` is the roundel.
   An SVG from the club would be sharper; swap it in when it arrives.
+- **Tables on phones** (up to 600px wide, like the compact pool tables): every other table has
+  tighter cells and smaller type, short column headings (`ColumnLabel` with `t.short`:
+  "Sæsonpoint" → "Point", "Kvartfinaler" → "KF", the full heading as a tooltip), and only the
+  sorted column keeps its arrow. `FitTable` (`components/TableView.tsx`, used instead of a plain
+  `.table-scroll`) then shrinks the table's font until it fits the screen, down to 0.65rem, so
+  Spillere's ten columns fit a 360px phone; padding is in em so it shrinks too. A table still too
+  wide scrolls sideways. Dates and handicaps (`td.nowrap`) stay on one line; names wrap, and
+  Rediger/Slet stack.
 - On phones the header puts the navigation on its own row (scrolling sideways if needed) and
   doesn't stick to the top, so the pools get the room. Below 480px only the 8-ball is shown.
 - Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
@@ -792,3 +800,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
+| 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |

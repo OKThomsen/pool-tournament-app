@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
+import { FitTable, ColumnLabel } from '../components/TableView';
 import { formatDate } from '../format';
 import { usePendingHandicaps } from '../handicaps';
 import { poolView } from '../poolView';
@@ -182,14 +183,20 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
     <>
       {old && <p className="muted">{t.old.entered}</p>}
       <h2>{t.detail.placings}</h2>
-      <div className="table-scroll">
+      <FitTable>
         <table className="placings">
           <thead>
             <tr>
-              <th>{t.detail.placement}</th>
+              <th>
+                <ColumnLabel full={t.detail.placement} short={t.short.placement} />
+              </th>
               <th>{t.players.name}</th>
               {points && <th>{t.detail.points}</th>}
-              {!old && <th>{t.detail.poolWins}</th>}
+              {!old && (
+                <th>
+                  <ColumnLabel full={t.detail.poolWins} short={t.short.poolWins} />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -203,7 +210,7 @@ function Concluded({ tournament, admin }: { tournament: Tournament; admin: boole
             ))}
           </tbody>
         </table>
-      </div>
+      </FitTable>
 
       {message && (
         <p className="error" role="alert">
