@@ -25,7 +25,10 @@ interface PlayerRow {
   lastAdjusted: string | null;
 }
 
-/** Every counting tournament (concluded, not for fun) the players took part in, oldest first. */
+/**
+ * Every counting tournament (concluded, not for fun, not a "Par turnering") the players took
+ * part in, oldest first.
+ */
 async function loadTournaments(db: Executor, playerIds: number[]) {
   return db
     .select({
@@ -47,6 +50,7 @@ async function loadTournaments(db: Executor, playerIds: number[]) {
         inArray(results.playerId, playerIds),
         eq(tournaments.status, 'concluded'),
         eq(tournaments.forFun, false),
+        eq(tournaments.duo, false),
       ),
     )
     .orderBy(asc(tournaments.date), asc(tournaments.concludedAt), asc(tournaments.id));

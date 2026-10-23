@@ -27,24 +27,42 @@ export async function tournamentDetail(db: Executor, id: number) {
       historical: tournaments.historical,
       /** "For sjov kamp": left out of every statistic. */
       forFun: tournaments.forFun,
+      /** "Par turnering": every entrant is a team, the player plus their `partner`. */
+      duo: tournaments.duo,
     })
     .from(tournaments)
     .where(eq(tournaments.id, id));
   if (!tournament) return null;
 
-  const entrants = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      baseHandicap: players.baseHandicap,
-      frameHandicap: players.frameHandicap,
-      // Medlem on the day of the tournament.
-      member: isMemberOn(tournament.date, players.id),
-    })
+  const playerColumns = {
+    id: players.id,
+    name: players.name,
+    baseHandicap: players.baseHandicap,
+    frameHandicap: players.frameHandicap,
+    // Medlem on the day of the tournament.
+    member: isMemberOn(tournament.date, players.id),
+  };
+  const entrantRows = await db
+    .select(playerColumns)
     .from(tournamentPlayers)
     .innerJoin(players, eq(players.id, tournamentPlayers.playerId))
     .where(eq(tournamentPlayers.tournamentId, id))
     .orderBy(players.name);
+  // The second player of each team in a "Par turnering".
+  const partners = new Map(
+    (
+      await db
+        .select({ teamId: tournamentPlayers.playerId, player: playerColumns })
+        .from(tournamentPlayers)
+        .innerJoin(players, eq(players.id, tournamentPlayers.partnerId))
+        .where(eq(tournamentPlayers.tournamentId, id))
+    ).map((row) => [row.teamId, row.player]),
+  );
+  // An entrant is a player, or in a "Par turnering" a team that goes by its first player's id.
+  const entrants = entrantRows.map((player) => ({
+    ...player,
+    partner: partners.get(player.id) ?? null,
+  }));
 
   const memberRows = await db
     .select({
@@ -109,17 +127,21 @@ export async function tournamentDetail(db: Executor, id: number) {
   ).map((row) => row.playerId);
 
   // Final placings, best first (the placement enum is declared in that order). Empty until
-  // "conclude tournament".
-  const placings = await db
-    .select({
-      playerId: results.playerId,
-      placement: results.placement,
-      points: results.points,
-      matchesWon: results.matchesWon,
-    })
-    .from(results)
-    .where(eq(results.tournamentId, id))
-    .orderBy(asc(results.placement), asc(results.playerId));
+  // "conclude tournament". In a "Par turnering" the partners' results are left out: the team's
+  // result is the one under its first player.
+  const entrantIds = new Set(entrants.map((p) => p.id));
+  const placings = (
+    await db
+      .select({
+        playerId: results.playerId,
+        placement: results.placement,
+        points: results.points,
+        matchesWon: results.matchesWon,
+      })
+      .from(results)
+      .where(eq(results.tournamentId, id))
+      .orderBy(asc(results.placement), asc(results.playerId))
+  ).filter((row) => entrantIds.has(row.playerId));
 
   return {
     ...tournament,
@@ -149,7 +171,10 @@ function seasonLabel(date: string): string | null {
   return seasonForDate(date)?.label ?? null;
 }
 
-/** Concluded tournaments, newest first: date, format, winner and number of players. */
+/**
+ * Concluded tournaments, newest first: date, format, winner and number of players. In a "Par
+ * turnering" the winner is the team ("Anna & Bo") and every player of every team is counted.
+ */
 export async function concludedTournaments(db: Executor) {
   const rows = await db
     .select({
@@ -158,14 +183,20 @@ export async function concludedTournaments(db: Executor) {
       week: tournaments.week,
       format: tournaments.format,
       forFun: tournaments.forFun,
+      duo: tournaments.duo,
       winner: sql<string | null>`(
-        select ${players.name} from ${results}
-        join ${players} on ${qualified(players.id)} = ${qualified(results.playerId)}
+        select winner.name || coalesce(' & ' || partner.name, '')
+        from ${results}
+        join ${tournamentPlayers} on ${qualified(tournamentPlayers.tournamentId)} = ${qualified(results.tournamentId)}
+          and ${qualified(tournamentPlayers.playerId)} = ${qualified(results.playerId)}
+        join ${players} winner on winner.id = ${qualified(results.playerId)}
+        left join ${players} partner on partner.id = ${qualified(tournamentPlayers.partnerId)}
         where ${qualified(results.tournamentId)} = ${qualified(tournaments.id)}
           and ${qualified(results.placement)} = '1st'
       )`,
       participants: sql<number>`(
-        select count(*)::int from ${tournamentPlayers}
+        select (count(*) + count(${qualified(tournamentPlayers.partnerId)}))::int
+        from ${tournamentPlayers}
         where ${qualified(tournamentPlayers.tournamentId)} = ${qualified(tournaments.id)}
       )`,
     })
