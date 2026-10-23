@@ -214,6 +214,40 @@ export const results = pgTable(
   (t) => [primaryKey({ columns: [t.tournamentId, t.playerId] })],
 );
 
+export const handicapAdjustmentKind = pgEnum('handicap_adjustment_kind', [
+  'manual',
+  'applied',
+  'dismissed',
+]);
+
+/**
+ * Everything that sets a player's handicap regulation score back to 0 (`regulation` in
+ * @franks/core): the admin applied or dismissed the recommendation from `tournament_id`, or
+ * changed the handicap by hand ('manual'). The score itself is replayed from the results.
+ */
+export const handicapAdjustments = pgTable(
+  'handicap_adjustments',
+  {
+    id: serial('id').primaryKey(),
+    playerId: integer('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+    kind: handicapAdjustmentKind('kind').notNull(),
+    /** The tournament whose recommendation was resolved; null for a change by hand. */
+    tournamentId: integer('tournament_id').references(() => tournaments.id, {
+      onDelete: 'set null',
+    }),
+    /** The day in Denmark it was made. */
+    date: date('date').notNull(),
+    oldBase: integer('old_base').notNull(),
+    oldFrame: integer('old_frame').notNull(),
+    newBase: integer('new_base').notNull(),
+    newFrame: integer('new_frame').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('handicap_adjustments_player_idx').on(t.playerId)],
+);
+
 /** Season points per placement. Seeded from the workbook's Points System sheet. */
 export const pointsTable = pgTable('points_table', {
   placement: placement('placement').primaryKey(),

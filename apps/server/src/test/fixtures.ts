@@ -20,8 +20,8 @@ export function setToday(date: string) {
 }
 
 /**
- * A concluded tournament with the given placements, scored with the default points table.
- * Defaults to today.
+ * A concluded tournament with the given placements (and pool wins, 0 unless given), scored with
+ * the default points table. Defaults to today.
  */
 export async function addTournament(
   db: Database,
@@ -29,24 +29,36 @@ export async function addTournament(
     knockoutSize = 8,
     placements,
     date = todayInDenmark(),
+    forFun = false,
+    historical = false,
   }: {
     knockoutSize?: 4 | 8;
-    placements: [playerId: number, placement: Placement][];
+    placements: [playerId: number, placement: Placement, poolWins?: number][];
     date?: string;
+    forFun?: boolean;
+    historical?: boolean;
   },
 ) {
   const [tournament] = await db
     .insert(tournaments)
-    .values({ date, week: 1, format: '8-ball', knockoutSize, status: 'concluded' })
+    .values({
+      date,
+      week: 1,
+      format: '8-ball',
+      knockoutSize,
+      status: 'concluded',
+      forFun,
+      historical,
+    })
     .returning();
-  for (const [playerId, placement] of placements) {
+  for (const [playerId, placement, poolWins = 0] of placements) {
     await db.insert(tournamentPlayers).values({ tournamentId: tournament!.id, playerId });
     await db.insert(results).values({
       tournamentId: tournament!.id,
       playerId,
       placement,
       points: pointsFor(placement),
-      matchesWon: 0,
+      matchesWon: poolWins,
       baseHandicap: 0,
       frameHandicap: 0,
     });

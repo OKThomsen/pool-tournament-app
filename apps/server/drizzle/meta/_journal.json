@@ -92,6 +92,13 @@
       "when": 1792408118817,
       "tag": "0012_for_fun_tournaments",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792747395808,
+      "tag": "0013_handicap_adjustments",
+      "breakpoints": true
     }
   ]
 }
