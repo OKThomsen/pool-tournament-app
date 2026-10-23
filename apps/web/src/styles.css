@@ -2066,10 +2066,29 @@ button.match-side:hover {
   text-overflow: ellipsis;
 }
 
+/* A team in a "Par turnering": its two names on a line each, each cut off on its own. */
+.player-name.team {
+  align-items: center;
+}
+
+.player-name.team .player-name-text > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .player-handicap {
   flex: none;
   /* The space after the name, which the flex layout would drop. */
   margin-left: 0.25em;
+}
+
+/* The × that takes a player out of a team on Ny Turnering. */
+.teams button.link {
+  padding: 0 0.3em;
+  font-size: 1.25em;
+  line-height: 1;
+  text-decoration: none;
 }
 
 /* A short message that fades away by itself (Toast.tsx), e.g. "Resultatet er låst" on /play. */

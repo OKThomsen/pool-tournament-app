@@ -237,6 +237,18 @@ for logged-in admins, the same checkbox switches it at any time, concluded or no
 a "For sjov kamp" tag under the title with what it means (`ForFunNote`); Turneringer and
 `/live` show the tag next to the date. A fun tournament's placings have no Point column.
 
+Below it, a **"Par turnering"** checkbox ("Pairs") makes the tournament one of teams of two
+(Tournaments API → Par turnering); both can be ticked. The player list then has a row per team,
+"Spiller 1 | Spiller 2": "Tilføj spiller" fills the first empty place, and the × after a name
+takes that player out, leaving the place empty for the next one added. Switching it on makes
+teams of the players two by two in the order they were added. "Færdiggør" waits until every
+team has two players ("Hvert hold skal have to spillere"). "Rediger spillere" shows the teams
+the same way and can switch it until the knockout starts. Everywhere a team is named, it is
+"Anna & Bo" (`entrantName`; with handicaps "Anna & Bo (-1/0)", `namesWithHandicap`); the pool
+tables put the two names on a line each (`PlayerName stack`). The header line counts teams
+("8 hold", `entrantCount`), and a "Par turnering" tag with what it means sits under the title
+(`DuoNote` in `components/Duo.tsx`) and next to the date on Turneringer and `/live`.
+
 The header links to `/live` as "Live"; while a tournament is in progress the link glows amber with a
 pulsing dot, like the badge on `/live` (`.nav-live.on-air`, `.live-dot`).
 
@@ -811,5 +823,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
+| 2026-10-23 | "Par turnering": a checkbox on Ny Turnering (with or without "For sjov kamp") for teams of two, entered two names per row. A team plays as one; both players get a result, but every team gets the participation point (1) whatever its placement, so it counts in season points and Deltagelse only, not in Wins, Semifinals, Quarterfinals or handicap regulation. |
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |

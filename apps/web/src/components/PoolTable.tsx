@@ -104,7 +104,7 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
             <th>{t.players.name}</th>
             {ids.map((id, index) => (
               <th key={id} className="opponent" title={names.get(id)}>
-                {compact ? index + 1 : <PlayerName label={names.get(id)} />}
+                {compact ? index + 1 : <PlayerName label={names.get(id)} stack />}
               </th>
             ))}
             {padding.map((i) => (
@@ -124,11 +124,11 @@ export function PoolTable({ view, names, slots, onCellClick }: PoolTableProps) {
                     <span className="numbered">
                       <span className="row-number">{index + 1}</span>
                       <span className="numbered-name">
-                        <PlayerName label={names.get(rowId)} />
+                        <PlayerName label={names.get(rowId)} stack />
                       </span>
                     </span>
                   ) : (
-                    <PlayerName label={names.get(rowId)} />
+                    <PlayerName label={names.get(rowId)} stack />
                   )}
                 </th>
                 {ids.map((colId) => {

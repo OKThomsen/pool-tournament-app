@@ -5,6 +5,7 @@ import { useSession } from '../auth';
 import { AdminLayout } from '../components/AdminPanel';
 import { Bracket } from '../components/Bracket';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DuoNote, entrantCount } from '../components/Duo';
 import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
@@ -14,6 +15,7 @@ import { usePendingHandicaps } from '../handicaps';
 import { poolView } from '../poolView';
 import { t } from '../strings';
 import {
+  namesOf,
   useDeleteTournament,
   useReopenTournament,
   useSetResult,
@@ -50,9 +52,10 @@ export function TournamentDetailPage() {
         <p className="meta">
           {data.format} · {t.ongoing.week} {data.week} ·{' '}
           {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
-          {t.create.count(data.players.length)}
+          {entrantCount(data)}
         </p>
         <ForFunNote tournament={data} />
+        <DuoNote tournament={data} />
         {admin && concluded && <RegulationNotice tournamentId={data.id} />}
         {concluded ? (
           <Concluded tournament={data} admin={Boolean(admin)} />
@@ -164,7 +167,7 @@ function RegulationNotice({ tournamentId }: { tournamentId: number }) {
 function Concluded({ tournament, admin }: { tournament: Tournament; admin: boolean }) {
   const setResult = useSetResult(tournament.id);
   const [scoring, setScoring] = useState<Scoring | null>(null);
-  const names = new Map(tournament.players.map((p) => [p.id, p.name]));
+  const names = namesOf(tournament.players);
   const slots = Math.max(...tournament.pools.map((pool) => pool.playerIds.length));
   const score = admin ? (match: Match, player: number) => setScoring({ match, player }) : undefined;
   const close = () => setScoring(null);

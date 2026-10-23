@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiError } from '../api';
 import { AdminLayout } from '../components/AdminPanel';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DuoNote, entrantCount } from '../components/Duo';
 import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { JoinCode } from '../components/JoinCode';
 import { PoolEditor } from '../components/PoolEditor';
@@ -78,9 +79,10 @@ export function OngoingTournamentPage() {
         <p className="meta">
           {data.format} · {t.ongoing.week} {data.week} ·{' '}
           {data.season ? `${t.season.title} ${data.season}` : t.season.offSeason} ·{' '}
-          {t.create.count(data.players.length)}
+          {entrantCount(data)}
         </p>
         <ForFunNote tournament={data} />
+        <DuoNote tournament={data} />
         {data.status === 'draft' && <DraftPools tournament={data} />}
         {data.status === 'pools' &&
           (editingPools ? (

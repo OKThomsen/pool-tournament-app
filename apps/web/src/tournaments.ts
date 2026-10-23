@@ -5,7 +5,7 @@ import { api } from './api';
 export type GameFormat = '8-ball' | '9-ball' | '10-ball';
 export type TournamentStatus = 'draft' | 'pools' | 'knockout' | 'concluded';
 
-export interface Entrant {
+export interface EntrantPlayer {
   id: number;
   name: string;
   baseHandicap: number;
@@ -14,11 +14,34 @@ export interface Entrant {
 }
 
 /**
+ * A player in the tournament, or in a "Par turnering" a team: the first player, with the second
+ * as `partner`. A team goes by its first player's id everywhere.
+ */
+export interface Entrant extends EntrantPlayer {
+  partner: EntrantPlayer | null;
+}
+
+/** The player's name, or the team's: "Anna & Bo". */
+export function entrantName(entrant: Entrant): string {
+  return entrant.partner ? `${entrant.name} & ${entrant.partner.name}` : entrant.name;
+}
+
+/**
  * Player names with their handicap after them, as /live, /play and the admin's tournament pages
- * show them: "Martin Johansen (-1)".
+ * show them: "Martin Johansen (-1)", and a team "Anna & Bo (-1/0)".
  */
 export function namesWithHandicap(players: readonly Entrant[]): Map<number, string> {
-  return new Map(players.map((p) => [p.id, `${p.name} (${p.baseHandicap})`]));
+  return new Map(
+    players.map((p) => {
+      const handicaps = p.partner ? `${p.baseHandicap}/${p.partner.baseHandicap}` : p.baseHandicap;
+      return [p.id, `${entrantName(p)} (${handicaps})`];
+    }),
+  );
+}
+
+/** The entrants' names without handicaps (see entrantName). */
+export function namesOf(players: readonly Entrant[]): Map<number, string> {
+  return new Map(players.map((p) => [p.id, entrantName(p)]));
 }
 
 export interface Pool {
@@ -58,6 +81,8 @@ export interface Tournament {
   historical: boolean;
   /** "For sjov kamp": played and listed as usual, but left out of every statistic. */
   forFun: boolean;
+  /** "Par turnering": the entrants are teams of two, and it only counts as participation. */
+  duo: boolean;
   players: Entrant[];
   pools: Pool[];
   matches: Match[];
@@ -86,7 +111,10 @@ export interface TournamentSummary {
   season: string | null;
   format: GameFormat;
   forFun: boolean;
+  duo: boolean;
+  /** The winner's name; in a "Par turnering" the team's, "Anna & Bo". */
   winner: string | null;
+  /** Players; in a "Par turnering" both of every team. */
   participants: number;
 }
 
@@ -125,12 +153,17 @@ function useTournamentMutation<Input>(request: (input: Input) => Promise<Tournam
   });
 }
 
-/** What Ny Turnering and "Rediger spillere" send. */
+/**
+ * What Ny Turnering and "Rediger spillere" send. In a "Par turnering" `playerIds` are the teams'
+ * first players and `partnerIds` their second, in the same order.
+ */
 export interface TournamentEntry {
   date: string;
   format: GameFormat;
   playerIds: number[];
+  partnerIds?: number[];
   forFun: boolean;
+  duo: boolean;
 }
 
 export function useCreateTournament() {
