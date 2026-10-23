@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useLogout, useSession } from '../auth';
+import { usePendingHandicaps } from '../handicaps';
 import { t } from '../strings';
 import { useOngoingTournament } from '../tournaments';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -11,6 +12,8 @@ export function Layout() {
   const admin = useSession();
   // Players find /play in the menu while a tournament is on (admins score on their own page).
   const ongoing = useOngoingTournament();
+  // Players with a handicap recommendation waiting for the admin.
+  const pending = usePendingHandicaps().length;
   const logout = useLogout();
   const navigate = useNavigate();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
@@ -42,6 +45,12 @@ export function Layout() {
             {ongoing.data && <span className="live-dot" aria-hidden="true" />}
             {t.nav.live}
           </NavLink>
+          {admin && (
+            <NavLink to="/admin/handicap" className="nav-link">
+              {t.nav.handicaps}
+              {pending > 0 && <span className="count-badge">{pending}</span>}
+            </NavLink>
+          )}
           {ongoing.data && !admin && (
             <NavLink to="/play" className="nav-link">
               {t.nav.play}

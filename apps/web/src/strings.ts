@@ -15,6 +15,7 @@ const da = {
     live: 'Live',
     play: 'Spil',
     newTournament: 'Ny Turnering',
+    handicaps: 'Handicap',
     login: 'Log ind',
     logout: 'Log ud',
   },
@@ -97,6 +98,51 @@ const da = {
     confirmDelete: (name: string) => `Er du sikker på at du vil slette ${name}?`,
     nameTaken: 'Der findes allerede en spiller med det navn.',
     hasTournaments: 'Spilleren har spillet turneringer og kan ikke slettes.',
+  },
+  handicaps: {
+    title: 'Handicapregulering',
+    help: 'Hver spiller har en skjult reguleringsscore. 1. eller 2. plads giver +1, ingen sejre i puljen giver −1 (for sjov kampe tæller ikke). En ændring glemmes to måneder efter den seneste. Ved +2 eller −2 anbefales det at gøre handicappet et trin sværere eller lettere. Både Anvend og Afvis sætter scoren tilbage til 0, ligesom når handicappet ændres i hånden.',
+    search: 'Søg efter spiller',
+    name: 'Navn',
+    handicap: 'Handicap',
+    score: 'Reguleringsscore',
+    expires: 'Udløber',
+    lastAdjusted: 'Sidst reguleret',
+    pending: 'Anbefaling',
+    harder: 'Sværere',
+    easier: 'Lettere',
+    recommendation: (direction: 'harder' | 'easier', date: string) =>
+      direction === 'harder'
+        ? `Gør handicappet sværere (nåede +2 den ${date})`
+        : `Gør handicappet lettere (nåede −2 den ${date})`,
+    atLimit: 'Handicappet kan ikke komme længere, så anbefalingen kan kun afvises.',
+    apply: 'Anvend',
+    dismiss: 'Afvis',
+    confirmApply: (name: string, from: string, to: string) =>
+      `Ændre ${name}s handicap fra ${from} til ${to}? Reguleringsscoren går tilbage til 0.`,
+    confirmDismiss: (name: string) =>
+      `Afvise anbefalingen for ${name}? Handicappet forbliver det samme, og reguleringsscoren går tilbage til 0.`,
+    notPending: 'Anbefalingen er allerede afgjort.',
+    history: 'Historik',
+    date: 'Dato',
+    event: 'Hændelse',
+    poolWins: 'Puljesejre',
+    change: 'Ændring',
+    scoreAfter: 'Score',
+    entered: 'indtastet bagefter',
+    reached: (direction: 'harder' | 'easier'): string =>
+      direction === 'harder' ? 'Anbefaling: sværere' : 'Anbefaling: lettere',
+    expired: 'Ændringen udløb efter to måneder',
+    applied: (from: string, to: string) => `Anbefaling anvendt: ${from} → ${to}`,
+    dismissed: 'Anbefaling afvist',
+    manual: (from: string, to: string) => `Handicap ændret i hånden: ${from} → ${to}`,
+    noHistory: 'Ingen turneringer endnu.',
+    back: 'Alle spillere',
+    notice: (n: number) =>
+      n === 1
+        ? '1 spiller bør have reguleret sit handicap efter denne turnering.'
+        : `${n} spillere bør have reguleret deres handicap efter denne turnering.`,
+    noticeLink: 'Gå til handicapregulering',
   },
   season: {
     title: 'Sæson',
@@ -284,6 +330,7 @@ const en: Strings = {
     live: 'Live',
     play: 'Play',
     newTournament: 'New tournament',
+    handicaps: 'Handicap',
     login: 'Log in',
     logout: 'Log out',
   },
@@ -366,6 +413,51 @@ const en: Strings = {
     confirmDelete: (name: string) => `Are you sure you want to delete ${name}?`,
     nameTaken: 'There is already a player with that name.',
     hasTournaments: 'This player has played in tournaments and can’t be deleted.',
+  },
+  handicaps: {
+    title: 'Handicap regulation',
+    help: 'Every player has a hidden regulation score. 1st or 2nd place gives +1, no pool wins gives −1 (just-for-fun tournaments don’t count). A change is forgotten two months after the latest one. At +2 or −2 the handicap is recommended one step harder or easier. Apply and Dismiss both set the score back to 0, as does changing the handicap by hand.',
+    search: 'Search for a player',
+    name: 'Name',
+    handicap: 'Handicap',
+    score: 'Regulation score',
+    expires: 'Expires',
+    lastAdjusted: 'Last regulated',
+    pending: 'Recommendation',
+    harder: 'Harder',
+    easier: 'Easier',
+    recommendation: (direction: 'harder' | 'easier', date: string) =>
+      direction === 'harder'
+        ? `Make the handicap harder (reached +2 on ${date})`
+        : `Make the handicap easier (reached −2 on ${date})`,
+    atLimit: 'The handicap can’t go any further, so the recommendation can only be dismissed.',
+    apply: 'Apply',
+    dismiss: 'Dismiss',
+    confirmApply: (name: string, from: string, to: string) =>
+      `Change ${name}’s handicap from ${from} to ${to}? The regulation score goes back to 0.`,
+    confirmDismiss: (name: string) =>
+      `Dismiss the recommendation for ${name}? The handicap stays the same, and the regulation score goes back to 0.`,
+    notPending: 'The recommendation has already been resolved.',
+    history: 'History',
+    date: 'Date',
+    event: 'Event',
+    poolWins: 'Pool wins',
+    change: 'Change',
+    scoreAfter: 'Score',
+    entered: 'entered afterwards',
+    reached: (direction: 'harder' | 'easier'): string =>
+      direction === 'harder' ? 'Recommendation: harder' : 'Recommendation: easier',
+    expired: 'The change expired after two months',
+    applied: (from: string, to: string) => `Recommendation applied: ${from} → ${to}`,
+    dismissed: 'Recommendation dismissed',
+    manual: (from: string, to: string) => `Handicap changed by hand: ${from} → ${to}`,
+    noHistory: 'No tournaments yet.',
+    back: 'All players',
+    notice: (n: number) =>
+      n === 1
+        ? '1 player should have their handicap regulated after this tournament.'
+        : `${n} players should have their handicap regulated after this tournament.`,
+    noticeLink: 'Go to handicap regulation',
   },
   season: {
     title: 'Season',

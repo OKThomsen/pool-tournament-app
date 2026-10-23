@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
+`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/admin/handicap`, `/admin/handicap/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -61,6 +61,20 @@ column is left out in the off-season), and all-time statistics. When logged in, 
 has a "Tilføj ny spiller" form and Rediger/Slet on each row (deleting asks for confirmation).
 The forms have a Medlem checkbox and, when it's ticked, "Medlem siden" (today by default), so a
 membership paid earlier can be entered late without losing the season bonus.
+
+**Handicapregulering** (`/admin/handicap`, `HandicapsPage.tsx`, admins only, "Handicap" in the
+header) lists every player with their handicap ("-4 (-2)" with a frame handicap), the hidden
+regulation score, when a ±1 runs out ("Udløber"), "Sidst reguleret" (`lastAdjusted`) and the
+recommendations waiting ("Sværere" / "Lettere"); it sorts and searches like Spillere (key
+`view:handicap`). The header link carries a red badge with the number of players waiting. A row
+opens `/admin/handicap/:id` (`HandicapPlayerPage.tsx`): the same facts, each pending
+recommendation with what applying it does ("-4 → -4 (-1)") and Anvend / Afvis (after a
+confirmation; only Afvis at the end of the ladder), and the history, newest first: every
+counting tournament since the first (linked) with the placement, pool wins, the handicap at the
+time, the change and the score after it, plus the changes that ran out and the resets (applied,
+dismissed, changed by hand). After a tournament is concluded, its page tells the admin how many
+players it took to ±2, with a link, until they're resolved (`RegulationNotice` in
+`TournamentDetailPage.tsx`). Data comes from `apps/web/src/handicaps.ts`.
 
 **Sorting and search.** The tables on Spillere, Sæson and Turneringer sort by any column: click a
 header to sort by it, and again to reverse (`components/TableView.tsx`). Names start A→Å
@@ -770,3 +784,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-22 | When the tournament on /live is concluded, the screen shows a podium with the top three until it is reloaded; then it shows the season leaderboard again. |
 | 2026-10-22 | A space between a player's name and their handicap: "Martin Johansen (-1)" on /live, /play and the admin's tournament pages. |
 | 2026-10-22 | /live shows the /play address under the date and format while a tournament is in progress (not the join code). |
+| 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. |
