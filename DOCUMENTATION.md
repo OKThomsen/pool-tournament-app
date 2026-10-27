@@ -325,31 +325,54 @@ so it can move to any container host later.
 
 ### Production (turneringsportal.kjaer-thomsen.dk)
 
-The site runs on a Linux VM with Docker, from a clone of this repo. `docker-compose.prod.yml`
-goes on top of `docker-compose.yml` and adds:
+The site runs on a Linux VM with Docker, from a clone of this repo. The same server also hosts
+the portfolio site (oskar.kjaer-thomsen.dk), so HTTPS comes from a **shared Caddy** that isn't
+part of this repo: it lives in the portfolio repo's `caddy/` folder (its own Compose project,
+`name: caddy`), runs from `~/Projects/caddy` on the server, and is the only container with
+published ports (80 and 443). It gets and renews the Let's Encrypt certificates by itself,
+redirects http to https, and passes `turneringsportal.kjaer-thomsen.dk` on to `pool-app:3000`,
+including the live-update stream. Its setup is in the portfolio repo's DOCUMENTATION.md,
+"Production".
 
-- **Caddy** (`Caddyfile`) on ports 80 and 443. It gets and renews the HTTPS certificate from
-  Let's Encrypt by itself, redirects http to https, and passes everything on to the app,
-  including the live-update stream. It's the only container with published ports; the app and
-  Postgres are reachable only on the Docker network.
-- `COOKIE_SECURE=true` and `TRUST_PROXY=uniquelocal` for the app (see Login API).
+`docker-compose.prod.yml` goes on top of `docker-compose.yml` and adds:
+
+- The app on the external Docker network **`web`**, where Caddy and the portfolio app also
+  are, under the alias `pool-app` (both projects call their service `app`). It stays on this
+  project's default network too, where Postgres and the backups are. Nothing of this project
+  publishes a port; Postgres isn't on `web`.
+- `COOKIE_SECURE=true` and `TRUST_PROXY=uniquelocal` for the app (see Login API; `web` is a
+  private address range).
 - A **backup** container (below).
 
-Before the first start, the domain's A record must point at the server's public IP, and ports
-80 and 443 must reach the VM (port forwarding on the router if it's behind one). Caddy can't
-get a certificate otherwise.
+`web` must exist before the stack starts (`docker network create web`, once per server).
 
 **First setup**, in the repo folder on the server:
 
 ```sh
 cat > .env <<EOF
 COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
-DOMAIN=turneringsportal.kjaer-thomsen.dk
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 EOF
 docker compose up -d --build
 docker compose exec app node apps/server/dist/cli/admin.js create <username>
 ```
+
+This repo used to run its own Caddy. Its `Caddyfile` is gone, and the `DOMAIN` line in `.env` is
+no longer used (a leftover one is harmless).
+
+**Moving to the shared Caddy** (once, on the server; the site is down for about a minute in
+step 4):
+
+1. Add a DNS A record for oskar.kjaer-thomsen.dk pointing at the server.
+2. `docker network create web`.
+3. Start the portfolio stack.
+4. Here, in `pool-tournament-app`: `git pull && docker compose up -d --remove-orphans`. This
+   stops and removes the pool app's own Caddy (now an orphan), which frees ports 80 and 443.
+5. In `~/Projects/caddy`: `docker compose up -d`, then `docker compose logs -f` until both
+   certificates are issued.
+
+The old `caddy-data` and `caddy-config` volumes stay behind unused; `docker volume rm
+pool-tournament-app_caddy-data pool-tournament-app_caddy-config` removes them.
 
 With `COMPOSE_FILE` in `.env`, a plain `docker compose …` uses both files. Postgres only reads
 `POSTGRES_PASSWORD` when it creates the database, so changing it later in `.env` doesn't change
@@ -358,7 +381,7 @@ while it's still empty (`docker compose down -v`, then `up` again).
 
 **Updating**: `git pull && docker compose up -d --build`. The server migrates the database on
 start, and open pages reload themselves with the new version. Logs: `docker compose logs -f app`
-(or `caddy`, `backup`).
+(or `backup`; Caddy's are in `~/Projects/caddy`).
 
 **Backups.** The backup container (`scripts/backup.sh`) dumps the database with `pg_dump` when
 it starts and every night at 04:00 Danish time, into `backups/` in the repo folder (git-ignored):
@@ -410,8 +433,8 @@ docker compose exec app node apps/server/dist/cli/admin.js create <username>
 | `GET /api/auth/me` | admin | `{ username }`, or 401 when not logged in. |
 
 - The rate limits (login, and joining on `/play`) count per client IP. Behind a reverse proxy,
-  set `TRUST_PROXY` to the proxy's addresses (Fastify's `trustProxy`; `uniquelocal` for Caddy on
-  the Docker network), so the IP comes from `X-Forwarded-For`. Without it every request looks
+  set `TRUST_PROXY` to the proxy's addresses (Fastify's `trustProxy`; `uniquelocal` for the shared
+  Caddy on the `web` Docker network), so the IP comes from `X-Forwarded-For`. Without it every request looks
   like the proxy's, and one person's wrong passwords would lock everyone out.
 - Sessions last 30 days. The cookie (`session`) is `HttpOnly` and `SameSite=Lax`; set
   `COOKIE_SECURE=true` once the app is served over HTTPS. Only a SHA-256 hash of the token is
@@ -834,3 +857,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-23 | "Par turnering": a checkbox on Ny Turnering (with or without "For sjov kamp") for teams of two, entered two names per row. A team plays as one; both players get a result, but every team gets the participation point (1) whatever its placement, so it counts in season points and Deltagelse only, not in Wins, Semifinals, Quarterfinals or handicap regulation. |
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |
+| 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |

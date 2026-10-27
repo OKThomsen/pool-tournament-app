@@ -1,31 +1,23 @@
-# Production additions on top of docker-compose.yml: Caddy in front with HTTPS, nothing else
-# published, and nightly database backups. On the server, put this in .env so a plain
-# `docker compose …` uses both files:
+# Production additions on top of docker-compose.yml: the app joins the shared `web` network,
+# where the server's shared Caddy (its own Compose project) serves it over HTTPS as `pool-app`;
+# nothing else is published, and the database is backed up nightly. On the server, put this in
+# .env so a plain `docker compose …` uses both files:
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
 services:
-  caddy:
-    image: caddy:2.10-alpine
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-      - '443:443/udp'
-    environment:
-      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - app
-
   app:
-    # Only reachable through Caddy.
+    # Only reachable through the shared Caddy.
     ports: !reset []
     environment:
       COOKIE_SECURE: 'true'
-      # Caddy reaches the app over the Docker network, a private address range.
+      # Caddy reaches the app over the `web` network, a private address range.
       TRUST_PROXY: uniquelocal
+    networks:
+      # The default network keeps the app reachable for db and backup.
+      default:
+      web:
+        # Every project on `web` calls its service `app`, so each gets its own name there.
+        aliases:
+          - pool-app
 
   db:
     # Only reachable by the app and the backups, over the Docker network.
@@ -53,6 +45,8 @@ services:
       db:
         condition: service_healthy
 
-volumes:
-  caddy-data:
-  caddy-config:
+networks:
+  # Created once on the server with `docker network create web`, and shared with the Caddy
+  # project.
+  web:
+    external: true
