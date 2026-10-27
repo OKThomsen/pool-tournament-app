@@ -104,6 +104,5 @@ Vitest.
 
 The app is built into one Docker image (multi-stage build). In production it runs on a Linux
 server with Docker Compose, next to PostgreSQL and a container that takes nightly database
-dumps. HTTPS comes from a Caddy reverse proxy shared with other sites on the server. Updating
-is `git pull && docker compose up -d --build`. See [DOCUMENTATION.md](DOCUMENTATION.md) for the
-full setup.
+dumps. HTTPS comes from a Caddy reverse proxy. Updating
+is `git pull && docker compose up -d --build`.
