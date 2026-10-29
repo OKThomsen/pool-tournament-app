@@ -528,13 +528,14 @@ score.
 
 ### Calendar API
 
-The frontpage's "Kalender": events the admins post, each a date and a message.
+The frontpage's "Kalender": events the admins post, each a date and a title, with an optional
+description.
 
 | Route | Who | What |
 |---|---|---|
-| `GET /api/calendar` | public | Today's and coming events (Danish date), soonest first, then in the order posted: `[{ id, date, message }]`. Past events drop off by themselves; they stay in the table. |
-| `POST /api/calendar` | admin | `{ date, message }` → 201 and the event. The message is trimmed, 1–200 characters. 400 `date_in_past`. |
-| `PUT /api/calendar/:id` | admin | `{ date, message }`: edits an event, as when posting. 404 `not_found`. |
+| `GET /api/calendar` | public | Today's and coming events (Danish date), soonest first, then in the order posted: `[{ id, date, title, description }]` (`description` null when there is none). Past events drop off by themselves; they stay in the table. |
+| `POST /api/calendar` | admin | `{ date, title, description? }` → 201 and the event. Both are trimmed; the title is 1–100 characters, the description up to 2000, and a blank one is stored as none. 400 `date_in_past`. |
+| `PUT /api/calendar/:id` | admin | `{ date, title, description? }`: edits an event, as when posting; leaving `description` out removes it. 404 `not_found`. |
 | `DELETE /api/calendar/:id` | admin | 204. 404 `not_found`. |
 
 ### Tournaments API
@@ -682,7 +683,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
-| `calendar_events` | The frontpage's calendar: date and message. |
+| `calendar_events` | The frontpage's calendar: date, title and an optional description (`description`, null for none). |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 

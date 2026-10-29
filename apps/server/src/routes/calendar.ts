@@ -7,11 +7,12 @@ import { calendarEvents } from '../db/schema.js';
 
 const eventBody = {
   type: 'object',
-  required: ['date', 'message'],
+  required: ['date', 'title'],
   additionalProperties: false,
   properties: {
     date: { type: 'string', format: 'date' },
-    message: { type: 'string', minLength: 1, maxLength: 200, pattern: '\\S' },
+    title: { type: 'string', minLength: 1, maxLength: 100, pattern: '\\S' },
+    description: { type: 'string', maxLength: 2000 },
   },
 } as const;
 const idParams = {
@@ -22,16 +23,27 @@ const idParams = {
 
 interface EventBody {
   date: string;
-  message: string;
+  title: string;
+  /** Shown when the event is clicked. Empty or left out for none. */
+  description?: string;
+}
+
+/** The columns to write: trimmed, and a blank description stored as none. */
+function values({ date, title, description }: EventBody) {
+  return { date, title: title.trim(), description: description?.trim() || null };
 }
 
 const columns = {
   id: calendarEvents.id,
   date: calendarEvents.date,
-  message: calendarEvents.message,
+  title: calendarEvents.title,
+  description: calendarEvents.description,
 };
 
-/** The frontpage's calendar: events the admins post, each a date and a message. */
+/**
+ * The frontpage's calendar: events the admins post, each a date and a title, with an optional
+ * description.
+ */
 export const calendarRoutes: FastifyPluginAsync<{ db: Database }> = async (app, { db }) => {
   /** Today's and coming events, soonest first; past events drop off by themselves. */
   app.get('/calendar', async () => {
@@ -46,11 +58,11 @@ export const calendarRoutes: FastifyPluginAsync<{ db: Database }> = async (app, 
     '/calendar',
     { preHandler: requireAdmin, schema: { body: eventBody } },
     async (request, reply) => {
-      const { date, message } = request.body;
-      if (date < todayInDenmark()) return reply.code(400).send({ error: 'date_in_past' });
+      if (request.body.date < todayInDenmark())
+        return reply.code(400).send({ error: 'date_in_past' });
       const [event] = await db
         .insert(calendarEvents)
-        .values({ date, message: message.trim() })
+        .values(values(request.body))
         .returning(columns);
       return reply.code(201).send(event);
     },
@@ -60,11 +72,11 @@ export const calendarRoutes: FastifyPluginAsync<{ db: Database }> = async (app, 
     '/calendar/:id',
     { preHandler: requireAdmin, schema: { params: idParams, body: eventBody } },
     async (request, reply) => {
-      const { date, message } = request.body;
-      if (date < todayInDenmark()) return reply.code(400).send({ error: 'date_in_past' });
+      if (request.body.date < todayInDenmark())
+        return reply.code(400).send({ error: 'date_in_past' });
       const [event] = await db
         .update(calendarEvents)
-        .set({ date, message: message.trim() })
+        .set(values(request.body))
         .where(eq(calendarEvents.id, request.params.id))
         .returning(columns);
       return event ?? reply.code(404).send({ error: 'not_found' });
