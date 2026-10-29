@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { Modal } from './Modal';
 
 interface ConfirmDialogProps {
   open: boolean;
-  message: string;
+  /** Plain text, or content of its own (paragraphs) when it needs more than one line. */
+  message: ReactNode;
   confirmLabel: string;
   cancelLabel: string;
   onConfirm: () => void;
@@ -20,7 +22,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal open={open} onClose={onCancel} className="confirm">
-      <p>{message}</p>
+      {typeof message === 'string' ? <p>{message}</p> : message}
       <div className="confirm-buttons">
         <button type="button" className="primary" onClick={onConfirm} autoFocus>
           {confirmLabel}
