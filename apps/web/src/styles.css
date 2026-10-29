@@ -414,11 +414,84 @@ table,
 
 .admin-panel h2 {
   margin: 0 -16px 16px;
-  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+/* The whole header hides and shows the panel; the arrow says which way it goes. */
+.admin-panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.admin-panel-toggle:hover {
+  color: var(--accent);
+}
+
+/* A chevron drawn with two borders: rotated -45° it points right. Beside the page it points
+   right to fold the panel away and left to bring it back. */
+.admin-panel-arrow {
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  border-right: 2.5px solid currentcolor;
+  border-bottom: 2.5px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.panel-closed .admin-panel-arrow {
+  transform: rotate(135deg);
+}
+
+/* Closed: only the header is left. */
+.panel-closed .admin-panel {
+  padding-bottom: 0;
+}
+
+.panel-closed .admin-panel > :not(h2) {
+  display: none;
+}
+
+.panel-closed .admin-panel h2 {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+/* Beside the page, the closed panel is a thin strip with its title written downwards. */
+@media (min-width: 1001px) {
+  .admin-layout.panel-closed {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+
+  .panel-closed .admin-panel {
+    padding: 0;
+  }
+
+  .panel-closed .admin-panel h2 {
+    margin: 0;
+  }
+
+  .panel-closed .admin-panel-toggle {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    padding: 12px 10px;
+    writing-mode: vertical-rl;
+  }
 }
 
 /* Each tool is a section of its own, divided by a line. */
@@ -467,6 +540,15 @@ table,
   .admin-panel {
     position: static;
     order: -1;
+  }
+
+  /* Above the page the arrow points down while open and to the side while closed. */
+  .admin-panel-arrow {
+    transform: rotate(45deg);
+  }
+
+  .panel-closed .admin-panel-arrow {
+    transform: rotate(-45deg);
   }
 
   .admin-panel-actions {

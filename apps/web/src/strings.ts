@@ -330,6 +330,8 @@ const da = {
   },
   adminPanel: {
     title: 'Admin',
+    hide: 'Skjul admin-panelet',
+    show: 'Vis admin-panelet',
   },
   joinCode: {
     label: 'Kode til /play',
@@ -696,6 +698,8 @@ const en: Strings = {
   },
   adminPanel: {
     title: 'Admin',
+    hide: 'Hide the admin panel',
+    show: 'Show the admin panel',
   },
   joinCode: {
     label: 'Code for /play',

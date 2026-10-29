@@ -123,7 +123,12 @@ page links to it instead.
 
 **Admin panel.** On a tournament's pages the admin's tools are gathered in a panel on the right
 (`components/AdminPanel.tsx`, `AdminLayout`), which stays in view while the page scrolls; below
-1000px wide it sits above the page instead. On the tournament in progress it has, top to bottom:
+1000px wide it sits above the page instead. Its header ("Admin" with an arrow) hides and shows
+the tools: beside the page the panel folds into a thin strip on the right ("‹ Admin", written
+downwards) and the page gets the room; above it only the header bar stays, the arrow pointing to
+the side (down while open). The choice is remembered in the browser (`localStorage`, key
+`view:adminPanel`); until then the panel starts open beside the page and closed above it, so on a
+phone the pools come first. On the tournament in progress it has, top to bottom:
 the **join code** for `/play` (`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a
 new one (after a confirmation) and signs out everyone using the old one, in case the code has
 spread beyond the players; "Rediger spillere" and, during pool play, "Rediger puljer" (both until
@@ -883,3 +888,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |
 | 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date, a title and an optional description), and edit or delete them. Only today's and coming events are shown, as "29/10  title"; one with a description has an "i" icon and opens it in a popup. |
 | 2026-10-29 | The pool tables are compact on a phone turned sideways too (up to 500px high), not only up to 600px wide. |
+| 2026-10-29 | The admin panel can be hidden and shown with the arrow in its header (remembered per device). It starts closed on phones and narrow screens, where it sits above the page, so the pools come first. |
