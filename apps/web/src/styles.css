@@ -249,7 +249,8 @@ table,
   position: relative;
 }
 
-.button.admin-menu-button {
+/* (.admin-menu in front: it must beat .button.primary further down, which makes it a block.) */
+.admin-menu .button.admin-menu-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
