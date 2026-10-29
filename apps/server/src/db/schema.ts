@@ -302,3 +302,19 @@ export const playerSessions = pgTable('player_sessions', {
     .references(() => tournaments.id, { onDelete: 'cascade' }),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 });
+
+/**
+ * An event on the frontpage's calendar ("Kalender"): a date and a title, shown on the board, and
+ * an optional description that opens when the event is clicked.
+ */
+export const calendarEvents = pgTable(
+  'calendar_events',
+  {
+    id: serial('id').primaryKey(),
+    date: date('date').notNull(),
+    title: text('title').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('calendar_events_date_idx').on(t.date)],
+);

@@ -113,6 +113,20 @@
       "when": 1792757374682,
       "tag": "0015_duo_tournaments",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793302416268,
+      "tag": "0016_calendar_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793303274150,
+      "tag": "0017_calendar_title_description",
+      "breakpoints": true
     }
   ]
 }

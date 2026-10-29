@@ -95,6 +95,16 @@ In the off-season it, the frontpage leaderboard and `/live` say there's no curre
 when the next one starts (`components/NoSeason.tsx`).
 The frontpage (`FrontPage.tsx`) says when the club meets (every Wednesday: training 17–18:30
 for members, tournaments from 19:00) and the address, which links to Google Maps.
+Above it, **Kalender** (`components/Calendar.tsx`, data from `apps/web/src/calendar.ts`) lists
+today's and coming events, soonest first, as "29/10  title" (the year is added when it isn't
+this year's: "6/1/2027"); an event disappears the day after its date. An event with a description
+has a small blue "i" before its title (`.calendar-icon`; titles without one leave its room empty,
+so they line up), and clicking it opens a popup with the date on the left of the title, as on the board, the description and "Luk". Logged-in admins
+get "Tilføj begivenhed", which opens a dialog to choose a date (today by default, not in the past),
+a title (up to 100 characters) and optionally a description (up to 2000; line breaks are kept),
+and "Opslå" posts it. Each event has Rediger (the same dialog) and Slet (after a confirmation).
+The board is a dark scoreboard like the leaderboard under it (`.scoreboard`, with the dark link and
+button colours set on `.calendar`); its dialogs sit outside it and stay light.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 On all three leaderboards (Sæson, the frontpage and `/live` between tournaments) 1st to 3rd are
 drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared
@@ -520,6 +530,18 @@ score.
 | `GET /api/seasons` | public | Every season with a concluded tournament that counts (not "For sjov kamp"), plus the current one, newest first: `[{ label, start, end }]`. |
 | `GET /api/seasons/:id` | public | One season by its label with a dash (`1-2026` for 1/2026): `{ season, standings }`, the standings as above. 404 `not_found` for anything that isn't a season. |
 
+### Calendar API
+
+The frontpage's "Kalender": events the admins post, each a date and a title, with an optional
+description.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/calendar` | public | Today's and coming events (Danish date), soonest first, then in the order posted: `[{ id, date, title, description }]` (`description` null when there is none). Past events drop off by themselves; they stay in the table. |
+| `POST /api/calendar` | admin | `{ date, title, description? }` → 201 and the event. Both are trimmed; the title is 1–100 characters, the description up to 2000, and a blank one is stored as none. 400 `date_in_past`. |
+| `PUT /api/calendar/:id` | admin | `{ date, title, description? }`: edits an event, as when posting; leaving `description` out removes it. 404 `not_found`. |
+| `DELETE /api/calendar/:id` | admin | 204. 404 `not_found`. |
+
 ### Tournaments API
 
 A tournament goes `draft` → `pools` → `knockout` → `concluded`. Only one tournament can be in
@@ -665,6 +687,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
+| `calendar_events` | The frontpage's calendar: date, title and an optional description (`description`, null for none). |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 
@@ -858,3 +881,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |
 | 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |
+| 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date, a title and an optional description), and edit or delete them. Only today's and coming events are shown, as "29/10  title"; one with a description has an "i" icon and opens it in a popup. |
