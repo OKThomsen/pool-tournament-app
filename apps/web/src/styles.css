@@ -577,10 +577,13 @@ table,
   gap: 24px;
 }
 
-.calendar h2 {
-  margin: 0 0 12px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--felt-500);
+/* A dark scoreboard like the leaderboard under it: its links, buttons and lines in dark colours. */
+.calendar {
+  --surface: var(--charcoal-900);
+  --border: rgb(255 255 255 / 7%);
+  --text-muted: #9aa1ab;
+  --accent: var(--felt-400);
+  --accent-hover: var(--felt-500);
 }
 
 .calendar-events {
@@ -594,8 +597,12 @@ table,
   grid-template-columns: 4.5em minmax(0, 1fr) auto;
   gap: 4px 10px;
   align-items: baseline;
-  padding: 6px 0;
+  padding: 7px 4px;
   border-bottom: 1px solid var(--border);
+}
+
+.calendar-events li:last-child {
+  border-bottom: 0;
 }
 
 .calendar-date {
@@ -648,8 +655,20 @@ button.calendar-title:hover span:last-child {
   transform: translateY(0.12em);
 }
 
+/* The popup's heading: the date on the left of the title, as on the board. */
 .calendar-details h2 {
-  margin: 0 0 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  overflow-wrap: anywhere;
+}
+
+.calendar-details .calendar-description {
+  margin: 12px 0 18px;
+}
+
+.calendar-details h2 .calendar-date {
+  color: var(--accent);
 }
 
 .calendar-description {
@@ -669,6 +688,8 @@ button.calendar-title:hover span:last-child {
 
 .calendar-dialog h2 {
   margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--felt-500);
 }
 
 .calendar-dialog textarea {

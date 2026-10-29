@@ -99,10 +99,12 @@ Above it, **Kalender** (`components/Calendar.tsx`, data from `apps/web/src/calen
 today's and coming events, soonest first, as "29/10  title" (the year is added when it isn't
 this year's: "6/1/2027"); an event disappears the day after its date. An event with a description
 has a small blue "i" before its title (`.calendar-icon`; titles without one leave its room empty,
-so they line up), and clicking it opens the description in a popup with "Luk". Logged-in admins
+so they line up), and clicking it opens a popup with the date on the left of the title, as on the board, the description and "Luk". Logged-in admins
 get "Tilføj begivenhed", which opens a dialog to choose a date (today by default, not in the past),
 a title (up to 100 characters) and optionally a description (up to 2000; line breaks are kept),
 and "Opslå" posts it. Each event has Rediger (the same dialog) and Slet (after a confirmation).
+The board is a dark scoreboard like the leaderboard under it (`.scoreboard`, with the dark link and
+button colours set on `.calendar`); its dialogs sit outside it and stay light.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 On all three leaderboards (Sæson, the frontpage and `/live` between tournaments) 1st to 3rd are
 drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared

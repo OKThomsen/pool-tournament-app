@@ -34,8 +34,8 @@ export function Calendar() {
   const [editing, setEditing] = useState<CalendarEvent | 'new' | null>(null);
   const [deleting, setDeleting] = useState<CalendarEvent | null>(null);
 
-  return (
-    <section className="panel calendar">
+  const board = (
+    <section className="panel scoreboard calendar">
       <h2>{t.calendar.title}</h2>
       {calendar.isPending ? (
         <p>{t.loading}</p>
@@ -86,11 +86,20 @@ export function Calendar() {
           {t.calendar.add}
         </button>
       )}
+    </section>
+  );
+
+  // The dialogs sit outside the dark board, so they look like every other dialog.
+  return (
+    <>
+      {board}
       <Modal open={reading !== null} onClose={() => setReading(null)} className="calendar-dialog">
         {reading && (
           <div className="calendar-details">
-            <h2>{reading.title}</h2>
-            <p className="meta">{shortDate(reading.date)}</p>
+            <h2>
+              <span className="calendar-date">{shortDate(reading.date)}</span>
+              <span>{reading.title}</span>
+            </h2>
             <p className="calendar-description">{reading.description}</p>
             <div className="confirm-buttons">
               <button type="button" className="primary" onClick={() => setReading(null)} autoFocus>
@@ -117,7 +126,7 @@ export function Calendar() {
         }}
         onCancel={() => setDeleting(null)}
       />
-    </section>
+    </>
   );
 }
 
