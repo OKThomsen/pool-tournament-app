@@ -182,19 +182,30 @@ const poolAnchor = (poolId: number) => `pool-${poolId}`;
 /** The API's answer when a player tries to change a result that's already in. */
 const isLocked = (error: Error) => error instanceof ApiError && error.code === 'result_locked';
 
-/** "… August 2 – 1 Oskar?", from the side of the player who was tapped, like the score dialog. */
+/**
+ * The question, then the result on a line of its own ("August 2 – 1 Oskar?", from the side of the
+ * player who was tapped, like the score dialog), then that only an admin can change it.
+ */
 function confirmMessage(
   { match, player }: Scoring,
   { framesA, framesB }: { framesA: number; framesB: number },
   names: Map<number, string>,
-): string {
+) {
   const isA = match.playerAId === player;
   const opponent = isA ? match.playerBId! : match.playerAId!;
-  return t.score.confirm(
-    names.get(player)!,
-    isA ? framesA : framesB,
-    isA ? framesB : framesA,
-    names.get(opponent)!,
+  return (
+    <>
+      <p>{t.score.confirm}</p>
+      <p className="confirm-result">
+        {t.score.confirmResult(
+          names.get(player)!,
+          isA ? framesA : framesB,
+          isA ? framesB : framesA,
+          names.get(opponent)!,
+        )}
+      </p>
+      <p>{t.score.confirmNote}</p>
+    </>
   );
 }
 

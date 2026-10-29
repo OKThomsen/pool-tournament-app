@@ -1045,6 +1045,12 @@ label {
   text-align: center;
 }
 
+/* The result a player is about to enter, on a line of its own between the question and the note. */
+.confirm-result {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
 .confirm-buttons {
   display: flex;
   justify-content: center;

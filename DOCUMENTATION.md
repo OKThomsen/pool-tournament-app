@@ -220,8 +220,10 @@ progress, the header links to it ("Spil", "Play" in English; not shown to admins
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
 the same `ScoreDialog`, but there is no drawing, qualifying or concluding. Choosing a score asks
-"Er du sikker på, at du vil indtaste resultatet: August 2 – 1 Oskar?" (Ja / Tilbage, from the
-tapped player's side). A match with a result can't be opened: a tap shows "Resultatet er låst"
+"Er du sikker på, at du vil indtaste resultatet:", then the result on a line of its own in bold
+("August 2 – 1 Oskar?", from the tapped player's side), then "Det kan kun ændres af en administrator
+bagefter." (Ja / Tilbage).
+A match with a result can't be opened: a tap shows "Resultatet er låst"
 in a message that fades away by itself (`components/Toast.tsx`), and there's no "Ryd resultat".
 When another player got there first, the same kind of message says "Resultatet er allerede
 indtastet" and the page fetches their result. At the top, one button
