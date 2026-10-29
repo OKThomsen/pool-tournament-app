@@ -571,6 +571,63 @@ table,
   scrollbar-width: thin;
 }
 
+/* The frontpage's side column: the calendar above the leaderboard. */
+.frontpage-side {
+  display: grid;
+  gap: 24px;
+}
+
+.calendar h2 {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--felt-500);
+}
+
+.calendar-events {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-events li {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-date {
+  font-family: var(--font-display);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.calendar-message {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.calendar-dialog form {
+  display: grid;
+  gap: 14px;
+}
+
+.calendar-dialog label {
+  display: grid;
+  gap: 4px;
+}
+
+.calendar-dialog h2 {
+  margin: 0;
+}
+
+.calendar-dialog textarea {
+  font: inherit;
+  resize: vertical;
+}
+
 /* A DD-MM-YYYY date in running text: never split at its hyphens. */
 .date {
   white-space: nowrap;

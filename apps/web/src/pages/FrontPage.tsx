@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { Calendar } from '../components/Calendar';
 import { Standings } from '../components/Standings';
 import { NoSeason } from '../components/NoSeason';
 import { useCurrentSeason } from '../seasons';
@@ -7,7 +8,7 @@ import { t } from '../strings';
 const ADDRESS = 'Pantheonsgade 2, 5000 Odense';
 const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
 
-/** Info about the club, with the current season's leaderboard on the side. */
+/** Info about the club, with the calendar and the current season's leaderboard on the side. */
 export function FrontPage() {
   return (
     <div className="columns">
@@ -26,7 +27,10 @@ export function FrontPage() {
           </p>
         </div>
       </section>
-      <Leaderboard />
+      <div className="frontpage-side">
+        <Calendar />
+        <Leaderboard />
+      </div>
     </div>
   );
 }
