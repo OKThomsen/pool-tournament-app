@@ -109,6 +109,9 @@ a title (up to 100 characters) and optionally a description (up to 2000; line br
 and "Opslå" posts it. Each event has Rediger (the same dialog) and Slet (after a confirmation).
 The board is a dark scoreboard like the leaderboard under it (`.scoreboard`, with the dark link and
 button colours set on `.calendar`); its dialogs sit outside it and stay light.
+In a narrow side column (a phone turned sideways, where the frontpage still has two columns) the
+rows fold up by the list's own width (a container query on `.calendar-events`): below 300px
+Rediger/Slet go under the title, below 230px the date goes above it too.
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 On all three leaderboards (Sæson, the frontpage and `/live` between tournaments) 1st to 3rd are
 drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared
@@ -916,5 +919,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The race length field ("Først til") can be emptied to type a new number; left empty, it becomes 2. |
 | 2026-10-29 | Every table's header (the blue row) stays in view while scrolling through its rows, under the site header; not the pool tables (admin, /play, the archive, /live) or the placings on a tournament's page. |
 | 2026-10-29 | The site header scrolls away on a phone turned sideways too (up to 500px high), as it already did on narrow screens. |
+| 2026-10-29 | The calendar's rows fold up in a narrow side column (a phone turned sideways): Rediger/Slet under the title, and at the narrowest the date above it. |
 | 2026-10-29 | Header: Spil is always in the menu, left of Live (/play says when no tournament is in progress). For admins, "Ny Turnering" and "Handicap" moved into an "Admin" dropdown left of Log ud, which says "Live turnering" (to the admin's page) while a tournament is in progress. On phones all five tabs fit without scrolling. |
 | 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |
