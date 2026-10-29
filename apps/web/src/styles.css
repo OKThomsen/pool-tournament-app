@@ -1154,9 +1154,9 @@ th[aria-sort] .sort-arrow {
 }
 
 /* Every table's header (the blue rows) stays in view, right under the site header, while its
-   rows scroll past; not the pool tables, whose headers scroll with the page. Layout keeps
-   --sticky-top at the site header's height. */
-table:not(.pool-table) > thead {
+   rows scroll past; not the pool tables or a tournament's placings, whose headers scroll with
+   the page. Layout keeps --sticky-top at the site header's height. */
+table:not(.pool-table, .placings) > thead {
   position: sticky;
   z-index: 3;
   top: var(--sticky-top, 0px);
