@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 
 type Value = string | number | boolean | null;
 
@@ -161,6 +168,26 @@ export function ColumnLabel({ full, short }: { full: string; short: string }) {
   );
 }
 
+/**
+ * Lets a table's box scroll sideways only while the table is wider than it (class `overflows`).
+ * A box that can scroll is a scroll container, and the table's sticky header would stick inside
+ * it instead of to the screen; so a table that fits keeps its header in view while the page
+ * scrolls, and only one too wide trades that for swiping.
+ */
+export function useScrollWhenWide(ref: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const box = ref.current;
+    const table = box?.querySelector('table');
+    if (!box || !table) return;
+    const check = () => box.classList.toggle('overflows', table.offsetWidth > box.clientWidth + 1);
+    check();
+    const resized = new ResizeObserver(check);
+    resized.observe(box);
+    resized.observe(table);
+    return () => resized.disconnect();
+  }, [ref]);
+}
+
 /** The width where the tables turn compact, as the pool tables (PoolTable). */
 const PHONE = '(max-width: 600px)';
 /** The smallest font a table shrinks to on a phone (0.65rem), like the pool tables. */
@@ -169,11 +196,13 @@ const MIN_FONT_PX = 10.4;
 /**
  * A table's scroll box that, on phones, shrinks the table's font until it fits the screen (but
  * not below MIN_FONT_PX), so it needs no swiping. The cells' padding is in em on phones, so it
- * shrinks with the text. A table still too wide at the smallest font scrolls sideways. It fits
+ * shrinks with the text. A table still too wide at the smallest font scrolls sideways
+ * (useScrollWhenWide). It fits
  * again when the screen turns or the rows change.
  */
 export function FitTable({ className, children }: { className?: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  useScrollWhenWide(ref);
 
   useLayoutEffect(() => {
     const box = ref.current;
