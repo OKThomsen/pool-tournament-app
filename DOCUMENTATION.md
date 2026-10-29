@@ -150,7 +150,9 @@ turnering" and "Afslut puljespillet" wait until it has company. Every change is 
 touch screens a short press starts the drag, so the page still scrolls. At the bottom of each
 pool's box the admin chooses that pool's length in "Først til" (2 to 5, 2 by default; saved at
 once), the same field (`RaceToInput`) as the knockout's race lengths, so a pool of 3 can play a
-longer race than the pools of 4. The pool tables show it in their title ("Pulje C" over "Først til
+longer race than the pools of 4. The field can be emptied to type a new number: a number in range
+counts as soon as it's typed, and when the admin leaves the field, an empty one becomes 2 and one
+out of range is pulled back to the nearest allowed length. The pool tables show it in their title ("Pulje C" over "Først til
 3"), on /live too. "Gå til turnering" (after a confirmation that lists each pool's length) creates the
 pool matches; "Annuller turnering" (in the admin panel, through pool play and the knockout too)
 deletes the tournament. "Randomize" draws every pool again.
@@ -892,3 +894,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The pool tables are compact on a phone turned sideways too (up to 500px high), not only up to 600px wide. |
 | 2026-10-29 | The admin panel can be hidden and shown with the arrow in its header (remembered per device). It starts closed on phones and narrow screens, where it sits above the page, so the pools come first. |
 | 2026-10-29 | Below 1000px wide the admin panel is a drawer on the right edge that lies over the pools and follows the screen while scrolling; its arrow puts it away into a strip at the edge. Beside the page (wider screens) it stays as it was. |
+| 2026-10-29 | The race length field ("Først til") can be emptied to type a new number; left empty, it becomes 2. |
