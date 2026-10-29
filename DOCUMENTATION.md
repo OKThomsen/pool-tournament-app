@@ -96,11 +96,13 @@ when the next one starts (`components/NoSeason.tsx`).
 The frontpage (`FrontPage.tsx`) says when the club meets (every Wednesday: training 17–18:30
 for members, tournaments from 19:00) and the address, which links to Google Maps.
 Above it, **Kalender** (`components/Calendar.tsx`, data from `apps/web/src/calendar.ts`) lists
-today's and coming events, soonest first, as "29/10  message" (the year is added when it isn't
-this year's: "6/1/2027"); an event disappears the day after its date. Logged-in admins get
-"Tilføj begivenhed", which opens a dialog to choose a date (today by default, not in the past) and
-type a message (up to 200 characters; line breaks are kept), and "Opslå" posts it. Each event has
-Rediger (the same dialog) and Slet (after a confirmation).
+today's and coming events, soonest first, as "29/10  title" (the year is added when it isn't
+this year's: "6/1/2027"); an event disappears the day after its date. An event with a description
+has a small blue "i" before its title (`.calendar-icon`; titles without one leave its room empty,
+so they line up), and clicking it opens the description in a popup with "Luk". Logged-in admins
+get "Tilføj begivenhed", which opens a dialog to choose a date (today by default, not in the past),
+a title (up to 100 characters) and optionally a description (up to 2000; line breaks are kept),
+and "Opslå" posts it. Each event has Rediger (the same dialog) and Slet (after a confirmation).
 The frontpage's Sæson Leaderboard shows the same standings as "name – points" and links there.
 On all three leaderboards (Sæson, the frontpage and `/live` between tournaments) 1st to 3rd are
 drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared
@@ -877,4 +879,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-23 | Handicap regulation as in the workbook: a hidden score per player (+1 for 1st/2nd, −1 for no pool wins; old tournaments count, fun ones don't), each change forgotten two months after the latest. ±2 recommends one step on the workbook ladder; the admin applies or dismisses it on "Handicapregulering" and is told after concluding. Both, and a handicap changed by hand, set the score back to 0; until then a new count starts. Replayed from the first tournament; past ±2 hits show as open recommendations. The admin can also set the score by hand (−1, 0, +1) as of a date, for old tournaments without pool results. |
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |
 | 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |
-| 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date and a message), and edit or delete them. Only today's and coming events are shown, as "29/10". |
+| 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date, a title and an optional description), and edit or delete them. Only today's and coming events are shown, as "29/10  title"; one with a description has an "i" icon and opens it in a popup. |

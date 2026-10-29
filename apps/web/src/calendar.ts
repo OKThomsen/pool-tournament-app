@@ -6,12 +6,17 @@ export interface CalendarEvent {
   id: number;
   /** YYYY-MM-DD. */
   date: string;
-  message: string;
+  /** Shown on the board. */
+  title: string;
+  /** Opens when the event is clicked; null for none. */
+  description: string | null;
 }
 
 export interface CalendarEventInput {
   date: string;
-  message: string;
+  title: string;
+  /** Empty for none. */
+  description: string;
 }
 
 const calendarKey = ['calendar'];

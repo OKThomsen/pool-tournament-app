@@ -604,7 +604,55 @@ table,
   white-space: nowrap;
 }
 
-.calendar-message {
+/* Titles line up whether or not they have the icon: those without leave its room empty. */
+.calendar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+  /* The icon's width (1.15em of its 0.85em font) and the gap. */
+  padding-left: calc(1.15 * 0.85em + 0.45em);
+  overflow-wrap: anywhere;
+}
+
+button.calendar-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.calendar-title:hover span:last-child {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* The "i" before a title that has a description. */
+.calendar-icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.15em;
+  height: 1.15em;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 0.85em;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  /* Sits on the title's text line instead of the baseline of its own small letter. */
+  transform: translateY(0.12em);
+}
+
+.calendar-details h2 {
+  margin: 0 0 4px;
+}
+
+.calendar-description {
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
