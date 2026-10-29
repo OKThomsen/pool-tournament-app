@@ -171,7 +171,7 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
-"…" and shown in full on hover. On phones (up to 600px wide) the matrix is compact
+"…" and shown in full on hover. On phones (up to 600px wide, or up to 500px high, so a phone turned sideways too) the matrix is compact
 (`COMPACT_COLUMN`): the players are numbered 1–5, the result columns are headed by those numbers
 instead of names, the set score is stacked ("5W" over "3L"), "Vundne" becomes "V", and the font
 shrinks (down to 0.65rem) until the pool fits the screen, so a pool of 5 needs no swiping on a
@@ -882,3 +882,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |
 | 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |
 | 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date, a title and an optional description), and edit or delete them. Only today's and coming events are shown, as "29/10  title"; one with a description has an "i" icon and opens it in a popup. |
+| 2026-10-29 | The pool tables are compact on a phone turned sideways too (up to 500px high), not only up to 600px wide. |
