@@ -244,6 +244,77 @@ table,
   gap: 8px;
 }
 
+/* "Admin" in the header and its dropdown: Ny Turnering (or Live turnering) and Handicap. */
+.admin-menu {
+  position: relative;
+}
+
+/* (.admin-menu in front: it must beat .button.primary further down, which makes it a block.) */
+.admin-menu .button.admin-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-menu-button .count-badge {
+  margin-left: 0;
+}
+
+/* A small chevron pointing down, turned up while the menu is open. */
+.admin-menu-caret {
+  display: inline-block;
+  margin-left: 2px;
+  width: 0.45em;
+  height: 0.45em;
+  margin-top: -0.2em;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.admin-menu-button[aria-expanded='true'] .admin-menu-caret {
+  margin-top: 0.2em;
+  transform: rotate(-135deg);
+}
+
+.admin-menu-list {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--charcoal-700);
+  border-radius: var(--radius-small);
+  background: var(--charcoal-800);
+  box-shadow: var(--shadow-raised);
+}
+
+.admin-menu-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-small);
+  color: var(--cream-100);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-menu-list a:hover,
+.admin-menu-list a.active {
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+}
+
 .language {
   min-width: 2.75em;
   padding: 6px 8px;
@@ -259,8 +330,9 @@ table,
   border-color: var(--charcoal-400);
 }
 
-/* On phones: logo and actions on the first row, the navigation on its own row below. */
-@media (max-width: 760px) {
+/* On phones, held either way (narrow, or low when turned sideways): logo and actions on the first
+   row, the navigation on its own row below. */
+@media (max-width: 760px), (max-height: 500px) {
   .header {
     padding: 8px 12px 0;
     gap: 4px 12px;
@@ -284,6 +356,20 @@ table,
     overflow-x: auto;
   }
 
+  /* Five tabs fit a 360px phone without scrolling. */
+  .nav {
+    gap: 0;
+  }
+
+  .nav .nav-link {
+    padding: 8px clamp(4px, 1.4vw, 10px);
+    font-size: clamp(0.8rem, 3.8vw, 1.05rem);
+  }
+
+  .nav-live {
+    gap: 6px;
+  }
+
   .header-actions .nav-link,
   .header-actions .button {
     font-size: 0.95rem;
@@ -294,17 +380,11 @@ table,
   .header {
     position: static;
   }
-
-  .pool-table {
-    font-size: 0.85rem;
-  }
 }
 
-/* A phone turned sideways is wide but low: the header scrolls away there too, instead of
-   taking a third of the screen. */
-@media (max-height: 500px) {
-  .header {
-    position: static;
+@media (max-width: 760px) {
+  .pool-table {
+    font-size: 0.85rem;
   }
 }
 
@@ -2452,4 +2532,14 @@ button.match-side:hover {
 /* Dates and handicaps ("-4 (-2)") stay on one line; names wrap instead. */
 td.nowrap {
   white-space: nowrap;
+}
+
+/* /play when no tournament is in progress: said above the code field. */
+.play-none {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-small);
+  background: var(--surface-muted);
+  font-weight: 600;
 }

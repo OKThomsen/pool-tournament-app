@@ -48,8 +48,12 @@ for the flatscreen in the club), `/saeson`, and `/play` (players enter results w
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
 `null` for the public, or `undefined` while loading. Pages under `/admin` are wrapped in
 `RequireAdmin`, which sends visitors to `/login` and back afterwards. That only hides pages; the
-API checks the session on every admin request. When logged in, the header shows Ny Turnering
-and Logout instead of Log ind. Logout asks for confirmation first, using the reusable
+API checks the session on every admin request. When logged in, the header shows "Admin"
+and Log ud instead of Log ind. "Admin" (`components/AdminMenu.tsx`) is a dropdown: "Ny Turnering",
+or "Live turnering" (the admin's page of the tournament in progress) while one is, and
+"Handicap"; it closes on a click outside it, Escape, or following a link. The menu row is
+Turneringer, Spillere, Sæson, Spil, Live, for everyone; on phones the tabs shrink a little
+(`.nav .nav-link`) so all five fit a 360px screen without scrolling. Logout asks for confirmation first, using the reusable
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
 `api()` in `apps/web/src/api.ts`. Queries are not retried when the server refuses them (a 4xx such
 as 404), so a wrong address says "Siden findes ikke" at once; other failures are retried.
@@ -63,10 +67,10 @@ The forms have a Medlem checkbox and, when it's ticked, "Medlem siden" (today by
 membership paid earlier can be entered late without losing the season bonus.
 
 **Handicapregulering** (`/admin/handicap`, `HandicapsPage.tsx`, admins only, "Handicap" in the
-header) lists every player with their handicap ("-4 (-2)" with a frame handicap), the hidden
+header's Admin menu) lists every player with their handicap ("-4 (-2)" with a frame handicap), the hidden
 regulation score, when a ±1 runs out ("Udløber"), "Sidst reguleret" (`lastAdjusted`) and the
 recommendations waiting ("Sværere" / "Lettere"); it sorts and searches like Spillere (key
-`view:handicap`). The header link carries a red badge with the number of players waiting.
+`view:handicap`). That menu item, and the Admin button, carry a red badge with the number of players waiting.
 "Sæt score" on each row (and on the player's page) opens `SetScoreDialog`: the score (−1, 0 or
 +1) as it stood at the end of a date ("Pr. dato", today by default), to bring the score up to
 date after old tournaments without pool results. A row
@@ -215,8 +219,9 @@ længde" and can't be tapped (on `/play` too) until the admin saves it.
 When the final and the third-place final (if there is one) are played, "conclude tournament" (after a
 confirmation) saves the results and opens the tournament's public page.
 
-`/play` (`PlayPage.tsx`) is where players enter results themselves. While a tournament is in
-progress, the header links to it ("Spil", "Play" in English; not shown to admins). It asks for the
+`/play` (`PlayPage.tsx`) is where players enter results themselves. The header always links to it
+("Spil", "Play" in English), to the left of Live. While no tournament is in progress, the code
+form says so above the field ("Ingen turnering er i gang lige nu.", `.play-none`). It asks for the
 join code (6 digits, with or without the space), then shows the same pools, "Up next" and bracket
 as the admin page (`components/TournamentPlay.tsx` with `manage={false}`): tapping a match opens
 the same `ScoreDialog`, but there is no drawing, qualifying or concluding. Choosing a score asks
@@ -336,9 +341,10 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
   tournament's page (`table.placings`) are left out: their
   headers scroll with the page, and a pool table's box always scrolls sideways when the pool is
   too wide.
-- On phones the header puts the navigation on its own row (scrolling sideways if needed) and
-  doesn't stick to the top, so the pools get the room; on a phone turned sideways (up to 500px
-  high) it doesn't stick either. Below 480px only the 8-ball is shown.
+- On phones, held either way (up to 760px wide, or up to 500px high when turned sideways), the
+  header has the logo on the left and Admin, Log ud and the language on the right of its first
+  row, and the navigation on its own row below (scrolling sideways if needed); it doesn't stick
+  to the top, so the pools get the room. Below 480px only the 8-ball is shown.
 - Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
   3 red, 4 purple, 5 orange, 6 green, 7 maroon, 8 black, and 9–15 striped.
 
@@ -910,3 +916,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The race length field ("Først til") can be emptied to type a new number; left empty, it becomes 2. |
 | 2026-10-29 | Every table's header (the blue row) stays in view while scrolling through its rows, under the site header; not the pool tables (admin, /play, the archive, /live) or the placings on a tournament's page. |
 | 2026-10-29 | The site header scrolls away on a phone turned sideways too (up to 500px high), as it already did on narrow screens. |
+| 2026-10-29 | Header: Spil is always in the menu, left of Live (/play says when no tournament is in progress). For admins, "Ny Turnering" and "Handicap" moved into an "Admin" dropdown left of Log ud, which says "Live turnering" (to the admin's page) while a tournament is in progress. On phones all five tabs fit without scrolling. |
+| 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |

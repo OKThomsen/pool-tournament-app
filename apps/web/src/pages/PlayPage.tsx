@@ -6,7 +6,7 @@ import { TournamentPlay } from '../components/TournamentPlay';
 import { formatDate } from '../format';
 import { useJoin, useLeave, usePlaySession, useRecheckPlaySession } from '../play';
 import { t } from '../strings';
-import { useTournament } from '../tournaments';
+import { useOngoingTournament, useTournament } from '../tournaments';
 
 /**
  * /play: players enter the tournament's join code, then see the pools and bracket like the
@@ -38,6 +38,7 @@ export function PlayPage() {
 
 function JoinForm({ ended }: { ended: boolean }) {
   const join = useJoin();
+  const ongoing = useOngoingTournament();
   const [code, setCode] = useState('');
   // Admins read the code out as "482 913"; accept it with or without the space.
   const digits = code.replace(/\s/g, '');
@@ -61,6 +62,7 @@ function JoinForm({ ended }: { ended: boolean }) {
     <form className="panel login" onSubmit={submit}>
       <h1>{t.play.title}</h1>
       <p>{ended && !error ? t.play.ended : t.play.intro}</p>
+      {ongoing.data === null && <p className="play-none">{t.play.noTournament}</p>}
       <label>
         {t.play.code}
         <input
