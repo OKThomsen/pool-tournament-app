@@ -8,6 +8,7 @@ import { sessionPlugin } from './auth/plugin.js';
 import type { Database } from './db/client.js';
 import { Events } from './events.js';
 import { authRoutes } from './routes/auth.js';
+import { calendarRoutes } from './routes/calendar.js';
 import { eventRoutes } from './routes/events.js';
 import { handicapRoutes } from './routes/handicaps.js';
 import { healthRoutes } from './routes/health.js';
@@ -63,6 +64,7 @@ export async function buildApp({
   await app.register(playerRoutes, { prefix: '/api', db });
   await app.register(seasonRoutes, { prefix: '/api', db });
   await app.register(handicapRoutes, { prefix: '/api', db });
+  await app.register(calendarRoutes, { prefix: '/api', db });
   await app.register(tournamentRoutes, { prefix: '/api', db, events });
   await app.register(eventRoutes, { prefix: '/api', events, version: frontendVersion(webDist) });
 

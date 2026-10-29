@@ -520,6 +520,17 @@ score.
 | `GET /api/seasons` | public | Every season with a concluded tournament that counts (not "For sjov kamp"), plus the current one, newest first: `[{ label, start, end }]`. |
 | `GET /api/seasons/:id` | public | One season by its label with a dash (`1-2026` for 1/2026): `{ season, standings }`, the standings as above. 404 `not_found` for anything that isn't a season. |
 
+### Calendar API
+
+The frontpage's "Kalender": events the admins post, each a date and a message.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/calendar` | public | Today's and coming events (Danish date), soonest first, then in the order posted: `[{ id, date, message }]`. Past events drop off by themselves; they stay in the table. |
+| `POST /api/calendar` | admin | `{ date, message }` → 201 and the event. The message is trimmed, 1–200 characters. 400 `date_in_past`. |
+| `PUT /api/calendar/:id` | admin | `{ date, message }`: edits an event, as when posting. 404 `not_found`. |
+| `DELETE /api/calendar/:id` | admin | 204. 404 `not_found`. |
+
 ### Tournaments API
 
 A tournament goes `draft` → `pools` → `knockout` → `concluded`. Only one tournament can be in
@@ -665,6 +676,7 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `results` | Per player per concluded tournament: placement, points, matches won, handicap snapshot. |
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
+| `calendar_events` | The frontpage's calendar: date and message. |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 
