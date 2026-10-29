@@ -674,6 +674,8 @@ table,
   margin: 0 0 12px;
   padding: 0;
   list-style: none;
+  /* The rows fold up below by the list's own width, in whatever layout the board is in. */
+  container-type: inline-size;
 }
 
 .calendar-events li {
@@ -687,6 +689,30 @@ table,
 
 .calendar-events li:last-child {
   border-bottom: 0;
+}
+
+/* Too narrow for the title between the date and Rediger/Slet (the side column on a phone turned
+   sideways): Rediger/Slet go under the title, lined up with it. */
+@container (max-width: 300px) {
+  .calendar-events li {
+    grid-template-columns: 4.5em minmax(0, 1fr);
+  }
+
+  .calendar-events .actions {
+    grid-column: 2;
+    padding-left: calc(1.15 * 0.85em + 0.45em);
+  }
+}
+
+/* Narrower still: the date on a line of its own above the title. */
+@container (max-width: 230px) {
+  .calendar-events li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-events .actions {
+    grid-column: 1;
+  }
 }
 
 .calendar-date {
