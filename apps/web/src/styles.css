@@ -329,8 +329,9 @@ table,
   border-color: var(--charcoal-400);
 }
 
-/* On phones: logo and actions on the first row, the navigation on its own row below. */
-@media (max-width: 760px) {
+/* On phones, held either way (narrow, or low when turned sideways): logo and actions on the first
+   row, the navigation on its own row below. */
+@media (max-width: 760px), (max-height: 500px) {
   .header {
     padding: 8px 12px 0;
     gap: 4px 12px;
@@ -378,17 +379,11 @@ table,
   .header {
     position: static;
   }
-
-  .pool-table {
-    font-size: 0.85rem;
-  }
 }
 
-/* A phone turned sideways is wide but low: the header scrolls away there too, instead of
-   taking a third of the screen. */
-@media (max-height: 500px) {
-  .header {
-    position: static;
+@media (max-width: 760px) {
+  .pool-table {
+    font-size: 0.85rem;
   }
 }
 

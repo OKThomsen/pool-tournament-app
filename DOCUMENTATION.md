@@ -341,9 +341,10 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
   tournament's page (`table.placings`) are left out: their
   headers scroll with the page, and a pool table's box always scrolls sideways when the pool is
   too wide.
-- On phones the header puts the navigation on its own row (scrolling sideways if needed) and
-  doesn't stick to the top, so the pools get the room; on a phone turned sideways (up to 500px
-  high) it doesn't stick either. Below 480px only the 8-ball is shown.
+- On phones, held either way (up to 760px wide, or up to 500px high when turned sideways), the
+  header has the logo on the left and Admin, Log ud and the language on the right of its first
+  row, and the navigation on its own row below (scrolling sideways if needed); it doesn't stick
+  to the top, so the pools get the room. Below 480px only the 8-ball is shown.
 - Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
   3 red, 4 purple, 5 orange, 6 green, 7 maroon, 8 black, and 9–15 striped.
 
@@ -916,3 +917,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | Every table's header (the blue row) stays in view while scrolling through its rows, under the site header; not the pool tables (admin, /play, the archive, /live) or the placings on a tournament's page. |
 | 2026-10-29 | The site header scrolls away on a phone turned sideways too (up to 500px high), as it already did on narrow screens. |
 | 2026-10-29 | Header: Spil is always in the menu, left of Live (/play says when no tournament is in progress). For admins, "Ny Turnering" and "Handicap" moved into an "Admin" dropdown left of Log ud, which says "Live turnering" (to the admin's page) while a tournament is in progress. On phones all five tabs fit without scrolling. |
+| 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |
