@@ -15,7 +15,8 @@ const COLUMN = { name: 9, cell: 5.5, won: 5, rank: 3.5 };
  * names, and every column is narrower, so a pool of 5 fits the screen without swiping.
  */
 const COMPACT_COLUMN = { name: 7.5, cell: 3, won: 2, rank: 2 };
-const PHONE = '(max-width: 600px)';
+/** A phone held either way: narrow, or (turned sideways) low. */
+const PHONE = '(max-width: 600px), (max-height: 500px)';
 
 function usePhone() {
   return useSyncExternalStore(

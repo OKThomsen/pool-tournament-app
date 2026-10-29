@@ -122,8 +122,15 @@ app imports straight from source via a Vite alias). If a tournament is already i
 page links to it instead.
 
 **Admin panel.** On a tournament's pages the admin's tools are gathered in a panel on the right
-(`components/AdminPanel.tsx`, `AdminLayout`), which stays in view while the page scrolls; below
-1000px wide it sits above the page instead. On the tournament in progress it has, top to bottom:
+(`components/AdminPanel.tsx`, `AdminLayout`), which stays in view while the page scrolls. Below
+1000px wide it is a drawer on the right edge instead (`position: fixed`), which lies over the
+pools and follows the screen as the page scrolls; it scrolls inside itself if it's taller than
+the screen. The arrow in its header ("Admin ›") puts the tools away on the right: the panel
+shrinks to a thin strip ("‹ Admin", written downwards), which beside the page gives the page the
+room and on a phone sits at the screen's right edge; the arrow brings them back. The choice is
+remembered in the browser (`localStorage`, key `view:adminPanel`); until then the panel starts
+open beside the page and closed as a drawer, so on a phone the pools come first. On the tournament
+in progress it has, top to bottom:
 the **join code** for `/play` (`JoinCode.tsx`, shown as "482 913") with "Ny kode", which makes a
 new one (after a confirmation) and signs out everyone using the old one, in case the code has
 spread beyond the players; "Rediger spillere" and, during pool play, "Rediger puljer" (both until
@@ -171,7 +178,7 @@ In pool play the page shows each pool as a matrix (`PoolTable`), read across lik
 Columns have fixed widths (`COLUMN` in `PoolTable.tsx`, in em) and the result cells are squares.
 Every pool is drawn with as many rows and result columns as the largest pool (`slots`), leaving
 the extra fields empty, so all pools have the same size and line up. Long names are cut off with
-"…" and shown in full on hover. On phones (up to 600px wide) the matrix is compact
+"…" and shown in full on hover. On phones (up to 600px wide, or up to 500px high, so a phone turned sideways too) the matrix is compact
 (`COMPACT_COLUMN`): the players are numbered 1–5, the result columns are headed by those numbers
 instead of names, the set score is stacked ("5W" over "3L"), "Vundne" becomes "V", and the font
 shrinks (down to 0.65rem) until the pool fits the screen, so a pool of 5 needs no swiping on a
@@ -882,3 +889,6 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-23 | On phones every table is compact like the pool tables: short headings, tighter cells, and the font shrinks until the table fits the screen (down to 0.65rem). |
 | 2026-10-27 | The server also hosts the portfolio site, so HTTPS moved to a shared Caddy (in the portfolio repo) on the external `web` network, where the app is `pool-app`. This repo no longer runs Caddy; its `Caddyfile` is gone. |
 | 2026-10-29 | A calendar ("Kalender") on the frontpage, above the season leaderboard: admins post events (a date, a title and an optional description), and edit or delete them. Only today's and coming events are shown, as "29/10  title"; one with a description has an "i" icon and opens it in a popup. |
+| 2026-10-29 | The pool tables are compact on a phone turned sideways too (up to 500px high), not only up to 600px wide. |
+| 2026-10-29 | The admin panel can be hidden and shown with the arrow in its header (remembered per device). It starts closed on phones and narrow screens, where it sits above the page, so the pools come first. |
+| 2026-10-29 | Below 1000px wide the admin panel is a drawer on the right edge that lies over the pools and follows the screen while scrolling; its arrow puts it away into a strip at the edge. Beside the page (wider screens) it stays as it was. |
