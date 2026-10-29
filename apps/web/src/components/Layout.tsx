@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useLogout, useSession } from '../auth';
 import { usePendingHandicaps } from '../handicaps';
@@ -17,6 +17,7 @@ export function Layout() {
   const logout = useLogout();
   const navigate = useNavigate();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const header = useStickyTop();
 
   const logOut = () => {
     setConfirmingLogout(false);
@@ -25,7 +26,7 @@ export function Layout() {
 
   return (
     <>
-      <header className="header">
+      <header ref={header} className="header">
         <Link to="/" className="brand">
           <img src="/brand/roundel.png" alt="" />
           <span>{t.brand}</span>
@@ -95,4 +96,32 @@ export function Layout() {
       </main>
     </>
   );
+}
+
+/**
+ * Keeps `--sticky-top` on the page at the header's height while the header sticks to the top
+ * (0 on phones, where it scrolls away), so the tables' sticky headers stop right under it.
+ */
+function useStickyTop() {
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const header = ref.current;
+    if (!header) return;
+    const root = document.documentElement;
+    const measure = () => {
+      const sticks = getComputedStyle(header).position === 'sticky';
+      root.style.setProperty('--sticky-top', `${sticks ? header.offsetHeight : 0}px`);
+    };
+    measure();
+    // The header wraps to two rows, or stops sticking, as the screen changes.
+    const resized = new ResizeObserver(measure);
+    resized.observe(header);
+    window.addEventListener('resize', measure);
+    return () => {
+      resized.disconnect();
+      window.removeEventListener('resize', measure);
+      root.style.removeProperty('--sticky-top');
+    };
+  }, []);
+  return ref;
 }

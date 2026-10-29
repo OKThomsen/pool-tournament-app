@@ -1142,8 +1142,23 @@ th[aria-sort] .sort-arrow {
 }
 
 /* Wide tables scroll sideways on small screens. */
+/* A table's box clips instead of scrolling while the table fits, so it isn't a scroll container
+   and the header below sticks to the screen; only a table too wide for it scrolls sideways
+   (useScrollWhenWide sets `overflows`). */
 .table-scroll {
+  overflow-x: clip;
+}
+
+.table-scroll.overflows {
   overflow-x: auto;
+}
+
+/* Every table's header (the blue rows) stays in view, right under the site header, while its
+   rows scroll past. Layout keeps --sticky-top at the site header's height. */
+thead {
+  position: sticky;
+  z-index: 3;
+  top: var(--sticky-top, 0px);
 }
 
 /* A table whose rows open something. */
