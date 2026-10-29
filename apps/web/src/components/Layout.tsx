@@ -1,19 +1,17 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useLogout, useSession } from '../auth';
-import { usePendingHandicaps } from '../handicaps';
 import { t } from '../strings';
 import { useOngoingTournament } from '../tournaments';
+import { AdminMenu } from './AdminMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import { LanguageSwitch } from './Language';
 
-/** Header and navigation from the wireframes, with admin links when logged in. */
+/** Header and navigation from the wireframes, with the admin's menu when logged in. */
 export function Layout() {
   const admin = useSession();
-  // Players find /play in the menu while a tournament is on (admins score on their own page).
+  // "Live" glows while a tournament is in progress.
   const ongoing = useOngoingTournament();
-  // Players with a handicap recommendation waiting for the admin.
-  const pending = usePendingHandicaps().length;
   const logout = useLogout();
   const navigate = useNavigate();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
@@ -41,29 +39,18 @@ export function Layout() {
           <NavLink to="/saeson" className="nav-link">
             {t.nav.season}
           </NavLink>
+          {/* Always there: /play says so when no tournament is in progress. */}
+          <NavLink to="/play" className="nav-link">
+            {t.nav.play}
+          </NavLink>
           {/* Glows like the badge on /live while a tournament is in progress. */}
           <NavLink to="/live" className={`nav-link nav-live${ongoing.data ? ' on-air' : ''}`}>
             {ongoing.data && <span className="live-dot" aria-hidden="true" />}
             {t.nav.live}
           </NavLink>
-          {admin && (
-            <NavLink to="/admin/handicap" className="nav-link">
-              {t.nav.handicaps}
-              {pending > 0 && <span className="count-badge">{pending}</span>}
-            </NavLink>
-          )}
-          {ongoing.data && !admin && (
-            <NavLink to="/play" className="nav-link">
-              {t.nav.play}
-            </NavLink>
-          )}
         </nav>
         <div className="header-actions">
-          {admin && (
-            <NavLink to="/admin/turnering/ny" className="button primary">
-              {t.nav.newTournament}
-            </NavLink>
-          )}
+          {admin && <AdminMenu />}
           {admin ? (
             <button
               type="button"
