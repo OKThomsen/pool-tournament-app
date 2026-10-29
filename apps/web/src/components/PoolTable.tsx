@@ -1,6 +1,5 @@
 import { PlayerName } from './PlayerName';
-import { useRef, useSyncExternalStore, type CSSProperties } from 'react';
-import { useScrollWhenWide } from './TableView';
+import { useSyncExternalStore, type CSSProperties } from 'react';
 import { isPlayed, scoreFor, type PoolView } from '../poolView';
 import { t } from '../strings';
 import type { Match } from '../tournaments';
@@ -55,8 +54,6 @@ const TEAM_NAME_EXTRA = { normal: 4, compact: 2.5 };
  */
 export function PoolTable({ view, names, slots, onCellClick, teams = false }: PoolTableProps) {
   const { pool, standings, matchBetween } = view;
-  const box = useRef<HTMLDivElement>(null);
-  useScrollWhenWide(box);
   const compact = usePhone();
   const base = compact ? COMPACT_COLUMN : COLUMN;
   const extra = teams ? TEAM_NAME_EXTRA[compact ? 'compact' : 'normal'] : 0;
@@ -73,7 +70,7 @@ export function PoolTable({ view, names, slots, onCellClick, teams = false }: Po
   } as CSSProperties;
 
   return (
-    <div ref={box} className="table-scroll">
+    <div className="table-scroll">
       <table className={compact ? 'pool-table compact' : 'pool-table'} style={style}>
         <colgroup>
           <col style={{ width: `${column.name}em` }} />

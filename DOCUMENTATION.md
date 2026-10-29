@@ -324,13 +324,14 @@ pages are light; the leaderboard is a dark "scoreboard"; `/live` is dark. Everyt
   Spillere's ten columns fit a 360px phone; padding is in em so it shrinks too. A table still too
   wide scrolls sideways. Dates and handicaps (`td.nowrap`) stay on one line; names wrap, and
   Rediger/Slet stack.
-- **Sticky table headers**: every table's header (`thead`, the blue rows; on a pool table its title
-  row and the names row) stays in view while its rows scroll past, right under the site header
+- **Sticky table headers**: every table's header (`thead`, the blue row) stays in view while its
+  rows scroll past, right under the site header
   (`--sticky-top`, which `Layout` keeps at the header's height while it sticks, and 0 on phones,
   where it scrolls away). That needs the table's box not to be a scroll container, so
   `.table-scroll` clips instead of scrolling, and only a table wider than its box gets
   `overflows` and scrolls sideways (`useScrollWhenWide` in `TableView.tsx`); such a table's header
-  then stays put.
+  then stays put. The pool tables are left out (admin, `/play`, the archive, `/live`): their
+  headers scroll with the page, and their box always scrolls sideways when the pool is too wide.
 - On phones the header puts the navigation on its own row (scrolling sideways if needed) and
   doesn't stick to the top, so the pools get the room. Below 480px only the 8-ball is shown.
 - Seeds in the bracket are drawn as **pool balls** (`components/Ball.tsx`): 1 yellow, 2 blue,
@@ -902,4 +903,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The admin panel can be hidden and shown with the arrow in its header (remembered per device). It starts closed on phones and narrow screens, where it sits above the page, so the pools come first. |
 | 2026-10-29 | Below 1000px wide the admin panel is a drawer on the right edge that lies over the pools and follows the screen while scrolling; its arrow puts it away into a strip at the edge. Beside the page (wider screens) it stays as it was. |
 | 2026-10-29 | The race length field ("Først til") can be emptied to type a new number; left empty, it becomes 2. |
-| 2026-10-29 | Every table's header (the blue rows) stays in view while scrolling through its rows, under the site header. |
+| 2026-10-29 | Every table's header (the blue row) stays in view while scrolling through its rows, under the site header; not the pool tables (admin, /play, the archive, /live). |

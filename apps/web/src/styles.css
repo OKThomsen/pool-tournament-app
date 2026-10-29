@@ -1154,8 +1154,9 @@ th[aria-sort] .sort-arrow {
 }
 
 /* Every table's header (the blue rows) stays in view, right under the site header, while its
-   rows scroll past. Layout keeps --sticky-top at the site header's height. */
-thead {
+   rows scroll past; not the pool tables, whose headers scroll with the page. Layout keeps
+   --sticky-top at the site header's height. */
+table:not(.pool-table) > thead {
   position: sticky;
   z-index: 3;
   top: var(--sticky-top, 0px);
@@ -1502,8 +1503,10 @@ table.clickable tbody tr:hover {
 }
 
 /* The scroll box rounds the table's corners (the table itself mustn't clip, or the pinned
-   names below wouldn't stick). */
+   names below wouldn't stick). A pool table's header doesn't stick to the screen, so its box can
+   always scroll sideways when the pool is too wide. */
 .table-scroll:has(> .pool-table) {
+  overflow-x: auto;
   border-radius: var(--radius-small);
 }
 
