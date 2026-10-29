@@ -2,12 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { t } from '../strings';
 
 const STORAGE_KEY = 'view:adminPanel';
-/** Where the panel sits above the page instead of beside it (see .admin-layout in the CSS). */
+/** Where the panel is a drawer over the page instead of beside it (see .admin-panel in the CSS). */
 const NARROW = '(max-width: 1000px)';
 
 /**
  * Whether the panel starts open: as the admin left it on this device, otherwise open beside the
- * page and closed above it, so on a phone the pools come first.
+ * page and closed as a drawer, so on a phone the pools come first.
  */
 function initiallyOpen(): boolean {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -16,9 +16,10 @@ function initiallyOpen(): boolean {
 }
 
 /**
- * A tournament page with the admin's tools gathered in a panel on the right (above the page on
- * narrow screens). The arrow in its header hides and shows the tools: beside the page it folds
- * into a thin strip, above it only the header stays. Without a panel, the page is shown as it is.
+ * A tournament page with the admin's tools gathered in a panel on the right: beside the page, or
+ * on narrow screens a drawer on the right edge that lies over the page and stays in view while it
+ * scrolls. The arrow in its header puts the tools away into a thin strip on the right and brings
+ * them back. Without a panel, the page is shown as it is.
  */
 export function AdminLayout({ panel, children }: { panel?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(initiallyOpen);

@@ -441,8 +441,8 @@ table,
   color: var(--accent);
 }
 
-/* A chevron drawn with two borders: rotated -45° it points right. Beside the page it points
-   right to fold the panel away and left to bring it back. */
+/* A chevron drawn with two borders: rotated -45° it points right, to put the panel away on the
+   right; closed, it points left to bring it back. */
 .admin-panel-arrow {
   flex: none;
   width: 0.6em;
@@ -457,9 +457,9 @@ table,
   transform: rotate(135deg);
 }
 
-/* Closed: only the header is left. */
+/* Closed: only the header is left, as a thin strip with the title written downwards. */
 .panel-closed .admin-panel {
-  padding-bottom: 0;
+  padding: 0;
 }
 
 .panel-closed .admin-panel > :not(h2) {
@@ -467,30 +467,22 @@ table,
 }
 
 .panel-closed .admin-panel h2 {
-  margin-bottom: 0;
+  margin: 0;
   border-bottom: 0;
 }
 
-/* Beside the page, the closed panel is a thin strip with its title written downwards. */
+.panel-closed .admin-panel-toggle {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  padding: 12px 10px;
+  writing-mode: vertical-rl;
+}
+
+/* Beside the page, the closed strip gives the page its room. */
 @media (min-width: 1001px) {
   .admin-layout.panel-closed {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px;
-  }
-
-  .panel-closed .admin-panel {
-    padding: 0;
-  }
-
-  .panel-closed .admin-panel h2 {
-    margin: 0;
-  }
-
-  .panel-closed .admin-panel-toggle {
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-    padding: 12px 10px;
-    writing-mode: vertical-rl;
   }
 }
 
@@ -531,28 +523,30 @@ table,
   color: var(--error);
 }
 
-/* Narrow screens: the panel goes above the page, its buttons side by side. */
+/* Narrow screens: the panel is a drawer on the right edge that stays in view while the page
+   scrolls, on top of the pools. Closed, only its strip is left at the edge. */
 @media (max-width: 1000px) {
   .admin-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-panel {
-    position: static;
-    order: -1;
+    --drawer-top: clamp(12px, 12dvh, 96px);
+
+    position: fixed;
+    z-index: 50;
+    top: var(--drawer-top);
+    right: 0;
+    width: min(300px, calc(100vw - 48px));
+    max-height: calc(100dvh - var(--drawer-top) - 12px);
+    overflow-y: auto;
+    border-right: 0;
+    border-radius: var(--radius-small) 0 0 var(--radius-small);
+    box-shadow: var(--shadow-raised);
   }
 
-  /* Above the page the arrow points down while open and to the side while closed. */
-  .admin-panel-arrow {
-    transform: rotate(45deg);
-  }
-
-  .panel-closed .admin-panel-arrow {
-    transform: rotate(-45deg);
-  }
-
-  .admin-panel-actions {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  .panel-closed .admin-panel {
+    width: auto;
   }
 }
 
