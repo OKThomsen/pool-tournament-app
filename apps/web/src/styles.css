@@ -300,6 +300,14 @@ table,
   }
 }
 
+/* A phone turned sideways is wide but low: the header scrolls away there too, instead of
+   taking a third of the screen. */
+@media (max-height: 500px) {
+  .header {
+    position: static;
+  }
+}
+
 /* Too narrow for the name next to the admin buttons: the 8-ball alone. */
 @media (max-width: 480px) {
   .brand span {
