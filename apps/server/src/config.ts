@@ -14,4 +14,6 @@ export const config = {
   secureCookies: process.env.COOKIE_SECURE === 'true',
   /** The reverse proxy's addresses (see `trustProxy` in app.ts). Unset when nothing is in front. */
   trustProxy: process.env.TRUST_PROXY || undefined,
+  /** Where the gallery's photos are stored. A volume in Docker, so they outlive the container. */
+  photoDir: process.env.PHOTO_DIR || 'data/photos',
 };

@@ -361,8 +361,10 @@ docker compose stop               # stop, keeping the data
 
 The `Dockerfile` builds a single image: the Fastify server serves the API under `/api` and the
 built React app for every other path, so client-side routes like `/live` work on reload. The
-image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`),
-so it can move to any container host later.
+image is configured only through environment variables (`DATABASE_URL`, `PORT`, `WEB_DIST`,
+`PHOTO_DIR`), so it can move to any container host later. The gallery's photos are stored on the
+`photos` volume (`/app/data/photos` in the container); the dev server keeps them in
+`apps/server/data/photos` (git-ignored). `docker compose down -v` deletes them with the database.
 
 ### Production (turneringsportal.kjaer-thomsen.dk)
 
@@ -428,8 +430,11 @@ start, and open pages reload themselves with the new version. Logs: `docker comp
 it starts and every night at 04:00 Danish time, into `backups/` in the repo folder (git-ignored):
 `daily/` keeps 14 days, and `monthly/` keeps the last dump of each month for 12 months
 (`BACKUP_HOUR`, `BACKUP_KEEP_DAYS`, `BACKUP_KEEP_MONTHS` and `BACKUP_DIR` in `.env` change
-this). `docker compose logs backup` shows each dump. These copies live on the same machine, so
-copy `backups/` somewhere else regularly too.
+this). After each dump it copies new photos from the `photos` volume into `backups/photos/`
+(photo files never change, so only new ones are copied; a deleted photo stays in the copy).
+`docker compose logs backup` shows each dump. These copies live on the same machine, so
+copy `backups/` somewhere else regularly too. `restore.sh` only restores the database; to put
+the photos back, copy `backups/photos/` into the volume (`docker compose cp backups/photos/. app:/app/data/photos/`).
 
 **Restoring** a dump replaces the whole database. The app is stopped while it runs:
 
@@ -572,6 +577,24 @@ description.
 | `POST /api/calendar` | admin | `{ date, title, description? }` → 201 and the event. Both are trimmed; the title is 1–100 characters, the description up to 2000, and a blank one is stored as none. 400 `date_in_past`. |
 | `PUT /api/calendar/:id` | admin | `{ date, title, description? }`: edits an event, as when posting; leaving `description` out removes it. 404 `not_found`. |
 | `DELETE /api/calendar/:id` | admin | 204. 404 `not_found`. |
+
+### Photos API
+
+The gallery ("Galleri"). The original file is kept as uploaded (JPEG, PNG or WebP, up to
+40 MB); the browser makes a JPEG thumbnail (up to 2 MB) for the grid. Both are stored on disk in
+`PHOTO_DIR` (`<file>` and `thumbs/<file>`, a random name). A photo tied to a concluded
+tournament is its **winner picture**; a tournament has at most one.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/photos` | public | Every photo, newest first (date, then upload): `[{ id, date, width, height, season, tournament, placed, tagged }]`. `season` is the label (`2/2026`) of the tournament's date for a winner picture, else of the photo's date; null in the off-season. `tournament` is `{ id, date, format, duo, forFun }` or null; `placed` its 1st–3rd (`{ playerId, name, placement }`, both players of a team); `tagged` the players tagged by hand (`{ id, name }`, by name). |
+| `GET /api/photos/:id/image`, `/thumb` | public | The original (its own type) or the thumbnail (JPEG), cached for a year (files never change). 404 `not_found`. |
+| `POST /api/photos` | admin | Multipart: `image` (the file), `thumb` (JPEG) and `data`, JSON `{ date, tournamentId, playerIds, width, height }` (`tournamentId` null for none) → 201 and the photo. Tying it to a tournament unties that tournament's earlier winner picture. 400 `not_an_image` (checked from the file's first bytes), `bad_thumbnail`, `bad_data`, `unknown_tournament`, `tournament_not_concluded`, `unknown_player`; 413 when a file is too big. |
+| `PUT /api/photos/:id` | admin | `{ date, tournamentId, playerIds }`: replaces the photo's details, with the same rules. 404 `not_found`. |
+| `DELETE /api/photos/:id` | admin | Deletes the photo and its files. 204; 404 `not_found`. |
+
+Deleting a tournament keeps its winner picture in the gallery, untied; deleting a player removes
+their tags.
 
 ### Tournaments API
 
@@ -719,6 +742,8 @@ qualification, seeding and the knockout bracket are derived with `@franks/core`.
 | `points_table` | Points per placement, seeded from the workbook (10/7/5/4/2/1). |
 | `handicap_adjustments` | What sets a player's regulation score back to 0: a recommendation applied or dismissed (with its tournament), or a handicap changed by hand; or a score set by hand (`set`, with `score`); the date and the handicap before and after. |
 | `calendar_events` | The frontpage's calendar: date, title and an optional description (`description`, null for none). |
+| `photos` | The gallery: date, the file's name in `PHOTO_DIR`, its type and size in pixels, and the tournament it's the winner picture of (`tournament_id`, unique; set to null when the tournament is deleted). |
+| `photo_players` | Players tagged in a photo. |
 | `admins`, `sessions` | Admin accounts and login sessions (token hashes only). |
 | `player_sessions` | Players who joined a tournament with its code on `/play` (token hashes only). |
 

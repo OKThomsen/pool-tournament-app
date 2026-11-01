@@ -26,3 +26,6 @@ Thumbs.db
 # Database dumps (the backup container's, and any made by hand: they hold all the data)
 backups/
 *.dump
+
+# Gallery photos uploaded with the dev server (PHOTO_DIR)
+apps/server/data/

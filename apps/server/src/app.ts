@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sessionPlugin } from './auth/plugin.js';
 import type { Database } from './db/client.js';
@@ -10,6 +11,7 @@ import { Events } from './events.js';
 import { authRoutes } from './routes/auth.js';
 import { calendarRoutes } from './routes/calendar.js';
 import { eventRoutes } from './routes/events.js';
+import { photoRoutes } from './routes/photos.js';
 import { handicapRoutes } from './routes/handicaps.js';
 import { healthRoutes } from './routes/health.js';
 import { playRoutes } from './routes/play.js';
@@ -40,6 +42,11 @@ export interface AppOptions {
    * login rate limit.
    */
   trustProxy?: string;
+  /**
+   * Where the gallery's photos are stored. Tests that don't upload photos leave it out and get a
+   * folder in the system's temp folder.
+   */
+  photoDir?: string;
   logger?: boolean;
   /** Shared with the routes; tests pass their own to listen in. */
   events?: Events;
@@ -50,6 +57,7 @@ export async function buildApp({
   webDist,
   secureCookies = false,
   trustProxy,
+  photoDir = join(tmpdir(), 'franks-photos'),
   logger = true,
   events = new Events(),
 }: AppOptions) {
@@ -65,6 +73,7 @@ export async function buildApp({
   await app.register(seasonRoutes, { prefix: '/api', db });
   await app.register(handicapRoutes, { prefix: '/api', db });
   await app.register(calendarRoutes, { prefix: '/api', db });
+  await app.register(photoRoutes, { prefix: '/api', db, photoDir });
   await app.register(tournamentRoutes, { prefix: '/api', db, events });
   await app.register(eventRoutes, { prefix: '/api', events, version: frontendVersion(webDist) });
 

@@ -41,6 +41,8 @@ services:
     volumes:
       - ./scripts/backup.sh:/backup.sh:ro
       - ${BACKUP_DIR:-./backups}:/backups
+      # The gallery's photos, copied into backups/photos.
+      - photos:/photos:ro
     depends_on:
       db:
         condition: service_healthy

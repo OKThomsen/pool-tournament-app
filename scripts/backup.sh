@@ -3,6 +3,8 @@
 # then every night at BACKUP_HOUR into /backups:
 #   daily/   one dump per night, kept BACKUP_KEEP_DAYS days
 #   monthly/ the last dump of each month, kept BACKUP_KEEP_MONTHS months
+#   photos/  a copy of the gallery's photos (/photos). Photo files never change, so only new ones
+#            are copied, and a deleted photo stays here.
 # Dumps are pg_dump's custom format; restore one with scripts/restore.sh.
 set -u
 
@@ -24,6 +26,14 @@ backup() {
   find /backups/daily -name '*.dump' -mtime +"$BACKUP_KEEP_DAYS" -delete
   find /backups/monthly -name '*.dump' -mtime +"$((BACKUP_KEEP_MONTHS * 31))" -delete
   echo "$(date) backup written: daily/$file ($(du -h "/backups/daily/$file" | cut -f1))"
+  if [ -d /photos ]; then
+    mkdir -p /backups/photos
+    if cp -a -n /photos/. /backups/photos/; then
+      echo "$(date) photos copied: $(find /backups/photos -type f | wc -l) files"
+    else
+      echo "$(date) photo copy FAILED" >&2
+    fi
+  fi
 }
 
 backup
