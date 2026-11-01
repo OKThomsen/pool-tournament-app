@@ -25,9 +25,11 @@ function errorMessage(error: Error): string {
 }
 
 /**
- * Uploads a photo, or edits `photo`: its date, the concluded tournament it's the winner picture
- * of, and the players tagged in it. `tournament` preselects a tournament for a new photo (from
- * the tournament's page), and its date.
+ * Uploads photos, or edits `photo`: the date, the concluded tournament it's the winner picture
+ * of, and the players tagged in it. Several photos can be uploaded at once with the same date and
+ * players, one after the other; a tournament can only be chosen for a single photo. `tournament`
+ * preselects a tournament for a new photo (from the tournament's page), and its date; then only
+ * one photo can be chosen.
  */
 export function PhotoDialog({
   photo,
@@ -42,17 +44,26 @@ export function PhotoDialog({
   const update = useUpdatePhoto();
   const tournaments = useConcludedTournaments();
   const photos = usePhotos();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  /** While uploading: how many are done, of how many. */
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  /** The photos the last upload failed for, with why. */
+  const [failures, setFailures] = useState<{ file: File; message: string }[]>([]);
+  /** Changed to empty the file field after an upload with failures. */
+  const [fileField, setFileField] = useState(0);
+  /** The last upload had several photos, so the failures name theirs. */
+  const [failedInBatch, setFailedInBatch] = useState(false);
   const [date, setDate] = useState(photo?.date ?? tournament?.date ?? todayInDenmark());
   const [tournamentId, setTournamentId] = useState(
     photo ? (photo.tournament?.id ?? null) : (tournament?.id ?? null),
   );
   const [tagged, setTagged] = useState(photo?.tagged ?? []);
-  const preview = usePreview(file);
+  const previews = usePreviews(files);
 
-  const saving = upload.isPending || update.isPending;
-  const error = upload.error ?? update.error;
-  const tooBig = file !== null && file.size > MAX_PHOTO_BYTES;
+  const many = files.length > 1;
+  const saving = progress !== null || update.isPending;
+  const error = update.error;
+  const tooBig = files.filter((file) => file.size > MAX_PHOTO_BYTES);
   // A tournament has one winner picture; choosing this one replaces the other there.
   const replacesWinner =
     tournamentId !== null &&
@@ -66,15 +77,48 @@ export function PhotoDialog({
     if (chosen) setDate(chosen.date);
   };
 
+  const chooseFiles = (list: FileList | null) => {
+    const chosen = [...(list ?? [])];
+    setFiles(chosen);
+    setFailures([]);
+    if (chosen.length > 1) setTournamentId(null);
+  };
+
+  /** Uploads the photos one by one; the dialog closes when all went well. */
+  const uploadAll = async () => {
+    const details = {
+      date,
+      tournamentId: many ? null : tournamentId,
+      playerIds: tagged.map((p) => p.id),
+    };
+    const failed: { file: File; message: string }[] = [];
+    setFailures([]);
+    for (const [i, file] of files.entries()) {
+      setProgress({ done: i, total: files.length });
+      try {
+        await upload.mutateAsync({ file, ...details });
+      } catch (e) {
+        failed.push({ file, message: errorMessage(e as Error) });
+      }
+    }
+    setProgress(null);
+    if (failed.length === 0) return onClose();
+    // The photos that went well are in the gallery; the failed ones are named, to choose again.
+    setFailures(failed);
+    setFailedInBatch(files.length > 1);
+    setFiles([]);
+    setFileField(fileField + 1);
+  };
+
   const save = (event: FormEvent) => {
     event.preventDefault();
     const details = { date, tournamentId, playerIds: tagged.map((p) => p.id) };
     if (photo) update.mutate({ id: photo.id, ...details }, { onSuccess: onClose });
-    else if (file) upload.mutate({ file, ...details }, { onSuccess: onClose });
+    else if (files.length > 0) void uploadAll();
   };
 
   return (
-    <Modal open onClose={onClose} className="photo-dialog">
+    <Modal open onClose={saving ? () => {} : onClose} className="photo-dialog">
       <form onSubmit={save}>
         <h2>{photo ? t.gallery.editTitle : t.gallery.upload}</h2>
         {photo ? (
@@ -82,15 +126,31 @@ export function PhotoDialog({
         ) : (
           <>
             <label>
-              {t.gallery.file}
+              {tournament ? t.gallery.file : t.gallery.files}
               <input
+                key={fileField}
                 type="file"
-                required
+                required={files.length === 0}
+                multiple={!tournament}
                 accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => chooseFiles(e.target.files)}
               />
             </label>
-            {preview && <img className="photo-dialog-preview" src={preview} alt="" />}
+            {previews.length === 1 && (
+              <img className="photo-dialog-preview" src={previews[0]} alt="" />
+            )}
+            {many && (
+              <>
+                <ul className="photo-dialog-previews">
+                  {previews.map((url) => (
+                    <li key={url}>
+                      <img src={url} alt="" />
+                    </li>
+                  ))}
+                </ul>
+                <p className="muted small">{t.gallery.manyHelp}</p>
+              </>
+            )}
           </>
         )}
         <label>
@@ -99,7 +159,11 @@ export function PhotoDialog({
         </label>
         <label>
           {t.gallery.tournament}
-          <select value={tournamentId ?? ''} onChange={(e) => chooseTournament(e.target.value)}>
+          <select
+            value={tournamentId ?? ''}
+            disabled={many}
+            onChange={(e) => chooseTournament(e.target.value)}
+          >
             <option value="">{t.gallery.noTournament}</option>
             {(tournaments.data ?? []).map((tournament) => (
               <option key={tournament.id} value={tournament.id}>
@@ -109,7 +173,11 @@ export function PhotoDialog({
             ))}
           </select>
         </label>
-        {replacesWinner && <p className="muted small">{t.gallery.replacesWinner}</p>}
+        {many ? (
+          <p className="muted small">{t.gallery.oneWinner}</p>
+        ) : (
+          replacesWinner && <p className="muted small">{t.gallery.replacesWinner}</p>
+        )}
         <div>
           <span className="label">{t.gallery.tagged}</span>
           {tagged.length > 0 && (
@@ -135,20 +203,51 @@ export function PhotoDialog({
             onAdd={(player) => setTagged([...tagged, { id: player.id, name: player.name }])}
           />
         </div>
-        {(tooBig || error) && (
+        {tooBig.length > 0 && (
           <p className="error" role="alert">
-            {tooBig ? t.gallery.tooBig : errorMessage(error!)}
+            {t.gallery.tooBig} {tooBig.map((file) => file.name).join(', ')}
           </p>
+        )}
+        {error && (
+          <p className="error" role="alert">
+            {errorMessage(error)}
+          </p>
+        )}
+        {failures.length > 0 && (
+          <div className="error" role="alert">
+            {!failedInBatch ? (
+              <p>{failures[0]!.message}</p>
+            ) : (
+              <>
+                <p>{t.gallery.failed}</p>
+                <ul>
+                  {failures.map(({ file, message }) => (
+                    <li key={file.name}>
+                      {file.name}: {message}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         )}
         <div className="confirm-buttons">
           <button
             type="submit"
             className="primary"
-            disabled={saving || tooBig || (!photo && !file)}
+            disabled={saving || tooBig.length > 0 || (!photo && files.length === 0)}
           >
-            {upload.isPending ? t.gallery.uploading : photo ? t.save : t.gallery.upload}
+            {progress
+              ? progress.total > 1
+                ? t.gallery.uploadingCount(progress.done + 1, progress.total)
+                : t.gallery.uploading
+              : photo
+                ? t.save
+                : many
+                  ? t.gallery.uploadMany(files.length)
+                  : t.gallery.upload}
           </button>
-          <button type="button" className="link" onClick={onClose}>
+          <button type="button" className="link" disabled={saving} onClick={onClose}>
             {t.cancel}
           </button>
         </div>
@@ -157,14 +256,13 @@ export function PhotoDialog({
   );
 }
 
-/** A URL to show the chosen file before it's uploaded. */
-function usePreview(file: File | null): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+/** URLs to show the chosen files before they're uploaded. */
+function usePreviews(files: File[]): string[] {
+  const [urls, setUrls] = useState<string[]>([]);
   useEffect(() => {
-    if (!file) return setUrl(null);
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
-  return url;
+    const objectUrls = files.map((file) => URL.createObjectURL(file));
+    setUrls(objectUrls);
+    return () => objectUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
+  return urls;
 }

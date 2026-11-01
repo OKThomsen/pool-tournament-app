@@ -121,27 +121,34 @@ It is never taller than the screen; the list scrolls inside it (`.frontpage-lead
 
 **Galleri** (`/galleri`, `GalleryPage.tsx`, data from `apps/web/src/photos.ts`) shows every
 photo newest first, under a big heading per year ("2026") and a heading per month in it
-("Oktober"), as square thumbnails (`components/PhotoGrid.tsx`). The search above it finds a
+("Oktober"), as small square thumbnails (`components/PhotoGrid.tsx`; at least 120px, 76px on
+phones). The search above it finds a
 photo when every word matches the start of a word in its names (a winner picture's 1st–3rd and
 the tagged players), its format ("9-ball"), its season ("2/2026", also "sæson 2/2026"), its year
 or its month's name in the current language, or is part of its date (or the tournament's) as
-shown ("28-10", "10-2026"). It isn't remembered. A thumbnail opens the photo large (the original
-file) with its date and season, the tournament it's the winner picture of (linked), that
+shown ("28-10", "10-2026"). It isn't remembered. A thumbnail opens the photo in the viewer
+(`components/PhotoViewer.tsx`): the original file, uncropped and fitted to the screen; a click on
+it shows it at its full size (its own pixels, scrolling inside the viewer), and another click fits
+it again. Beside it are its date and season, the tournament it's the winner picture of (linked), that
 tournament's top three ("1. Anna · 2. Bo · 3. Carl"; a team as "Anna & Bo") and "På billedet:"
 with the tagged players; the arrows on it, or the arrow keys, go to the previous and next photo
 the search shows. Admins get "Upload billede" and, on an open photo, Rediger and Slet (after a
-confirmation). The dialog (`components/PhotoDialog.tsx`) takes the file (JPEG, PNG or WebP, up to
-40 MB, kept as it is; iPhones send HEIC photos as JPEG), the date (today by default), the
-concluded tournament it's the winner picture of (choosing one sets the date to the tournament's;
-it says so when that replaces the tournament's current winner picture) and the players in the
-photo (the same search as "Tilføj spiller", without "Tilføj ny spiller"). Before uploading, the
+confirmation). The dialog (`components/PhotoDialog.tsx`) takes one or several files (JPEG, PNG or
+WebP, up to 40 MB each, kept as they are; iPhones send HEIC photos as JPEG), the date (today by
+default), the concluded tournament it's the winner picture of (choosing one sets the date to the
+tournament's; it says so when that replaces the tournament's current winner picture) and the
+players in the photo (the same search as "Tilføj spiller", without "Tilføj ny spiller"). Several
+files get the same date and players, and no tournament (only one photo can be a winner picture);
+they are uploaded one after the other ("Uploader 3 af 7 …", the dialog can't be closed
+meanwhile), and if some fail, the others are in the gallery and the dialog lists the failed files
+with why, to choose them again. Before uploading, the
 browser reads the image's size and draws a JPEG thumbnail, 480px on its short side and turned
 the right way up.
 
 A concluded tournament's page (`TournamentDetailPage.tsx`) shows its winner picture above the
-placings, as large as the column allows (a click opens the original); without one, nothing is
-shown. Its admin panel has "Vinderbillede" (`components/WinnerPhoto.tsx`): "Upload vinderbillede"
-(the upload dialog with the tournament and its date chosen), "Vælg fra galleriet" (the photos
+placings, at most 360px high (half the screen on a short one); a click opens it in the viewer.
+Without one, nothing is shown. Its admin panel has "Vinderbillede" (`components/WinnerPhoto.tsx`): "Upload vinderbillede"
+(the upload dialog for a single photo, with the tournament and its date chosen), "Vælg fra galleriet" (the photos
 not yet tied to a tournament, those taken nearest the tournament's date first; a click makes it
 the winner picture) and, when it has one, "Fjern vinderbillede" (after a confirmation; the photo
 stays in the gallery).
@@ -975,4 +982,5 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The calendar's rows fold up in a narrow side column (a phone turned sideways): Rediger/Slet under the title, and at the narrowest the date above it. |
 | 2026-10-29 | Header: Spil is always in the menu, left of Live (/play says when no tournament is in progress). For admins, "Ny Turnering" and "Handicap" moved into an "Admin" dropdown left of Log ud, which says "Live turnering" (to the admin's page) while a tournament is in progress. On phones all five tabs fit without scrolling. |
 | 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |
+| 2026-11-01 | Photos are shown small on the pages (gallery thumbnails, the winner picture); a click opens the whole photo in a viewer, and a click there shows it at its full size. Several photos can be uploaded at once with one date (and the same tagged players). |
 | 2026-11-01 | A gallery ("Galleri", a tab between Sæson and Spil) of photos the admins upload: newest first, by year and month, searchable by player, date, format, season, year and month. A photo can be tied to a concluded tournament as its winner picture (one per tournament), shown on the tournament's page; its top three are then searchable too. Admins tag players in photos by hand. Originals are kept as uploaded, with a thumbnail made in the browser. |

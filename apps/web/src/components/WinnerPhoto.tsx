@@ -6,26 +6,36 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { Modal } from './Modal';
 import { PhotoDialog } from './PhotoDialog';
 import { PhotoGrid } from './PhotoGrid';
+import { PhotoViewer } from './PhotoViewer';
 
 /** The tournament's winner picture, if it has one. */
 function useWinnerPhoto(tournamentId: number): Photo | undefined {
   return usePhotos().data?.find((photo) => photo.tournament?.id === tournamentId);
 }
 
-/** The winner picture on a concluded tournament's page; nothing until one is added. */
+/**
+ * The winner picture on a concluded tournament's page, a size that fits the page; a click opens
+ * it large. Nothing until one is added.
+ */
 export function WinnerPhoto({ tournament }: { tournament: { id: number; date: string } }) {
   const photo = useWinnerPhoto(tournament.id);
+  const [open, setOpen] = useState(false);
   if (!photo) return null;
   return (
     <figure className="winner-photo">
-      <a href={imageUrl(photo)} target="_blank" rel="noreferrer">
+      <button type="button" onClick={() => setOpen(true)} title={t.gallery.open}>
         <img
           src={imageUrl(photo)}
           alt={t.winnerPhoto.alt(formatDate(tournament.date))}
           width={photo.width}
           height={photo.height}
         />
-      </a>
+      </button>
+      <PhotoViewer
+        photos={[photo]}
+        photoId={open ? photo.id : null}
+        onShow={(id) => setOpen(id !== null)}
+      />
     </figure>
   );
 }
