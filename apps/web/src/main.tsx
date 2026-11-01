@@ -10,6 +10,7 @@ import { RequireAdmin } from './components/RequireAdmin';
 import { CreateTournamentPage } from './pages/CreateTournamentPage';
 import { EditTournamentPage } from './pages/EditTournamentPage';
 import { FrontPage } from './pages/FrontPage';
+import { GalleryPage } from './pages/GalleryPage';
 import { HandicapPlayerPage } from './pages/HandicapPlayerPage';
 import { HandicapsPage } from './pages/HandicapsPage';
 import { LivePage } from './pages/LivePage';
@@ -59,6 +60,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="spillere" element={<PlayersPage />} />
               <Route path="saeson" element={<SeasonPage />} />
               <Route path="saeson/:id" element={<SeasonPage />} />
+              <Route path="galleri" element={<GalleryPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="play" element={<PlayPage />} />
               <Route path="admin" element={<RequireAdmin />}>

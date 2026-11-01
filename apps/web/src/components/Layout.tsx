@@ -39,6 +39,9 @@ export function Layout() {
           <NavLink to="/saeson" className="nav-link">
             {t.nav.season}
           </NavLink>
+          <NavLink to="/galleri" className="nav-link">
+            {t.nav.gallery}
+          </NavLink>
           {/* Always there: /play says so when no tournament is in progress. */}
           <NavLink to="/play" className="nav-link">
             {t.nav.play}

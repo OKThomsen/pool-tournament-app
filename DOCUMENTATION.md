@@ -42,7 +42,7 @@ npm run dev -w @franks/web        # http://localhost:5173, proxies /api to the s
 ```
 
 Routes (see `apps/web/src/main.tsx`): `/`, `/turneringer`, `/turneringer/:id`, `/spillere`,
-`/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/admin/handicap`, `/admin/handicap/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
+`/galleri`, `/login`, `/admin/turnering/ny`, `/admin/turnering/gammel`, `/admin/turnering/:id`, `/admin/handicap`, `/admin/handicap/:id`, `/saeson/:id` (an earlier season), and `/live` (full screen, no header,
 for the flatscreen in the club), `/saeson`, and `/play` (players enter results with the join code).
 
 Login in the frontend: `useSession()` (`apps/web/src/auth.ts`) returns the logged-in admin,
@@ -52,8 +52,9 @@ API checks the session on every admin request. When logged in, the header shows 
 and Log ud instead of Log ind. "Admin" (`components/AdminMenu.tsx`) is a dropdown: "Ny Turnering",
 or "Live turnering" (the admin's page of the tournament in progress) while one is, and
 "Handicap"; it closes on a click outside it, Escape, or following a link. The menu row is
-Turneringer, Spillere, Sæson, Spil, Live, for everyone; on phones the tabs shrink a little
-(`.nav .nav-link`) so all five fit a 360px screen without scrolling. Logout asks for confirmation first, using the reusable
+Turneringer, Spillere, Sæson, Galleri, Spil, Live, for everyone; below 1100px wide the tabs
+tighten (`.nav-link`) so the header stays on one row down to about 940px, and on phones they
+shrink further (`.nav .nav-link`) so all six fit a 360px screen without scrolling. Logout asks for confirmation first, using the reusable
 `ConfirmDialog` component (`apps/web/src/components/ConfirmDialog.tsx`). API calls go through
 `api()` in `apps/web/src/api.ts`. Queries are not retried when the server refuses them (a 4xx such
 as 404), so a wrong address says "Siden findes ikke" at once; other failures are retried.
@@ -117,6 +118,33 @@ On all three leaderboards (Sæson, the frontpage and `/live` between tournaments
 drawn as pool balls like the seeds in the bracket (`Rank` in `components/Standings.tsx`); a shared
 place shares the ball, so two players level at the top both get the 1-ball and the next is 3rd.
 It is never taller than the screen; the list scrolls inside it (`.frontpage-leaderboard`).
+
+**Galleri** (`/galleri`, `GalleryPage.tsx`, data from `apps/web/src/photos.ts`) shows every
+photo newest first, under a big heading per year ("2026") and a heading per month in it
+("Oktober"), as square thumbnails (`components/PhotoGrid.tsx`). The search above it finds a
+photo when every word matches the start of a word in its names (a winner picture's 1st–3rd and
+the tagged players), its format ("9-ball"), its season ("2/2026", also "sæson 2/2026"), its year
+or its month's name in the current language, or is part of its date (or the tournament's) as
+shown ("28-10", "10-2026"). It isn't remembered. A thumbnail opens the photo large (the original
+file) with its date and season, the tournament it's the winner picture of (linked), that
+tournament's top three ("1. Anna · 2. Bo · 3. Carl"; a team as "Anna & Bo") and "På billedet:"
+with the tagged players; the arrows on it, or the arrow keys, go to the previous and next photo
+the search shows. Admins get "Upload billede" and, on an open photo, Rediger and Slet (after a
+confirmation). The dialog (`components/PhotoDialog.tsx`) takes the file (JPEG, PNG or WebP, up to
+40 MB, kept as it is; iPhones send HEIC photos as JPEG), the date (today by default), the
+concluded tournament it's the winner picture of (choosing one sets the date to the tournament's;
+it says so when that replaces the tournament's current winner picture) and the players in the
+photo (the same search as "Tilføj spiller", without "Tilføj ny spiller"). Before uploading, the
+browser reads the image's size and draws a JPEG thumbnail, 480px on its short side and turned
+the right way up.
+
+A concluded tournament's page (`TournamentDetailPage.tsx`) shows its winner picture above the
+placings, as large as the column allows (a click opens the original); without one, nothing is
+shown. Its admin panel has "Vinderbillede" (`components/WinnerPhoto.tsx`): "Upload vinderbillede"
+(the upload dialog with the tournament and its date chosen), "Vælg fra galleriet" (the photos
+not yet tied to a tournament, those taken nearest the tournament's date first; a click makes it
+the winner picture) and, when it has one, "Fjern vinderbillede" (after a confirmation; the photo
+stays in the gallery).
 
 Ny Turnering (`/admin/turnering/ny`, `CreateTournamentPage.tsx`): date (today by default), format,
 and the players. "Tilføj spiller" searches as you type, like the search on Spillere (the start of
@@ -947,3 +975,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | The calendar's rows fold up in a narrow side column (a phone turned sideways): Rediger/Slet under the title, and at the narrowest the date above it. |
 | 2026-10-29 | Header: Spil is always in the menu, left of Live (/play says when no tournament is in progress). For admins, "Ny Turnering" and "Handicap" moved into an "Admin" dropdown left of Log ud, which says "Live turnering" (to the admin's page) while a tournament is in progress. On phones all five tabs fit without scrolling. |
 | 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |
+| 2026-11-01 | A gallery ("Galleri", a tab between Sæson and Spil) of photos the admins upload: newest first, by year and month, searchable by player, date, format, season, year and month. A photo can be tied to a concluded tournament as its winner picture (one per tournament), shown on the tournament's page; its top three are then searchable too. Admins tag players in photos by hand. Originals are kept as uploaded, with a thumbnail made in the browser. |
