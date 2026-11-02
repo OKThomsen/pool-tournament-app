@@ -124,8 +124,9 @@ photo newest first, under a big heading per year ("2026") and a heading per mont
 ("Oktober"), as small square thumbnails (`components/PhotoGrid.tsx`; at least 120px, 76px on
 phones). The search above it finds a
 photo when every word matches the start of a word in its names (a winner picture's 1st–3rd and
-the tagged players), its format ("9-ball"), its season ("2/2026", also "sæson 2/2026"), its year
-or its month's name in the current language, or is part of its date (or the tournament's) as
+the tagged players), its format ("9-ball"), its season ("2/2026", also "sæson 2/2026" or "season 2/2026"), its year
+or its month's name in Danish or English, whichever language the site is in ("oktober" and
+"october" both work), or is part of its date (or the tournament's) as
 shown ("28-10", "10-2026"). It isn't remembered. A thumbnail opens the photo in the viewer
 (`components/PhotoViewer.tsx`): the original file, uncropped and fitted to the screen; a click on
 it shows it at its full size (its own pixels, scrolling inside the viewer), and another click fits
@@ -984,3 +985,4 @@ Pure functions with no I/O. Randomness is passed in as an `Rng` (`() => number`,
 | 2026-10-29 | On a phone turned sideways the header is laid out as on an upright phone: actions in the top right corner, the tabs on their own row below. |
 | 2026-11-01 | Photos are shown small on the pages (gallery thumbnails, the winner picture); a click opens the whole photo in a viewer, and a click there shows it at its full size. Several photos can be uploaded at once with one date (and the same tagged players). |
 | 2026-11-01 | A gallery ("Galleri", a tab between Sæson and Spil) of photos the admins upload: newest first, by year and month, searchable by player, date, format, season, year and month. A photo can be tied to a concluded tournament as its winner picture (one per tournament), shown on the tournament's page; its top three are then searchable too. Admins tag players in photos by hand. Originals are kept as uploaded, with a thumbnail made in the browser. |
+| 2026-11-02 | The gallery's search matches month names and the word for season in both Danish and English, whichever language the site is in ("Oktober" and "October" both find October's photos). |

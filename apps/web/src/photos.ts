@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { matchesWordStart } from './components/TableView';
 import { formatDate } from './format';
-import { t } from './strings';
+import { LANGUAGES } from './strings';
 import type { GameFormat, Placement } from './tournaments';
 
 /** A photo in the gallery. */
@@ -118,18 +118,21 @@ export function detailsOf(photo: Photo): PhotoDetails {
 /**
  * Whether the gallery's search finds the photo: every word must match the start of a word in the
  * names (the top three of a winner picture and the tagged players), the format, the season
- * ("2/2026"), the year or the month's name, or be part of the date as shown ("10-2026").
+ * ("2/2026"), the year or the month's name (in Danish or English), or be part of the date as shown ("10-2026").
  */
 export function photoMatches(photo: Photo, query: string): boolean {
   const words = query.trim().split(/\s+/).filter(Boolean);
   const dates = [photo.date, photo.tournament?.date].flatMap((d) => (d ? [formatDate(d)] : []));
+  const month = Number(photo.date.slice(5, 7)) - 1;
+  // Month names and the word for season match in both languages, whichever one the site is in.
+  const languages = Object.values(LANGUAGES);
   const text = [
     ...photo.placed.map((p) => p.name),
     ...photo.tagged.map((p) => p.name),
     photo.tournament?.format,
-    photo.season && `${t.season.title} ${photo.season}`,
+    ...(photo.season ? languages.map((l) => `${l.season.title} ${photo.season}`) : []),
     photo.date.slice(0, 4),
-    t.months[Number(photo.date.slice(5, 7)) - 1],
+    ...languages.map((l) => l.months[month]),
   ]
     .filter(Boolean)
     .join(' ');
