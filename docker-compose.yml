@@ -23,9 +23,13 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-franks}:${POSTGRES_PASSWORD:-franks}@db:5432/${POSTGRES_DB:-franks}
     ports:
       - '${APP_PORT:-8080}:3000'
+    volumes:
+      # The gallery's photos.
+      - photos:/app/data/photos
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   db-data:
+  photos:

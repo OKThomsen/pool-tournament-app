@@ -9,15 +9,19 @@ export class ApiError extends Error {
   }
 }
 
-/** Calls the API with JSON in and out. The session cookie is sent automatically (same origin). */
+/**
+ * Calls the API with JSON in and out; a FormData body is sent as it is (multipart, for uploads).
+ * The session cookie is sent automatically (same origin).
+ */
 export async function api<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},
 ): Promise<T> {
+  const json = init.body !== undefined && !(init.body instanceof FormData);
   const response = await fetch(`/api${path}`, {
     method: init.method ?? 'GET',
-    headers: init.body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    headers: json ? { 'Content-Type': 'application/json' } : undefined,
+    body: json ? JSON.stringify(init.body) : (init.body as FormData | undefined),
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;

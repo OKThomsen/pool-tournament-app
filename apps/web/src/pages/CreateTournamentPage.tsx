@@ -264,14 +264,18 @@ export function EntryForm({
  * "Tilføj spiller": a live search that matches the start of any word in a name, like the
  * search on Spillere ("jo" finds "Martin Johansen"). When nobody matches
  * exactly, "Tilføj ny spiller" opens a form for the new player (handicaps, Medlem), which
- * creates them and adds them in one step.
+ * creates them and adds them in one step; `allowNew` false leaves that out.
  */
 export function PlayerSearch({
   excluded,
   onAdd,
+  allowNew = true,
+  placeholder = t.create.addPlayer,
 }: {
-  excluded: Player[];
+  excluded: { id: number }[];
   onAdd: (p: Player) => void;
+  allowNew?: boolean;
+  placeholder?: string;
 }) {
   const [query, setQuery] = useState('');
   const players = usePlayers();
@@ -299,8 +303,8 @@ export function PlayerSearch({
     <div className="player-search">
       <input
         type="search"
-        placeholder={t.create.addPlayer}
-        aria-label={t.create.addPlayer}
+        placeholder={placeholder}
+        aria-label={placeholder}
         autoComplete="off"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -318,7 +322,7 @@ export function PlayerSearch({
           {players.isSuccess && results.length === 0 && (
             <li className="muted">{t.create.noMatch}</li>
           )}
-          {players.isSuccess && !exactMatch && (
+          {allowNew && players.isSuccess && !exactMatch && (
             <li>
               <button type="button" className="add-new" onClick={() => setCreating(true)}>
                 {t.create.addNewPlayer}: {name}

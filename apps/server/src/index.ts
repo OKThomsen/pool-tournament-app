@@ -12,6 +12,7 @@ const app = await buildApp({
   webDist: config.webDist,
   secureCookies: config.secureCookies,
   trustProxy: config.trustProxy,
+  photoDir: config.photoDir,
 });
 
 const shutdown = async () => {

@@ -10,6 +10,7 @@ import { ForFunNote, ForFunSetting } from '../components/ForFun';
 import { PoolTable } from '../components/PoolTable';
 import { ScoreDialog, type Scoring } from '../components/ScoreDialog';
 import { FitTable, ColumnLabel } from '../components/TableView';
+import { WinnerPhoto, WinnerPhotoAdmin } from '../components/WinnerPhoto';
 import { formatDate } from '../format';
 import { usePendingHandicaps } from '../handicaps';
 import { poolView } from '../poolView';
@@ -27,7 +28,8 @@ import {
 /**
  * Turneringer/Turnering: a tournament's full result — final placings, the knockout and the
  * pools. Admins can correct results here; placements and points update at once, and the admin
- * panel has "Genåbn turnering", "For sjov kamp" and "Slet turnering". An old tournament entered
+ * panel has "Genåbn turnering", "For sjov kamp", the winner picture and "Slet turnering". The
+ * winner picture, if there is one, is shown above the placings. An old tournament entered
  * afterwards has its placings only. A "For sjov kamp" shows no points.
  */
 export function TournamentDetailPage() {
@@ -57,6 +59,7 @@ export function TournamentDetailPage() {
         <ForFunNote tournament={data} />
         <DuoNote tournament={data} />
         {admin && concluded && <RegulationNotice tournamentId={data.id} />}
+        {concluded && <WinnerPhoto tournament={data} />}
         {concluded ? (
           <Concluded tournament={data} admin={Boolean(admin)} />
         ) : (
@@ -74,7 +77,8 @@ export function TournamentDetailPage() {
 
 /**
  * The admin panel of a concluded tournament: how to correct it, "Genåbn turnering" (not for an
- * old tournament, which has no knockout to go back to), "For sjov kamp" and "Slet turnering".
+ * old tournament, which has no knockout to go back to), "For sjov kamp", the winner picture and
+ * "Slet turnering".
  */
 function ConcludedAdmin({ tournament }: { tournament: Tournament }) {
   const reopen = useReopenTournament(tournament.id);
@@ -107,6 +111,7 @@ function ConcludedAdmin({ tournament }: { tournament: Tournament }) {
           <ForFunSetting tournament={tournament} />
         </>
       )}
+      <WinnerPhotoAdmin tournament={tournament} />
       <div>
         {message && (
           <p className="error" role="alert">

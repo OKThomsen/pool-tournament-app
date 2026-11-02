@@ -318,3 +318,46 @@ export const calendarEvents = pgTable(
   },
   (t) => [index('calendar_events_date_idx').on(t.date)],
 );
+
+/**
+ * A photo in the gallery ("Galleri"). The file and its thumbnail live on disk (PHOTO_DIR) under
+ * `file`; the original is kept as uploaded. A photo tied to a tournament is its winner picture,
+ * shown on the tournament's page; a tournament has at most one.
+ */
+export const photos = pgTable(
+  'photos',
+  {
+    id: serial('id').primaryKey(),
+    /** The day the photo was taken, as the admin sets it. */
+    date: date('date').notNull(),
+    /** The file's name in PHOTO_DIR (the thumbnail has the same name under thumbs/). */
+    file: text('file').notNull().unique(),
+    /** image/jpeg, image/png or image/webp. */
+    mimeType: text('mime_type').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    /** The tournament this is the winner picture of; untied if the tournament is deleted. */
+    tournamentId: integer('tournament_id').references(() => tournaments.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('photos_tournament_idx').on(t.tournamentId),
+    index('photos_date_idx').on(t.date),
+  ],
+);
+
+/** Players an admin tagged in a photo, so the gallery's search finds it by their names. */
+export const photoPlayers = pgTable(
+  'photo_players',
+  {
+    photoId: integer('photo_id')
+      .notNull()
+      .references(() => photos.id, { onDelete: 'cascade' }),
+    playerId: integer('player_id')
+      .notNull()
+      .references(() => players.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.photoId, t.playerId] })],
+);
